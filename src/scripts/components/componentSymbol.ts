@@ -129,7 +129,9 @@ export class ComponentSymbol extends SVG.Symbol {
 			if (symbol.node.id) {
 				symbol.node.querySelectorAll("[stroke-width]").forEach((item) => {
 					let strokeWidth = Number.parseFloat(item.getAttribute("stroke-width"))
-					maxStroke = strokeWidth > maxStroke ? strokeWidth : maxStroke
+					if (Number.isFinite(strokeWidth)) {
+						maxStroke = strokeWidth > maxStroke ? strokeWidth : maxStroke
+					}
 				})
 
 				// udpate the bbox for a tighter fit

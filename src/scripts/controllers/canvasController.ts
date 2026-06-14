@@ -199,10 +199,16 @@ export class CanvasController {
 			this.paper.addClass("d-none")
 		}
 		if (settings.viewBox) {
-			this.canvas.viewbox(settings.viewBox)
-			this.canvas.zoom(settings.viewZoom, new SVG.Point())
-			this.zoomCurrent = settings.viewZoom
-			this.onResizeCanvas()
+			let box = new SVG.Box(settings.viewBox)
+			let zoom = Number.isFinite(settings.viewZoom) ? settings.viewZoom : 2
+			if (Number.isFinite(box.x) && Number.isFinite(box.y) && Number.isFinite(box.w) && Number.isFinite(box.h)) {
+				this.canvas.viewbox(box)
+				this.canvas.zoom(zoom, new SVG.Point())
+				this.zoomCurrent = zoom
+				this.onResizeCanvas()
+			} else {
+				this.resetView()
+			}
 		}
 	}
 

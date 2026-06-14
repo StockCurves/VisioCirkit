@@ -1446,13 +1446,19 @@ export class MainController {
 
 				let svgIcon = SVG.SVG().addTo(addButton)
 
-				let viewBox = new SVG.Box(symbol._mapping.values().toArray()[0].viewBox)
+				let firstVariant = symbol._mapping.values().toArray()[0]
+				let viewBox = new SVG.Box(firstVariant ? firstVariant.viewBox : new SVG.Box(0, 0, 30, 15))
+				let maxStroke = Number.isFinite(symbol.maxStroke) ? symbol.maxStroke : 0
 
 				//oversize viewbox due to stroke widths
-				viewBox.width += symbol.maxStroke
-				viewBox.height += symbol.maxStroke
-				viewBox.x -= symbol.maxStroke / 2
-				viewBox.y -= symbol.maxStroke / 2
+				viewBox.width += maxStroke
+				viewBox.height += maxStroke
+				viewBox.x -= maxStroke / 2
+				viewBox.y -= maxStroke / 2
+
+				if (!Number.isFinite(viewBox.x) || !Number.isFinite(viewBox.y) || !Number.isFinite(viewBox.w) || !Number.isFinite(viewBox.h)) {
+					viewBox = new SVG.Box(0, 0, 30, 15)
+				}
 
 				// svg icon should have new size
 				svgIcon.viewbox(viewBox).width(viewBox.width).height(viewBox.height)
@@ -2090,11 +2096,16 @@ export class MainController {
 					})
 
 					let svgIcon = SVG.SVG().addTo(addButton)
-					let viewBox = new SVG.Box(standardSymbol._mapping.values().toArray()[0].viewBox)
-					viewBox.width += standardSymbol.maxStroke
-					viewBox.height += standardSymbol.maxStroke
-					viewBox.x -= standardSymbol.maxStroke / 2
-					viewBox.y -= standardSymbol.maxStroke / 2
+					let firstVariant = standardSymbol._mapping.values().toArray()[0]
+					let viewBox = new SVG.Box(firstVariant ? firstVariant.viewBox : new SVG.Box(0, 0, 30, 15))
+					let maxStroke = Number.isFinite(standardSymbol.maxStroke) ? standardSymbol.maxStroke : 0
+					viewBox.width += maxStroke
+					viewBox.height += maxStroke
+					viewBox.x -= maxStroke / 2
+					viewBox.y -= maxStroke / 2
+					if (!Number.isFinite(viewBox.x) || !Number.isFinite(viewBox.y) || !Number.isFinite(viewBox.w) || !Number.isFinite(viewBox.h)) {
+						viewBox = new SVG.Box(0, 0, 30, 15)
+					}
 					svgIcon.viewbox(viewBox).width(viewBox.width).height(viewBox.height)
 					let use = svgIcon.use(standardSymbol.symbolElement.id())
 					use.width(standardSymbol.viewBox.width).height(standardSymbol.viewBox.height)
@@ -2677,6 +2688,135 @@ export class MainController {
 
 		if (customSymbolNames.size === 0) return ""
 
+		function convertPathDToTikz(d: string, midPoint: SVG.Point): string {
+			console.log("[convertPathDToTikz] input d:", d)
+			const tokens = d.match(/[a-df-z]|-?\d*\.?\d+(e[-+]?\d+)?/ig) || []
+			let tikzPath = ""
+			let cx = 0, cy = 0
+			let startX = 0, startY = 0
+			let currentCmd = ""
+			let i = 0
+
+			const toTikzX = (x: number) => ((x - midPoint.x) * (127 / 4800)).toFixed(3)
+			const toTikzY = (y: number) => (-(y - midPoint.y) * (127 / 4800)).toFixed(3)
+
+			while (i < tokens.length) {
+				const token = tokens[i]
+				if (/[a-df-z]/i.test(token)) {
+					currentCmd = token
+					i++
+				} else {
+					if (!currentCmd) {
+						i++
+						continue
+					}
+				}
+
+				const isRelative = currentCmd === currentCmd.toLowerCase()
+				const upperCmd = currentCmd.toUpperCase()
+
+				if (upperCmd === "M") {
+					if (i + 1 < tokens.length) {
+						let nx = parseFloat(tokens[i])
+						let ny = parseFloat(tokens[i+1])
+						if (isNaN(nx) || isNaN(ny)) { i += 2; continue; }
+						if (isRelative) {
+							cx += nx
+							cy += ny
+						} else {
+							cx = nx
+							cy = ny
+						}
+						startX = cx
+						startY = cy
+						tikzPath += ` (${toTikzX(cx)}, ${toTikzY(cy)})`
+						i += 2
+						currentCmd = isRelative ? "l" : "L"
+					} else {
+						i++
+					}
+				} else if (upperCmd === "L") {
+					if (i + 1 < tokens.length) {
+						let nx = parseFloat(tokens[i])
+						let ny = parseFloat(tokens[i+1])
+						if (isNaN(nx) || isNaN(ny)) { i += 2; continue; }
+						if (isRelative) {
+							cx += nx
+							cy += ny
+						} else {
+							cx = nx
+							cy = ny
+						}
+						tikzPath += ` -- (${toTikzX(cx)}, ${toTikzY(cy)})`
+						i += 2
+					} else {
+						i++
+					}
+				} else if (upperCmd === "H") {
+					if (i < tokens.length) {
+						let nx = parseFloat(tokens[i])
+						if (isNaN(nx)) { i++; continue; }
+						if (isRelative) {
+							cx += nx
+						} else {
+							cx = nx
+						}
+						tikzPath += ` -- (${toTikzX(cx)}, ${toTikzY(cy)})`
+						i++
+					}
+				} else if (upperCmd === "V") {
+					if (i < tokens.length) {
+						let ny = parseFloat(tokens[i])
+						if (isNaN(ny)) { i++; continue; }
+						if (isRelative) {
+							cy += ny
+						} else {
+							cy = ny
+						}
+						tikzPath += ` -- (${toTikzX(cx)}, ${toTikzY(cy)})`
+						i++
+					}
+				} else if (upperCmd === "C") {
+					if (i + 5 < tokens.length) {
+						let x1 = parseFloat(tokens[i])
+						let y1 = parseFloat(tokens[i+1])
+						let x2 = parseFloat(tokens[i+2])
+						let y2 = parseFloat(tokens[i+3])
+						let x = parseFloat(tokens[i+4])
+						let y = parseFloat(tokens[i+5])
+						
+						if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2) || isNaN(x) || isNaN(y)) {
+							i += 6
+							continue
+						}
+
+						if (isRelative) {
+							x1 += cx; y1 += cy
+							x2 += cx; y2 += cy
+							x += cx; y += cy
+						}
+						
+						tikzPath += ` .. controls (${toTikzX(x1)}, ${toTikzY(y1)}) and (${toTikzX(x2)}, ${toTikzY(y2)}) .. (${toTikzX(x)}, ${toTikzY(y)})`
+						cx = x
+						cy = y
+						i += 6
+					} else {
+						i++
+					}
+				} else if (upperCmd === "Z") {
+					tikzPath += " -- cycle"
+					cx = startX
+					cy = startY
+					i++
+				} else {
+					i++
+				}
+			}
+			const res = tikzPath.trim()
+			console.log("[convertPathDToTikz] output tikzPath:", res)
+			return res
+		}
+
 		const definitions: string[] = []
 
 		for (const tikzName of customSymbolNames) {
@@ -2684,6 +2824,67 @@ export class MainController {
 			if (!customSymbol) continue
 
 			const baseSymbol = customSymbol.baseSymbol || (tikzName.toLowerCase().includes("pmos") ? "pmos" : "nmos")
+
+			const compSymbol = this.symbols.find(s => s.tikzName === tikzName)
+			if (compSymbol) {
+				const variants = Array.from(compSymbol._mapping.values())
+				const variant = variants[0]
+				if (variant && variant.symbol) {
+					const mid = variant.mid
+					const drawCommands: string[] = []
+
+					const collectDrawCommands = (node: Element) => {
+						const tag = node.tagName.toLowerCase()
+						const sw = node.getAttribute("stroke-width") || "0.4"
+						
+						if (tag === "line") {
+							const dx1 = (parseFloat(node.getAttribute("x1") || "0") - mid.x) * (127 / 4800)
+							const dy1 = -(parseFloat(node.getAttribute("y1") || "0") - mid.y) * (127 / 4800)
+							const dx2 = (parseFloat(node.getAttribute("x2") || "0") - mid.x) * (127 / 4800)
+							const dy2 = -(parseFloat(node.getAttribute("y2") || "0") - mid.y) * (127 / 4800)
+							drawCommands.push(`\\draw [line width=${sw}pt] (${dx1.toFixed(3)}, ${dy1.toFixed(3)}) -- (${dx2.toFixed(3)}, ${dy2.toFixed(3)});`)
+						} else if (tag === "circle") {
+							const dcx = (parseFloat(node.getAttribute("cx") || "0") - mid.x) * (127 / 4800)
+							const dcy = -(parseFloat(node.getAttribute("cy") || "0") - mid.y) * (127 / 4800)
+							const dr = parseFloat(node.getAttribute("r") || "0") * (127 / 4800)
+							drawCommands.push(`\\draw [line width=${sw}pt] (${dcx.toFixed(3)}, ${dcy.toFixed(3)}) circle (${dr.toFixed(3)});`)
+						} else if (tag === "rect") {
+							if (node.classList.contains("clickBackground")) return
+							const rx = parseFloat(node.getAttribute("x") || "0")
+							const ry = parseFloat(node.getAttribute("y") || "0")
+							const rw = parseFloat(node.getAttribute("width") || "0")
+							const rh = parseFloat(node.getAttribute("height") || "0")
+							const dx1 = (rx - mid.x) * (127 / 4800)
+							const dy1 = -(ry - mid.y) * (127 / 4800)
+							const dx2 = (rx + rw - mid.x) * (127 / 4800)
+							const dy2 = -(ry + rh - mid.y) * (127 / 4800)
+							drawCommands.push(`\\draw [line width=${sw}pt] (${dx1.toFixed(3)}, ${dy1.toFixed(3)}) rectangle (${dx2.toFixed(3)}, ${dy2.toFixed(3)});`)
+						} else if (tag === "path") {
+							const d = node.getAttribute("d") || ""
+							const tikzPath = convertPathDToTikz(d, mid)
+							if (tikzPath) {
+								const cmd = `\\draw [line width=${sw}pt] ${tikzPath};`
+								console.log("[collectDrawCommands] path push:", cmd)
+								drawCommands.push(cmd)
+							}
+						} else if (tag === "g") {
+							for (let i = 0; i < node.children.length; i++) {
+								collectDrawCommands(node.children[i])
+							}
+						}
+					}
+
+					const symbolNode = variant.symbol.node as any
+					for (let i = 0; i < symbolNode.children.length; i++) {
+						collectDrawCommands(symbolNode.children[i])
+					}
+
+					if (drawCommands.length > 0) {
+						definitions.push(`\t${tikzName}/.style={\n\t\t${baseSymbol},\n\t\tdraw=none,\n\t\tfill=none,\n\t\tappend after command={\n\t\t\t\\begin{scope}[shift={(\\tikzlastnode.center)}]\n\t\t\t\t${drawCommands.join("\n\t\t\t\t")}\n\t\t\t\\end{scope}\n\t\t}\n\t}`)
+						continue
+					}
+				}
+			}
 
 			definitions.push(`\t${tikzName}/.style={${baseSymbol}}`)
 		}

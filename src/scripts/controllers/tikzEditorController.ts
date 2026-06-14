@@ -50,6 +50,9 @@ export class TikzEditorController {
 
 		// Override hotkeys filter to allow Ctrl+B inside textarea
 		hotkeys.filter = (event: KeyboardEvent) => {
+			if (document.getElementById("symbolEditorModal")?.classList.contains("show")) {
+				return false
+			}
 			const target = (event.target || event.srcElement) as HTMLElement
 			const tagName = target.tagName
 			const isCtrlB = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b"

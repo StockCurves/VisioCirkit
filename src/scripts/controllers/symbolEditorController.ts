@@ -34,6 +34,12 @@ export class SymbolEditorController {
 	private scale = 8
 	private panOffset = new SVG.Point(0, 0)
 	private originalViewBox: SVG.Box | null = null
+	private selectionBoxElement: SVG.Rect | null = null
+	private handle1: SVG.Circle | null = null
+	private handle2: SVG.Circle | null = null
+
+	private isPanning = false
+	private lastMousePos: SVG.Point | null = null
 
 	private constructor() {
 		// Initialization deferred until DOM is ready or open is called
@@ -200,7 +206,18 @@ export class SymbolEditorController {
 			return new SVG.Point(snapVal(pt.x), snapVal(pt.y))
 		}
 
+		this.svg.node.addEventListener("contextmenu", (e) => {
+			e.preventDefault()
+		})
+
 		this.svg.on("mousedown", (e: MouseEvent) => {
+			if (e.button === 2) {
+				// Right click pan
+				e.preventDefault()
+				this.isPanning = true
+				this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
+				return
+			}
 			if (e.button !== 0) return // Only left clicks
 			
 			const localPt = getLocalCoords(e)
@@ -241,6 +258,21 @@ export class SymbolEditorController {
 		})
 
 		this.svg.on("mousemove", (e: MouseEvent) => {
+			if (this.isPanning && this.lastMousePos) {
+				const dx = e.clientX - this.lastMousePos.x
+				const dy = e.clientY - this.lastMousePos.y
+
+				const t = this.viewport.transform()
+				this.viewport.transform({
+					...t,
+					translateX: (t.translateX || 0) + dx / this.scale,
+					translateY: (t.translateY || 0) + dy / this.scale
+				})
+
+				this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
+				return
+			}
+
 			if (!this.isDrawing || !this.drawStartPoint || !this.tempDrawElement) return
 
 			const localPt = getLocalCoords(e)
@@ -264,11 +296,17 @@ export class SymbolEditorController {
 		})
 
 		this.svg.on("mouseup", (e: MouseEvent) => {
+			if (e.button === 2) {
+				this.isPanning = false
+				this.lastMousePos = null
+				return
+			}
+
 			if (!this.isDrawing || !this.tempDrawElement) return
 			this.isDrawing = false
 
 			// Move drawing to active elements group and apply interactions
-			const finalElement = this.tempDrawElement.clone(this.elementsGroup)
+			const finalElement = this.tempDrawElement.clone().addTo(this.elementsGroup)
 			this.tempDrawElement.remove()
 			this.tempDrawElement = null
 
@@ -284,6 +322,36 @@ export class SymbolEditorController {
 				finalElement.remove()
 			}
 		})
+
+		this.svg.on("wheel", (e: WheelEvent) => {
+			e.preventDefault()
+			const zoomFactor = 1.1
+			const zoomDirection = e.deltaY < 0 ? 1 : -1
+			const oldScale = this.scale
+			const newScale = zoomDirection > 0 ? oldScale * zoomFactor : oldScale / zoomFactor
+			
+			if (newScale < 1 || newScale > 50) return
+			
+			this.scale = newScale
+			
+			const rect = this.svg.node.getBoundingClientRect()
+			const cx = e.clientX - rect.left
+			const cy = e.clientY - rect.top
+			
+			const t = this.viewport.transform()
+			const tx = t.translateX || 0
+			const ty = t.translateY || 0
+			
+			const newTx = tx + cx / newScale - cx / oldScale
+			const newTy = ty + cy / newScale - cy / oldScale
+			
+			this.viewport.transform({
+				...t,
+				scale: this.scale,
+				translateX: newTx,
+				translateY: newTy
+			})
+		})
 	}
 
 	private setupKeyboardListeners() {
@@ -295,11 +363,11 @@ export class SymbolEditorController {
 			if (e.target instanceof HTMLInputElement) return // Avoid intercepting input fields
 
 			const key = e.key.toLowerCase()
-			if (key === "v") {
+			if (key === "v" || key === "escape") {
 				const btn = document.getElementById("editorToolSelect") as HTMLButtonElement
 				if (btn) btn.click()
 				e.preventDefault()
-			} else if (key === "l") {
+			} else if (key === "l" || key === "w") {
 				const btn = document.getElementById("editorToolLine") as HTMLButtonElement
 				if (btn) btn.click()
 				e.preventDefault()
@@ -600,6 +668,9 @@ export class SymbolEditorController {
 	private deselect() {
 		this.selectedElement = null
 		this.overlayGroup.clear()
+		this.selectionBoxElement = null
+		this.handle1 = null
+		this.handle2 = null
 		
 		const deleteBtn = document.getElementById("editorDeleteShape") as HTMLButtonElement
 		if (deleteBtn) deleteBtn.disabled = true
@@ -614,15 +685,76 @@ export class SymbolEditorController {
 	}
 
 	private updateOverlay() {
-		this.overlayGroup.clear()
 		if (!this.selectedElement) return
+
+		if (!this.selectionBoxElement) {
+			this.selectionBoxElement = this.overlayGroup.rect()
+				.fill("none")
+				.stroke({ color: "#007fff", width: 0.5, dasharray: "2, 1" })
+		}
 
 		// Draw bounding box border dash highlighting
 		const box = this.selectedElement.bbox()
-		this.overlayGroup.rect(box.w + 1, box.h + 1)
-			.center(box.cx, box.cy)
-			.fill("none")
-			.stroke({ color: "#007fff", width: 0.5, dasharray: "2, 1" })
+		this.selectionBoxElement.size(box.w + 1, box.h + 1).center(box.cx, box.cy)
+
+		if (this.selectedElement instanceof SVG.Line) {
+			const line = this.selectedElement as SVG.Line
+			const snapStep = 0.5
+
+			const t = line.transform()
+			const tx = t.translateX || 0
+			const ty = t.translateY || 0
+
+			if (!this.handle1) {
+				this.handle1 = this.overlayGroup.circle(3)
+					.fill("#ffffff")
+					.stroke({ color: "#007fff", width: 0.5 })
+					.draggable()
+				this.handle1.node.style.cursor = "crosshair"
+				
+				this.handle1.on("dragmove", (e: any) => {
+					const cx = Math.round(this.handle1!.cx() / snapStep) * snapStep
+					const cy = Math.round(this.handle1!.cy() / snapStep) * snapStep
+					this.handle1!.center(cx, cy)
+					
+					const localX = cx - (line.transform().translateX || 0)
+					const localY = cy - (line.transform().translateY || 0)
+					line.plot(localX, localY, line.attr("x2"), line.attr("y2"))
+					this.updateOverlayBoxOnly()
+				})
+			}
+			if (!this.handle2) {
+				this.handle2 = this.overlayGroup.circle(3)
+					.fill("#ffffff")
+					.stroke({ color: "#007fff", width: 0.5 })
+					.draggable()
+				this.handle2.node.style.cursor = "crosshair"
+				
+				this.handle2.on("dragmove", (e: any) => {
+					const cx = Math.round(this.handle2!.cx() / snapStep) * snapStep
+					const cy = Math.round(this.handle2!.cy() / snapStep) * snapStep
+					this.handle2!.center(cx, cy)
+
+					const localX = cx - (line.transform().translateX || 0)
+					const localY = cy - (line.transform().translateY || 0)
+					line.plot(line.attr("x1"), line.attr("y1"), localX, localY)
+					this.updateOverlayBoxOnly()
+				})
+			}
+
+			// Sync positions when the line itself is dragged or selected
+			this.handle1.center(line.attr("x1") + tx, line.attr("y1") + ty)
+			this.handle2.center(line.attr("x2") + tx, line.attr("y2") + ty)
+		} else {
+			if (this.handle1) { this.handle1.remove(); this.handle1 = null }
+			if (this.handle2) { this.handle2.remove(); this.handle2 = null }
+		}
+	}
+
+	private updateOverlayBoxOnly() {
+		if (!this.selectedElement || !this.selectionBoxElement) return
+		const box = this.selectedElement.bbox()
+		this.selectionBoxElement.size(box.w + 1, box.h + 1).center(box.cx, box.cy)
 	}
 
 	private deleteSelected() {
