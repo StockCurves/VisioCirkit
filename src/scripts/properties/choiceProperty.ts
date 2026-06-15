@@ -28,15 +28,15 @@ export class ChoiceProperty<T extends ChoiceEntry> extends EditableProperty<T> {
 		let row = this.getRow()
 
 		let col = document.createElement("div") as HTMLDivElement
-		col.classList.add("col-12", "input-group", "my-0")
+		col.classList.add("col-12", "my-1")
 		{
 			let anchorLabel = document.createElement("label") as HTMLLabelElement
-			anchorLabel.classList.add("input-group-text")
+			anchorLabel.classList.add("form-label", "w-100")
 			anchorLabel.innerHTML = this.label
 			col.appendChild(anchorLabel)
 
 			this.selectElement = document.createElement("select") as HTMLSelectElement
-			this.selectElement.classList.add("form-select")
+			this.selectElement.classList.add("form-select", "w-100")
 			this.selectElement.name = "anchor"
 			for (let index = 0; index < this.choiceOptions.length; index++) {
 				const labelKey = this.choiceOptions[index].key

@@ -25,21 +25,29 @@
 
 #properties-content {
 	padding: 20px 16px !important;
+	font-size: 13.5px;
+	color: var(--text-main);
+
+	// Enforce consistent text size for general text nodes, labels, and spans inside the panel
+	span, label, p {
+		font-size: 13.5px;
+	}
 	
 	.form-label {
 		font-family: var(--font-sans);
-		font-size: 12px;
-		font-weight: 600;
+		font-size: 11px !important;
+		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.5px;
+		letter-spacing: 0.6px;
 		color: var(--text-muted);
 		margin-bottom: 6px;
+		display: inline-block;
 	}
 
 	.form-control,
 	.form-select {
 		font-family: var(--font-sans);
-		font-size: 14px;
+		font-size: 13.5px;
 		font-weight: 500;
 		border-radius: 8px;
 		border: 1px solid var(--border-color);
@@ -54,6 +62,27 @@
 			box-shadow: 0 0 0 3px var(--primary-light);
 			background-color: var(--bg-panel);
 		}
+	}
+
+	// Bootstrap input groups inside properties
+	.input-group-text {
+		font-size: 13px !important;
+		font-weight: 600;
+		color: var(--text-muted);
+		background-color: var(--bg-app);
+		border-color: var(--border-color);
+		padding: 6px 12px;
+	}
+
+	// Sliders values indicator
+	#majorLabel, #minorLabel {
+		font-size: 11px;
+		font-weight: 700;
+		font-family: var(--font-mono);
+		color: var(--primary);
+		background-color: var(--primary-light);
+		padding: 2px 6px;
+		border-radius: 4px;
 	}
 
 	// Sliders styling
@@ -76,6 +105,55 @@
 		}
 	}
 
+	// Switch styles
+	.form-check {
+		font-size: 13.5px;
+		display: flex;
+		align-items: center;
+
+		.form-check-label {
+			font-size: 13.5px;
+			font-weight: 500;
+			color: var(--text-main);
+		}
+
+		.form-check-input {
+			cursor: pointer;
+			margin-top: 0;
+			width: 2.2em;
+			height: 1.1em;
+			transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+		}
+	}
+
+	// Action buttons inside properties
+	.btn {
+		font-size: 13px !important;
+		font-weight: 600;
+		padding: 8px 16px;
+		border-radius: 8px;
+
+		span.material-symbols-outlined {
+			font-size: 16px !important;
+		}
+	}
+
+	// Radio button options (Choice/Radio components) font override
+	.btn-outline-secondary.fs-5 {
+		font-size: 13px !important;
+		padding: 6px 8px;
+		border-radius: 6px;
+
+		span {
+			font-size: 16px !important;
+		}
+	}
+
+	// Input group size overrides from JS
+	.fs-6 {
+		font-size: 13px !important;
+	}
+
 	// View controls card spacing
 	#view-properties {
 		.d-flex.flex-column {
@@ -83,4 +161,38 @@
 		}
 	}
 }
+
+// Modern Beautified Grid Spacing Card
+.grid-spacing-card {
+	background-color: var(--bg-app);
+	border: 1px solid var(--border-color) !important;
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	box-shadow: var(--shadow-sm);
+
+	&:hover {
+		border-color: var(--primary) !important;
+		background-color: var(--primary-light);
+		box-shadow: var(--shadow-md);
+	}
+}
+
+#tikzEditorResizer {
+	width: 1px !important;
+	min-width: 1px !important;
+	max-width: 1px !important;
+	flex: 0 0 1px !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: none !important;
+	transition: background-color 0.2s ease, width 0.2s ease;
+	
+	&:hover, &:active {
+		background-color: var(--primary) !important;
+		width: 1px !important;
+		min-width: 1px !important;
+		max-width: 1px !important;
+		flex: 0 0 1px !important;
+	}
+}
+
 

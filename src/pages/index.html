@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-US" data-bs-theme="dark">
+<html lang="en-US" data-bs-theme="light">
 	<head>
 		<!-- Google tag (gtag.js) -->
 		<script async src="https://www.googletagmanager.com/gtag/js?id=G-SN05E6G25Q"></script>
@@ -11,8 +11,8 @@
 			gtag("js", new Date())
 			gtag("config", "G-SN05E6G25Q", { cookie_flags: "max-age=7200;secure;samesite=strict" })
 		</script>
-		<title>CircuiTikZ Designer</title>
-		<meta name="title" property="og:title" content="CircuiTikZ Designer" />
+		<title>CkTikZ</title>
+		<meta name="title" property="og:title" content="CkTikZ" />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content="https://circuit2tikz.tf.fau.de/designer/" />
 		<meta name="image" property="og:image" content="../icons/page_preview.png" />
@@ -51,8 +51,7 @@
 			<nav class="container-xxl flex-wrap flex-lg-nowrap">
 				<a class="navbar-brand unselectable d-flex align-items-center gap-2" href=".">
 					<img src="../icons/favicon.svg" style="width: 1.8em; height: 1.8em" class="d-inline-block" />
-					<span class="fw-bold" style="font-family: var(--font-sans); letter-spacing: -0.5px; color: var(--text-main);">CircuiTi<i>k</i>Z Designer</span>
-					<span class="badge bg-secondary-subtle text-secondary version unselectable d-none d-lg-inline fs-7"> v0.0.0 </span>
+					<span class="fw-bold" style="font-family: var(--font-sans); letter-spacing: -0.5px; color: var(--text-main);">CkTikZ</span>
 				</a>
 				<div class="d-flex gap-2 align-items-center ms-md-auto">
 					<a
@@ -82,8 +81,7 @@
 				<div class="offcanvas-md offcanvas-end" id="ctNavbar">
 					<div class="offcanvas-header px-4 pb-0">
 						<h5 class="offcanvas-title fs-3">
-							<span class="">CircuiTi<i>k</i>Z Designer</span>
-							<span class="badge text-bg-secondary version unselectable"> v0.0.0 </span>
+							<span class="">CkTikZ</span>
 						</h5>
 						<button
 							type="button"
@@ -94,6 +92,23 @@
 					</div>
 					<div class="offcanvas-body">
 						<ul class="navbar-nav gap-2 align-items-center">
+							<li class="nav-item col-12 col-md-auto d-flex align-items-center gap-2 px-2">
+								<span class="text-nowrap mb-0 small" style="color: var(--text-main);">Template:</span>
+								<div class="dropdown">
+									<button
+										id="template-dropdown-btn"
+										class="btn btn-outline-secondary btn-sm dropdown-toggle text-start d-flex justify-content-between align-items-center"
+										type="button"
+										data-bs-toggle="dropdown"
+										aria-expanded="false"
+										style="min-width: 150px; background-color: var(--bg-panel); color: var(--text-main); border-color: var(--border-color);">
+										<span>rc-lowpass</span>
+									</button>
+									<ul id="template-dropdown-menu" class="dropdown-menu shadow" style="max-height: 400px; overflow-y: auto; z-index: 1060; background-color: var(--bg-panel); border-color: var(--border-color);">
+										<!-- Dynamically populated -->
+									</ul>
+								</div>
+							</li>
 							<li class="nav-item col-12 col-md-auto">
 								<button
 									type="button"
@@ -116,19 +131,9 @@
 									<span class="material-symbols-outlined d-flex align-items-center" style="font-size: 20px;">image</span>
 								</button>
 							</li>
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2" style="min-height: 24px;"></div>
-								<hr class="d-md-none my-2" />
-							</li>
-							<li class="nav-item col-12 col-md-auto align-self-md-center">
+
+							<li class="nav-item col-12 col-md-auto align-self-md-center d-none">
 								<div class="form-check form-switch d-flex ps-0 m-0 fs-5 gap-2 align-items-center">
-									<label
-										class="form-check-label material-symbols-outlined"
-										for="darkModeSwitch"
-										id="darkModeLabel"
-										style="font-size: 22px;">
-										dark_mode
-									</label>
 									<input
 										class="form-check-input m-0 align-self-center custom-theme-switch"
 										type="checkbox"
@@ -136,10 +141,7 @@
 										checked />
 								</div>
 							</li>
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2" style="min-height: 24px;"></div>
-								<hr class="d-md-none my-2" />
-							</li>
+
 							<li class="nav-item col-12 col-md-auto">
 								<button
 									type="button"
@@ -147,14 +149,12 @@
 									data-bs-toggle="modal"
 									data-bs-target="#tabManagementModal"
 									data-bs-toggle-second="tooltip"
+									data-bs-placement="bottom"
 									data-bs-title="Tab management">
 									<span class="material-symbols-outlined d-flex align-items-center" style="font-size: 20px;">tab_group</span>
 								</button>
 							</li>
-							<li class="nav-item py-2 py-md-1 col-12 col-md-auto">
-								<div class="vr d-none d-md-flex h-100 mx-md-2" style="min-height: 24px;"></div>
-								<hr class="d-md-none my-2" />
-							</li>
+
 							<li class="nav-item col-12 col-md-auto">
 								<button
 									type="button"
@@ -162,7 +162,8 @@
 									data-bs-toggle="modal"
 									data-bs-target="#aboutModal"
 									data-bs-toggle-second="tooltip"
-									data-bs-title="About CircuiTikZ Designer">
+									data-bs-placement="bottom"
+									data-bs-title="About CkTikZ">
 									<span class="material-symbols-outlined d-flex align-items-center" style="font-size: 20px;">info</span>
 								</button>
 							</li>
@@ -176,7 +177,7 @@
 			<div class="row w-100 h-100 p-0 m-0" id="siteContent">
 				<div class="d-none m-0 p-0 bg-body-tertiary border border-secondary rounded d-flex flex-column" id="tikzEditorContainer" style="width: 300px; min-width: 200px; max-width: 600px; height: 100%;">
 					<div class="d-flex flex-column h-100 p-2">
-						<div class="d-flex justify-content-between align-items-center mb-2">
+						<div class="d-flex flex-column align-items-start gap-2 mb-2">
 							<h5 class="m-0 unselectable">TikZ Editor</h5>
 							<div class="d-flex gap-1">
 								<button type="button" class="btn btn-secondary btn-sm icon-button" id="copyTikzCodeButton" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Copy TikZ code">
@@ -185,18 +186,21 @@
 								<button type="button" class="btn btn-secondary btn-sm icon-button" id="saveTikzCodeButton" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Save TikZ code (.tikz)">
 									<span class="material-symbols-outlined" style="font-size: 18px; width: 18px; height: 18px;">download</span>
 								</button>
+								<button type="button" class="btn btn-success btn-sm icon-button" id="saveServerCodeButton" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Save to Server (Cloud)">
+									<span class="material-symbols-outlined" style="font-size: 18px; width: 18px; height: 18px;">cloud_upload</span>
+								</button>
 								<button type="button" class="btn btn-primary btn-sm icon-button" id="applyTikzButton">
 									<span class="material-symbols-outlined" style="font-size: 18px; width: 18px; height: 18px;">done</span>Apply
 								</button>
 							</div>
 						</div>
-						<textarea id="tikzEditorTextArea" class="flex-grow-1 form-control font-monospace" style="font-family: monospace; font-size: 14px; resize: none;" spellcheck="false" placeholder="% Edit TikZ code here..."></textarea>
-						<div id="tikzEditorError" class="text-danger mt-1 small" style="white-space: pre-wrap; display: none;"></div>
+						<div id="tikzEditorTextArea" class="flex-grow-1 form-control font-monospace overflow-y-auto" style="font-family: monospace; font-size: 14px; resize: none; white-space: pre; outline: none;" spellcheck="false" contenteditable="true"></div>
+						<div id="tikzEditorError" class="alert alert-danger mt-2 small py-2 px-3" style="white-space: pre-wrap; display: none;"></div>
 					</div>
 				</div>
 				<!-- Resizer handler -->
-				<div id="tikzEditorResizer" class="d-none" style="width: 6px; cursor: col-resize; background-color: var(--bs-border-color); user-select: none; align-self: stretch; z-index: 10;"></div>
-				<div class="col-12 col-md position-relative" id="canvasContainer">
+				<div id="tikzEditorResizer" class="d-none" style="width: 1px; cursor: col-resize; background-color: var(--border-color); user-select: none; align-self: stretch; z-index: 10;"></div>
+				<div class="col-12 col-md position-relative ps-md-0" id="canvasContainer">
 					<div
 						class="z-1 position-absolute border rounded bg-body d-flex flex-row justify-content-center gap-3 align-items-center p-2 shadow-sm"
 						id="controlsContainer" style="top: 15px; left: 15px; border-radius: 12px !important; border: 1px solid var(--border-color) !important; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
@@ -280,13 +284,13 @@
 							Properties
 						</h2>
 						<hr class="m-0" />
-						<div class="d-flex flex-column w-100 px-3 fs-5" id="properties-content">
+						<div class="d-flex flex-column w-100 px-3" id="properties-content">
 							<div class="d-none pt-2" id="view-properties">
 								<div class="d-flex flex-column w-100 h-auto gap-3">
 									<div class="m-0 p-0 d-flex justify-content-between align-items-center">
 										<button
 											type="button"
-											class="btn btn-primary flex-grow-1 fs-5"
+											class="btn btn-primary flex-grow-1"
 											id="resetViewButton">
 											Reset view
 										</button>
@@ -294,7 +298,7 @@
 									<div class="m-0 p-0 d-flex justify-content-between align-items-center">
 										<button
 											type="button"
-											class="btn btn-primary flex-grow-1 fs-5"
+											class="btn btn-primary flex-grow-1"
 											id="fitViewButton">
 											Fit view
 										</button>
@@ -303,7 +307,7 @@
 										class="form-check form-switch m-0 p-0 d-flex justify-content-between align-items-center">
 										<span class="form-check-label">Enable grid</span>
 										<input
-											class="form-check-input m-0 fs-4"
+											class="form-check-input m-0"
 											type="checkbox"
 											role="switch"
 											id="gridVisible" />
@@ -330,10 +334,12 @@
 											step="1"
 											id="minorSliderInput" />
 									</div>
-									<div
-										class="w-100 border border-info-subtle bg-info-subtle text-info-emphasis rounded p-2 d-flex justify-content-between align-items-center gap-2">
-										<div class="flex-shrink-1">Current grid spacing:</div>
-										<span id="gridInfo" class="flex-shrink-0"></span>
+									<div class="grid-spacing-card d-flex align-items-center justify-content-between p-2 rounded-3 border">
+										<div class="d-flex align-items-center gap-2">
+											<span class="material-symbols-outlined text-primary" style="font-size: 18px;">grid_on</span>
+											<span class="fw-semibold text-secondary" style="font-size: 13px;">Current grid spacing</span>
+										</div>
+										<span id="gridInfo" class="badge bg-primary-subtle text-primary fw-bold px-2 py-1" style="font-size: 12px; font-family: var(--font-mono);"></span>
 									</div>
 								</div>
 							</div>
@@ -357,9 +363,9 @@
 				<div class="d-flex justify-content-between align-items-center w-100">
 					<h5 class="offcanvas-title" id="offcanvasLabel">Symbols</h5>
 					<div class="d-flex gap-2 align-items-center">
-						<button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" id="addCategoryButton" title="新增分類" style="padding: 2px 8px;">
-							<span class="material-symbols-outlined" style="font-size: 16px; line-height: 1;">create_new_folder</span>
-							<span style="font-size: 12px; line-height: 1;">新增分類</span>
+						<button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" id="addCategoryButton" title="Add Category">
+							<span class="material-symbols-outlined" style="font-size: 16px;">create_new_folder</span>
+							<span>Add Category</span>
 						</button>
 						<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
 					</div>
@@ -495,6 +501,42 @@
 			</div>
 		</div>
 
+		<!-- Modal (save to server dialog) -->
+		<div
+			class="modal fade"
+			id="saveServerModal"
+			tabindex="-1"
+			aria-labelledby="saveServerModalLabel"
+			aria-hidden="true"
+			role="dialog">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h1 class="modal-title fs-5" id="saveServerModalLabel">Save Circuit to Server</h1>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body d-flex flex-column gap-3">
+						<div>
+							<label for="saveServerFilenameInput" class="form-label">Filename</label>
+							<div class="input-group">
+								<input type="text" class="form-control" id="saveServerFilenameInput" placeholder="circuit" />
+								<span class="input-group-text">.tex</span>
+							</div>
+						</div>
+						<div class="form-text">
+							The file will be saved in the server's <code>work/</code> directory and will be editable.
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+						<button type="button" class="btn btn-primary icon-button" id="saveServerConfirmButton">
+							<span class="material-symbols-outlined">cloud_upload</span>Save
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<!-- Modal (about dialog) -->
 		<div
 			class="modal fade"
@@ -507,51 +549,29 @@
 				<div class="modal-content">
 					<div class="modal-header">
 						<h1 class="modal-title fs-3" id="aboutModalLabel">
-							About CircuiTi<i>k</i>Z-Designer
-							<span class="badge text-bg-secondary version"> v0.0.0 </span>
+							About CkTikZ
 						</h1>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 					</div>
 					<div class="modal-body">
 						<p>
-							CircuiTi<i>k</i>Z-Designer is part of the Circuit2Ti<i>k</i>Z-Project which was started as a
-							research project at the Institute of Electronics Engineering at the
-							Friedrich-Alexander-Universit&auml;t Erlangen-N&uuml;rnberg. The goal was to create a GUI
-							application for easy and fast drawing of circuits to be used in
-							<a href="https://github.com/circuitikz/circuitikz">CircuiTi<i>k</i>Z</a>.
+							CkTikZ is forked from the original <a href="https://github.com/Circuit2TikZ/CircuiTikZ-Designer" target="_blank">CircuiTikZ-Designer</a> and operates with identical behavior. The original project was part of the Circuit2Ti<i>k</i>Z-Project started as a research project at the Institute of Electronics Engineering at the Friedrich-Alexander-Universit&auml;t Erlangen-N&uuml;rnberg.
 						</p>
 						<p>
 							If you find bugs or have suggestions, please feel free to contact us, preferably on
-							<a href="https://github.com/Circuit2TikZ/CircuiTikZ-Designer" target="_blank">Github</a>.
+							<a href="https://github.com/StockCurves/cktikz" target="_blank">GitHub</a>.
 						</p>
-						<p>&copy; 2025 Philipp Wiedemann, Manuel Kirzinger, Christof Pfannenm&uuml;ller</p>
 					</div>
-					<div class="modal-footer justify-content-between align-items-baseline">
-						<div class="col-sm-4 w-auto">
-							<a class="icon-link" href="https://www.circuit2tikz.tf.fau.de/" target="_blank">
-								<svg class="bi" width="40" height="40" fill="currentColor">
-									<use xlink:href="../icons/bootstrap-icons.svg#house" />
-								</svg>
-								<span>Circuit2Ti<em>k</em>Z</span>
-							</a>
-						</div>
-						<div class="col-sm-4 w-auto">
+					<div class="modal-footer justify-content-center">
+						<div class="col-sm-12 text-center">
 							<a
 								class="icon-link"
-								href="https://github.com/Circuit2TikZ/CircuiTikZ-Designer"
+								href="https://github.com/StockCurves/cktikz"
 								target="_blank">
 								<svg class="bi" width="40" height="40" fill="currentColor">
 									<use xlink:href="../icons/bootstrap-icons.svg#github" />
 								</svg>
-								<span>CircuiTi<em>k</em>Z-Designer</span>
-							</a>
-						</div>
-						<div class="col-sm-4 w-auto">
-							<a class="icon-link" href="https://github.com/Circuit2TikZ/SymbolConvert" target="_blank">
-								<svg class="bi" width="40" height="40" fill="currentColor">
-									<use xlink:href="../icons/bootstrap-icons.svg#github" />
-								</svg>
-								SymbolConvert
+								<span>CkTikZ GitHub</span>
 							</a>
 						</div>
 					</div>
@@ -575,10 +595,10 @@
 					</div>
 					<div class="modal-body">
 						<p>
-							CircuiTi<i>k</i>Z Designer can manage a different canvas for each tab to allow multiple
+							CkTikZ (forked from CircuiTikZ-Designer with identical behavior) can manage a different canvas for each tab to allow multiple
 							drawings at the same time.
 						</p>
-						<p>Total storage used by CircuiTi<i>k</i>Z Designer: <span id="storageUsed"></span></p>
+						<p>Total storage used by CkTikZ: <span id="storageUsed"></span></p>
 						<table class="table table-striped align-middle">
 							<thead class="align-middle">
 								<tr>
@@ -617,8 +637,7 @@
 						<h1 class="fs-4">General</h1>
 						<ul>
 							<li>
-								Saving your circuit regularly as a json file is recommended. This project is still in
-								alpha!
+								We use TikZ code as the single source of truth, so we don't use JSON to save circuits.
 							</li>
 							<li>
 								Every new browser tab is a new canvas ready for drawing. You can manage the browser tabs
@@ -1094,6 +1113,14 @@
 					</div>
 				</div>
 			</div>
+		</div>
+
+		<!-- Context Menu for Work items -->
+		<div id="workContextMenu" class="dropdown-menu shadow position-absolute" style="display: none; z-index: 1080;">
+			<button class="dropdown-item text-danger d-flex align-items-center gap-2" id="deleteWorkButton">
+				<span class="material-symbols-outlined fs-6">delete</span>
+				Delete
+			</button>
 		</div>
 
 		<script type="module" src="../scripts/index.ts"></script>

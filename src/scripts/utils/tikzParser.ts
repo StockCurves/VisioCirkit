@@ -8,6 +8,23 @@ import {
 
 const scale = 127 / 4800;
 
+export function cleanTikzText(text: string): string {
+	let clean = text.trim();
+	while (true) {
+		let changed = false;
+		if (clean.startsWith("{") && clean.endsWith("}")) {
+			clean = clean.substring(1, clean.length - 1).trim();
+			changed = true;
+		}
+		if (clean.startsWith("$") && clean.endsWith("$")) {
+			clean = clean.substring(1, clean.length - 1).trim();
+			changed = true;
+		}
+		if (!changed) break;
+	}
+	return clean;
+}
+
 export function cmToPx(x_cm: number, y_cm: number): SVG.Point {
 	return new SVG.Point(x_cm / scale, -y_cm / scale);
 }
@@ -156,24 +173,166 @@ export function parseTikzset(tikzCode: string) {
 	}
 }
 
+const TIKZ_NAME_MAP: { [key: string]: string } = {
+	"R": "american resistor",
+	"C": "capacitor",
+	"L": "american inductor",
+	"D": "empty diode",
+	"sD": "stroke diode",
+	"g": "generic",
+	"vR": "variable american resistor",
+	"vC": "variable capacitor",
+	"vL": "variable american inductor",
+	"vsourcesin": "sinusoidal voltage source",
+	"isourcesin": "sinusoidal current source",
+	"vsource": "american voltage source",
+	"isource": "american current source",
+	"vsourcedc": "dcvsource",
+	"isourcedc": "dcisource",
+	"battery": "battery"
+};
+
+function getPinAbsolutePosition(nodeInfo: { pos: SVG.Point; rotation: number; scale: { x: number; y: number }; symbol: ComponentSymbol }, pinName: string): SVG.Point {
+	if (!nodeInfo.symbol) return nodeInfo.pos;
+	
+	const variant = nodeInfo.symbol.getVariant([]) || nodeInfo.symbol._mapping.values().next().value;
+	if (!variant) return nodeInfo.pos;
+
+	const pin = variant.pins.find((p) => p.name === pinName || (p.name && p.name.toLowerCase() === pinName.toLowerCase()));
+	if (!pin) return nodeInfo.pos;
+
+	// pin.point is the relative point in local coordinates
+	const localPt = pin.point.add(variant.mid);
+
+	const symbolRel = variant.mid;
+	const m = new SVG.Matrix({
+		scaleX: nodeInfo.scale.x,
+		scaleY: nodeInfo.scale.y,
+		translate: [-symbolRel.x, -symbolRel.y],
+		origin: [symbolRel.x, symbolRel.y],
+	}).lmultiply(
+		new SVG.Matrix({
+			rotate: -nodeInfo.rotation,
+			translate: [nodeInfo.pos.x, nodeInfo.pos.y],
+		})
+	);
+
+	return localPt.transform(m);
+}
+
+function stripPreambles(code: string): string {
+	let clean = code;
+
+	// 1. Replace \tikzset{...} using bracket matching with spaces
+	let tikzsetIndex = 0;
+	while (true) {
+		const start = clean.indexOf("\\tikzset", tikzsetIndex);
+		if (start === -1) break;
+		const openBrace = clean.indexOf("{", start);
+		if (openBrace === -1) {
+			tikzsetIndex = start + 8;
+			continue;
+		}
+		let depth = 1;
+		let i = openBrace + 1;
+		while (i < clean.length && depth > 0) {
+			if (clean[i] === "{") depth++;
+			else if (clean[i] === "}") depth--;
+			i++;
+		}
+		if (depth === 0) {
+			const len = i - start;
+			clean = clean.substring(0, start) + " ".repeat(len) + clean.substring(i);
+			tikzsetIndex = i;
+		} else {
+			tikzsetIndex = i;
+		}
+	}
+
+	// 2. Replace other preambles using regex with spaces
+	clean = clean.replace(/\\usetikzlibrary\s*\{[^}]*\}/g, (match) => " ".repeat(match.length));
+	clean = clean.replace(/\\ctikzset\s*\{[^}]*\}/g, (match) => " ".repeat(match.length));
+	clean = clean.replace(/\\begin\s*\{[^}]*\}\s*(?:\[[^\]]*\])?/g, (match) => " ".repeat(match.length));
+	clean = clean.replace(/\\end\s*\{[^}]*\}/g, (match) => " ".repeat(match.length));
+
+	return clean;
+}
+
+function buildCleanLinesWithMap(tikzCode: string): { cleanText: string; indexMap: number[] } {
+	const lines = tikzCode.split("\n");
+	let cleanText = "";
+	const indexMap: number[] = [];
+	
+	let currentOriginalIndex = 0;
+	
+	for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+		const line = lines[lineIdx];
+		const commentIndex = line.indexOf("%");
+		const codePart = commentIndex >= 0 ? line.substring(0, commentIndex) : line;
+		
+		for (let cIdx = 0; cIdx < codePart.length; cIdx++) {
+			cleanText += codePart[cIdx];
+			indexMap.push(currentOriginalIndex + cIdx);
+		}
+		
+		if (lineIdx < lines.length - 1) {
+			cleanText += " ";
+			indexMap.push(currentOriginalIndex + line.length);
+		}
+		
+		currentOriginalIndex += line.length + 1; // +1 for \n
+	}
+	
+	let finalCleanText = "";
+	const finalIndexMap: number[] = [];
+	let inWhitespace = false;
+	
+	for (let i = 0; i < cleanText.length; i++) {
+		const char = cleanText[i];
+		if (char === " " || char === "\t" || char === "\r" || char === "\n") {
+			if (!inWhitespace) {
+				finalCleanText += " ";
+				finalIndexMap.push(indexMap[i]);
+				inWhitespace = true;
+			}
+		} else {
+			finalCleanText += char;
+			finalIndexMap.push(indexMap[i]);
+			inWhitespace = false;
+		}
+	}
+	
+	return {
+		cleanText: finalCleanText,
+		indexMap: finalIndexMap
+	};
+}
+
 export function parseTikz(tikzCode: string): any[] {
 	parseTikzset(tikzCode);
-	// Normalize: remove comments, replace newlines/tabs with spaces
-	const cleanLines = tikzCode
-		.split("\n")
-		.map((line) => {
-			const commentIndex = line.indexOf("%");
-			if (commentIndex >= 0) {
-				return line.substring(0, commentIndex);
-			}
-			return line;
-		})
-		.join(" ")
-		.replace(/\s+/g, " ");
 
-	// Find commands ending with semicolons
-	const commands: string[] = [];
+	// Build char-to-line mapping for original code
+	const charToLine: number[] = [];
+	let currentLine = 1;
+	for (let i = 0; i < tikzCode.length; i++) {
+		charToLine.push(currentLine);
+		if (tikzCode[i] === "\n") {
+			currentLine++;
+		}
+	}
+	const getLine = (idx: number) => {
+		if (idx < 0) return 1;
+		if (idx >= charToLine.length) return currentLine;
+		return charToLine[idx];
+	};
+
+	const { cleanText, indexMap } = buildCleanLinesWithMap(tikzCode);
+	const cleanLines = stripPreambles(cleanText);
+
+	// Find commands ending with semicolons, tracking indexes in cleanLines
+	const commands: { text: string; startIdx: number; endIdx: number }[] = [];
 	let currentCommand = "";
+	let cmdStartIdx = 0;
 	let braceDepth = 0;
 	for (let i = 0; i < cleanLines.length; i++) {
 		const char = cleanLines[i];
@@ -181,284 +340,487 @@ export function parseTikz(tikzCode: string): any[] {
 		else if (char === "}") braceDepth--;
 
 		if (char === ";" && braceDepth === 0) {
-			commands.push(currentCommand.trim());
+			commands.push({
+				text: currentCommand.trim(),
+				startIdx: cmdStartIdx,
+				endIdx: i
+			});
 			currentCommand = "";
+			cmdStartIdx = i + 1;
 		} else {
+			if (currentCommand === "") {
+				cmdStartIdx = i;
+			}
 			currentCommand += char;
 		}
 	}
 
+	const throwParseError = (message: string, startLine: number, endLine: number) => {
+		const err = new Error(message);
+		(err as any).startLine = startLine;
+		(err as any).endLine = endLine;
+		throw err;
+	};
+
 	const components: any[] = [];
 	const labelNodesToProcess: { referencedName: string; labelVal: string; anchorKey: string; posKey: string }[] = [];
+	const nodeMap = new Map<string, { pos: SVG.Point; rotation: number; scale: { x: number; y: number }; symbol: ComponentSymbol }>();
 
-	for (const cmd of commands) {
-		if (!cmd) continue;
+	// 1. Scan all commands to parse and register nodes, and strip node syntax from the commands
+	const cleanedCommands: { text: string; startLine: number; endLine: number }[] = [];
+	for (const cmdObj of commands) {
+		if (!cmdObj.text) continue;
 
-		if (cmd.startsWith("\\node")) {
-			// \node[options] (name) at (X, Y) {content};
-			const nodeMatch = cmd.match(/^\\node\s*(?:\[([^\]]*)\])?\s*(?:\(([^)]*)\))?\s*at\s*\(([^)]*)\)\s*\{([^}]*)\}/);
-			if (nodeMatch) {
-				const optionsStr = nodeMatch[1] || "";
-				const name = nodeMatch[2] || "";
-				const coordStr = nodeMatch[3] || "";
-				const content = nodeMatch[4] || "";
+		const startLine = getLine(indexMap[cmdObj.startIdx]);
+		const endLine = getLine(indexMap[cmdObj.endIdx]);
 
-				const pos = parseCoordinate(coordStr);
-				const { standalone, kv } = parseOptions(optionsStr);
+		let cleanedCmd = "";
+		let lastIndex = 0;
+		const nodeRegex = /(?:\\node|node)\s*(?:\[([^\]]*)\])?\s*(?:\(([^)]*)\))?\s*(?:at\s*\(([^)]*)\))?\s*\{/g;
+		let nodeMatch;
+		
+		while ((nodeMatch = nodeRegex.exec(cmdObj.text)) !== null) {
+			cleanedCmd += cmdObj.text.substring(lastIndex, nodeMatch.index);
+			
+			const optionsStr = nodeMatch[1] || "";
+			const name = nodeMatch[2] || "";
+			const coordStr = nodeMatch[3] || "";
+			const matchIndex = nodeMatch.index;
+			const openBraceIndex = nodeMatch.index + nodeMatch[0].length - 1;
 
-				// Check if this is an additional label node for another node, like N1.south
-				// e.g. at ([yshift=-0.12cm]N1.south)
-				const labelRefMatch = coordStr.match(/^\s*(?:\[[^\]]*\])?\s*([A-Za-z0-9_]+)\.([a-z]+)\s*$/);
-				if (labelRefMatch && content) {
-					let labelClean = content.trim();
-					if (labelClean.startsWith("$") && labelClean.endsWith("$")) {
-						labelClean = labelClean.substring(1, labelClean.length - 1).trim();
+			let braceDepth = 1;
+			let i = openBraceIndex + 1;
+			while (i < cmdObj.text.length && braceDepth > 0) {
+				if (cmdObj.text[i] === "{") braceDepth++;
+				else if (cmdObj.text[i] === "}") braceDepth--;
+				i++;
+			}
+			const content = cmdObj.text.substring(openBraceIndex + 1, i - 1);
+			lastIndex = i;
+			nodeRegex.lastIndex = i;
+
+			// Compute position
+			let pos = new SVG.Point(0, 0);
+			if (coordStr) {
+				pos = parseCoordinate(coordStr);
+			} else {
+				// Find the last coordinate preceding this node
+				const prevStr = cmdObj.text.substring(0, matchIndex);
+				const coordRegex = /\(([^)]+)\)/g;
+				let cMatch;
+				let lastCoordStr = "";
+				while ((cMatch = coordRegex.exec(prevStr)) !== null) {
+					lastCoordStr = cMatch[1];
+				}
+				if (lastCoordStr) {
+					if (lastCoordStr.includes(",")) {
+						pos = parseCoordinate(lastCoordStr);
+					} else {
+						// If the previous coordinate was also a node reference, like (opamp.out) node[...]
+						const parts = lastCoordStr.trim().split(".");
+						const refNodeName = parts[0].trim();
+						const refPinName = parts[1] ? parts[1].trim() : "";
+						const refNode = nodeMap.get(refNodeName);
+						if (refNode) {
+							pos = getPinAbsolutePosition(refNode, refPinName);
+						}
 					}
-					labelNodesToProcess.push({
-						referencedName: labelRefMatch[1],
-						labelVal: labelClean,
-						anchorKey: kv["anchor"] || "default",
-						posKey: labelRefMatch[2]
-					});
-					continue;
 				}
+			}
 
-				// Find if there is a matching node symbol from DB
-				let symbolId = "";
-				let matchedSymbol = null;
-				for (const opt of standalone) {
-					const found = MainController.instance.symbols.find((s) => s.tikzName === opt);
-					if (found) {
-						matchedSymbol = found;
-						symbolId = opt;
-						break;
-					}
-				}
+			const { standalone, kv } = parseOptions(optionsStr);
 
-				let rotation = 0;
-				let scaleX = 1;
-				let scaleY = 1;
-				if (kv["rotate"]) {
-					rotation = parseFloat(kv["rotate"]) || 0;
+			// Find matching symbol
+			let symbolId = "";
+			let matchedSymbol = null;
+			for (const opt of standalone) {
+				const found = MainController.instance.symbols.find((s) => s.tikzName === opt);
+				if (found) {
+					matchedSymbol = found;
+					symbolId = opt;
+					break;
 				}
-				if (kv["xscale"]) {
-					scaleX = parseFloat(kv["xscale"]) || 1;
-				}
-				if (kv["yscale"]) {
-					scaleY = parseFloat(kv["yscale"]) || 1;
-				}
+			}
 
-				if (matchedSymbol) {
-					// NodeSymbolComponent
-					components.push({
-						type: "node",
-						id: symbolId,
-						position: pos.simplifyForJson(),
-						rotation: rotation,
+			let rotation = 0;
+			let scaleX = 1;
+			let scaleY = 1;
+			if (kv["rotate"]) {
+				rotation = parseFloat(kv["rotate"]) || 0;
+			}
+			if (kv["xscale"]) {
+				scaleX = parseFloat(kv["xscale"]) || 1;
+			}
+			if (kv["yscale"]) {
+				scaleY = parseFloat(kv["yscale"]) || 1;
+			}
+
+			// Check if this is an additional label node for another node, like N1.south
+			const labelRefMatch = coordStr.match(/^\s*(?:\[[^\]]*\])?\s*([A-Za-z0-9_]+)\.([a-z]+)\s*$/);
+			if (labelRefMatch && content) {
+				let labelClean = cleanTikzText(content);
+				labelNodesToProcess.push({
+					referencedName: labelRefMatch[1],
+					labelVal: labelClean,
+					anchorKey: kv["anchor"] || "default",
+					posKey: labelRefMatch[2]
+				});
+				continue;
+			}
+
+			let finalNodePos = pos;
+			if (matchedSymbol) {
+				const variant = matchedSymbol.getVariant([]) || matchedSymbol._mapping.values().next().value;
+				if (variant && variant.defaultAnchor) {
+					const offset = variant.defaultAnchor.point.clone();
+					offset.x *= scaleX;
+					offset.y *= scaleY;
+					const rotatedOffset = offset.rotate(-rotation);
+					finalNodePos = pos.sub(rotatedOffset);
+				}
+			}
+
+			if (matchedSymbol) {
+				// NodeSymbolComponent
+				components.push({
+					type: "node",
+					id: symbolId,
+					position: finalNodePos.simplifyForJson(),
+					rotation: rotation,
+					scale: { x: scaleX, y: scaleY },
+					name: name,
+					options: standalone.filter((o) => o !== symbolId),
+					lines: [startLine, endLine]
+				});
+
+				if (name) {
+					nodeMap.set(name, {
+						pos: finalNodePos,
+						rotation,
 						scale: { x: scaleX, y: scaleY },
-						name: name,
-						options: standalone.filter((o) => o !== symbolId)
+						symbol: matchedSymbol
 					});
-				} else {
-					// Default to RectangleComponent
+				}
+			} else {
+				if (content || optionsStr) {
 					const widthCm = kv["minimum width"] ? parseFloat(kv["minimum width"]) : 1.5;
 					const heightCm = kv["minimum height"] ? parseFloat(kv["minimum height"]) : 1.0;
 					const widthPx = widthCm / scale;
 					const heightPx = heightCm / scale;
 
-					let textClean = content.trim();
-					if (textClean.startsWith("$") && textClean.endsWith("$")) {
-						textClean = textClean.substring(1, textClean.length - 1).trim();
+					let textClean = cleanTikzText(content);
+
+					const trimmedContent = content.trim();
+					let innerContent = trimmedContent;
+					if (innerContent.startsWith("{") && innerContent.endsWith("}")) {
+						innerContent = innerContent.substring(1, innerContent.length - 1).trim();
+					}
+					const isMath = innerContent.startsWith("$") && innerContent.endsWith("$");
+
+					// Parse anchor direction to reconstruct the original center position
+					let anchorName = kv["anchor"] || "";
+					if (!anchorName) {
+						for (const opt of standalone) {
+							if (opt === "left") { anchorName = "east"; break; }
+							else if (opt === "right") { anchorName = "west"; break; }
+							else if (opt === "above") { anchorName = "south"; break; }
+							else if (opt === "below") { anchorName = "north"; break; }
+							else if (opt === "above left" || opt === "left above") { anchorName = "south east"; break; }
+							else if (opt === "above right" || opt === "right above") { anchorName = "south west"; break; }
+							else if (opt === "below left" || opt === "left below") { anchorName = "north east"; break; }
+							else if (opt === "below right" || opt === "right below") { anchorName = "north west"; break; }
+						}
+					}
+					if (!anchorName) {
+						anchorName = "north west";
 					}
 
-					let alignVal = 0;
-					if (kv["align"] === "center") alignVal = 1;
-					else if (kv["align"] === "right") alignVal = 2;
-					else if (kv["align"] === "justify") alignVal = 3;
+					let dir = new SVG.Point(0, 0);
+					if (anchorName === "north") dir = new SVG.Point(0, -1);
+					else if (anchorName === "south") dir = new SVG.Point(0, 1);
+					else if (anchorName === "east") dir = new SVG.Point(1, 0);
+					else if (anchorName === "west") dir = new SVG.Point(-1, 0);
+					else if (anchorName === "north east") dir = new SVG.Point(1, -1);
+					else if (anchorName === "north west") dir = new SVG.Point(-1, -1);
+					else if (anchorName === "south east") dir = new SVG.Point(1, 1);
+					else if (anchorName === "south west") dir = new SVG.Point(-1, 1);
+
+					const size = new SVG.Point(widthPx, heightPx);
+					const actualPos = pos.sub(dir.mul(size.div(2)));
+
+					let alignVal = 0; // LEFT
+					if (dir.x === 0) alignVal = 1; // CENTER
+					else if (dir.x === 1) alignVal = 2; // RIGHT
+
+					let justifyVal = -1; // START (Top)
+					if (dir.y === 0) justifyVal = 0; // CENTER (Middle)
+					else if (dir.y === 1) justifyVal = 1; // END (Bottom)
 
 					components.push({
 						type: "rect",
-						position: pos.simplifyForJson(),
+						position: actualPos.simplifyForJson(),
 						size: { x: widthPx, y: heightPx },
 						rotation: rotation,
 						text: {
 							text: textClean,
 							align: alignVal,
-							showPlaceholderText: content ? true : false
-						}
+							justify: justifyVal,
+							showPlaceholderText: content ? true : false,
+							isMath: isMath
+						},
+						lines: [startLine, endLine]
+					});
+				}
+
+				if (name) {
+					nodeMap.set(name, {
+						pos,
+						rotation: 0,
+						scale: { x: 1, y: 1 },
+						symbol: null as any
 					});
 				}
 			}
-		} else if (cmd.startsWith("\\draw")) {
-			const picMatch = cmd.match(/^\\draw\s*(?:\[([^\]]*)\])?\s*\(([^)]+)\)\s*pic\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}/);
-			if (picMatch) {
-				const pos = parseCoordinate(picMatch[2]);
-				const name = picMatch[3].trim();
-				components.push({
-					type: "subcircuit",
-					displayName: name,
-					components: [],
-					position: pos.simplifyForJson()
+		}
+
+		cleanedCmd += cmdObj.text.substring(lastIndex);
+		
+		const trimmedCleanedCmd = cleanedCmd.trim();
+		if (trimmedCleanedCmd) {
+			if (trimmedCleanedCmd.startsWith("\\draw")) {
+				cleanedCommands.push({
+					text: trimmedCleanedCmd,
+					startLine: startLine,
+					endLine: endLine
 				});
-				continue;
+			} else {
+				throwParseError("Syntax error or unsupported command: \"" + trimmedCleanedCmd + "\"", startLine, endLine);
 			}
-			// \draw[options] (X1, Y1) connector1 (X2, Y2) ...;
-			const drawMatch = cmd.match(/^\\draw\s*(?:\[([^\]]*)\])?\s*(.*)$/);
-			if (drawMatch) {
-				const drawOptionsStr = drawMatch[1] || "";
-				const drawBody = drawMatch[2] || "";
+		}
+	}
 
-				const { standalone: globalStandalone } = parseOptions(drawOptionsStr);
+	// 2. Parse remaining path/wire connections
+	for (const cmdObj of cleanedCommands) {
+		const picMatch = cmdObj.text.match(/^\\draw\s*(?:\[([^\]]*)\])?\s*\(([^)]+)\)\s*pic\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}/);
+		if (picMatch) {
+			const pos = parseCoordinate(picMatch[2]);
+			const name = picMatch[3].trim();
+			components.push({
+				type: "subcircuit",
+				displayName: name,
+				components: [],
+				position: pos.simplifyForJson(),
+				lines: [cmdObj.startLine, cmdObj.endLine]
+			});
+			continue;
+		}
 
-				// Parse global arrows
-				let globalArrows = { start: "none", end: "none" };
-				for (const opt of globalStandalone) {
-					if (opt.includes("-")) {
-						const parts = opt.split("-");
-						const startArrow = arrowTips.find((t) => t.tikz === parts[0]);
-						const endArrow = arrowTips.find((t) => t.tikz === parts[1]);
-						if (startArrow) globalArrows.start = startArrow.key;
-						if (endArrow) globalArrows.end = endArrow.key;
-					}
+		const drawMatch = cmdObj.text.match(/^\\draw\s*(?:\[([^\]]*)\])?\s*(.*)$/);
+		if (drawMatch) {
+			const drawOptionsStr = drawMatch[1] || "";
+			const drawBody = drawMatch[2] || "";
+
+			const { standalone: globalStandalone } = parseOptions(drawOptionsStr);
+
+			// Parse global arrows
+			let globalArrows = { start: "none", end: "none" };
+			for (const opt of globalStandalone) {
+				if (opt.includes("-")) {
+					const parts = opt.split("-");
+					const startArrow = arrowTips.find((t) => t.tikz === parts[0]);
+					const endArrow = arrowTips.find((t) => t.tikz === parts[1]);
+					if (startArrow) globalArrows.start = startArrow.key;
+					if (endArrow) globalArrows.end = endArrow.key;
 				}
+			}
 
-				// Tokenize drawing body to extract coordinates and connectors
-				const coordRegex = /\(\s*([-+]?[0-9]*\.?[0-9]+[a-z]*)\s*,\s*([-+]?[0-9]*\.?[0-9]+[a-z]*)\s*\)/g;
-				let match;
-				const coords: SVG.Point[] = [];
-				const coordIndices: number[] = [];
-				const rawCoords: string[] = [];
+			// Tokenize drawing body to extract coordinates and connectors
+			const coordRegex = /\(([^)]+)\)/g;
+			let match;
+			const coords: SVG.Point[] = [];
+			const coordIndices: number[] = [];
+			const rawCoords: string[] = [];
 
-				while ((match = coordRegex.exec(drawBody)) !== null) {
-					coords.push(parseCoordinate(match[1] + "," + match[2]));
-					coordIndices.push(match.index);
-					rawCoords.push(match[0]);
-				}
+			while ((match = coordRegex.exec(drawBody)) !== null) {
+				const coordStr = match[1].trim();
+				let pos = new SVG.Point(0, 0);
 
-				if (coords.length >= 2) {
-					let currentWire: { points: SVG.Point[]; directions: string[] } = { points: [coords[0]], directions: [] };
+				if (coordStr.includes(",")) {
+					pos = parseCoordinate(coordStr);
+				} else {
+					// Node pin reference, e.g. (opamp.-) or (GND)
+					const parts = coordStr.split(".");
+					const nodeName = parts[0].trim();
+					const pinName = parts[1] ? parts[1].trim() : "";
 
-					const flushWire = () => {
-						if (currentWire.points.length >= 2) {
-							components.push({
-								type: "wire",
-								points: currentWire.points.map((p) => p.simplifyForJson()),
-								directions: currentWire.directions,
-								startArrow: globalArrows.start,
-								endArrow: globalArrows.end
-							});
-						}
-						currentWire = { points: [], directions: [] };
-					};
-
-					for (let i = 0; i < coords.length - 1; i++) {
-						const connectorStr = drawBody.substring(coordIndices[i] + rawCoords[i].length, coordIndices[i + 1]).trim();
-						const toMatch = connectorStr.match(/^to\s*\[(.*)\]$/s);
-
-						if (toMatch) {
-							// Flush any running wire segment
-							flushWire();
-
-							const toOptionsStr = toMatch[1] || "";
-							const { standalone: toStandalone, kv: toKv } = parseOptions(toOptionsStr);
-
-							// Find poles
-							let poles = { start: "none", end: "none" };
-							for (const opt of toStandalone) {
-								const poleShortcutMatch = opt.match(/^([*-od])-(?:([*-od])+)$/);
-								if (poleShortcutMatch) {
-									poles.start = mapPoleShortcut(poleShortcutMatch[1]);
-									poles.end = mapPoleShortcut(poleShortcutMatch[2]);
-								} else if (opt.startsWith("bipole nodes=")) {
-									const keyMatch = opt.match(/bipole nodes=\{([^}]+)\}\{([^}]+)\}/);
-									if (keyMatch) {
-										poles.start = keyMatch[1];
-										poles.end = keyMatch[2];
-									}
-								}
-							}
-
-							// Find labels
-							let labelObj: any = undefined;
-							let labelValue = toKv["l"] || toKv["l_"] || "";
-							let otherSide = toKv["l_"] !== undefined;
-							if (labelValue) {
-								let labelClean = labelValue.trim();
-								if (labelClean.startsWith("$") && labelClean.endsWith("$")) {
-									labelClean = labelClean.substring(1, labelClean.length - 1).trim();
-								}
-								labelObj = {
-									value: labelClean,
-									otherSide: otherSide || undefined
-								};
-							}
-
-							// Find symbol
-							let symbolId = "";
-							let isShort = false;
-							let isOpen = false;
-
-							for (const opt of toStandalone) {
-								if (opt === "short") {
-									isShort = true;
-									symbolId = "short";
-									break;
-								} else if (opt === "open") {
-									isOpen = true;
-									symbolId = "open";
-									break;
-								}
-								const found = MainController.instance.symbols.find((s) => s.tikzName === opt);
-								if (found) {
-									symbolId = opt;
-									break;
-								}
-							}
-
-							if (isShort) {
-								components.push({
-									type: "short",
-									points: [coords[i].simplifyForJson(), coords[i + 1].simplifyForJson()],
-									poles: poles,
-									label: labelObj
-								});
-							} else if (isOpen) {
-								components.push({
-									type: "open",
-									points: [coords[i].simplifyForJson(), coords[i + 1].simplifyForJson()],
-									poles: poles,
-									label: labelObj
-								});
-							} else if (symbolId) {
-								// PathSymbolComponent
-								components.push({
-									type: "path",
-									id: symbolId,
-									points: [coords[i].simplifyForJson(), coords[i + 1].simplifyForJson()],
-									options: toStandalone.filter((o) => o !== symbolId),
-									poles: poles,
-									label: labelObj
-								});
-							}
-
-							// Start next running wire at the end of the "to" component
-							currentWire.points.push(coords[i + 1]);
+					const nodeInfo = nodeMap.get(nodeName);
+					if (nodeInfo) {
+						if (nodeInfo.symbol) {
+							pos = getPinAbsolutePosition(nodeInfo, pinName);
 						} else {
-							// Wire connector (--, -|, |-)
-							let direction = "Straight";
-							if (connectorStr === "-|") direction = "HV";
-							else if (connectorStr === "|-") direction = "VH";
-
-							if (currentWire.points.length === 0) {
-								currentWire.points.push(coords[i]);
-							}
-							currentWire.points.push(coords[i + 1]);
-							currentWire.directions.push(direction);
+							pos = nodeInfo.pos;
 						}
+					} else {
+						console.warn("Referenced node not found in nodeMap:", nodeName);
 					}
+				}
 
-					// Flush remaining wire segments at the end of draw command
-					flushWire();
+				coords.push(pos);
+				coordIndices.push(match.index);
+				rawCoords.push(match[0]);
+			}
+
+			if (coords.length >= 2) {
+				let currentWire: { points: SVG.Point[]; directions: string[] } = { points: [coords[0]], directions: [] };
+
+				const flushWire = () => {
+					if (currentWire.points.length >= 2) {
+						components.push({
+							type: "wire",
+							points: currentWire.points.map((p) => p.simplifyForJson()),
+							directions: currentWire.directions,
+							startArrow: globalArrows.start,
+							endArrow: globalArrows.end,
+							lines: [cmdObj.startLine, cmdObj.endLine]
+						});
+					}
+					currentWire = { points: [], directions: [] };
+				};
+
+				for (let i = 0; i < coords.length - 1; i++) {
+					const connectorStr = drawBody.substring(coordIndices[i] + rawCoords[i].length, coordIndices[i + 1]).trim();
+					const toMatch = connectorStr.match(/^to\s*\[(.*)\]$/s);
+
+					if (toMatch) {
+						// Flush any running wire segment
+						flushWire();
+
+						const toOptionsStr = toMatch[1] || "";
+						const { standalone: toStandalone, kv: toKv } = parseOptions(toOptionsStr);
+
+						// Find poles
+						let poles = { start: "none", end: "none" };
+						for (const opt of toStandalone) {
+							const poleShortcutMatch = opt.match(/^([*-od])-(?:([*-od])+)$/);
+							if (poleShortcutMatch) {
+								poles.start = mapPoleShortcut(poleShortcutMatch[1]);
+								poles.end = mapPoleShortcut(poleShortcutMatch[2]);
+							} else if (opt.startsWith("bipole nodes=")) {
+								const keyMatch = opt.match(/bipole nodes=\{([^}]+)\}\{([^}]+)\}/);
+								if (keyMatch) {
+									poles.start = keyMatch[1];
+									poles.end = keyMatch[2];
+								}
+							}
+						}
+
+						// Find labels
+						let labelObj: any = undefined;
+						let labelValue = toKv["l"] || toKv["l_"] || "";
+						let otherSide = toKv["l_"] !== undefined;
+						if (labelValue) {
+							let labelClean = cleanTikzText(labelValue);
+							labelObj = {
+								value: labelClean,
+								otherSide: otherSide || undefined
+							};
+						}
+
+						// Find symbol
+						let symbolId = "";
+						let isShort = false;
+						let isOpen = false;
+
+						for (let opt of toStandalone) {
+							if (TIKZ_NAME_MAP[opt]) {
+								opt = TIKZ_NAME_MAP[opt];
+							}
+							if (opt === "short") {
+								isShort = true;
+								symbolId = "short";
+								break;
+							} else if (opt === "open") {
+								isOpen = true;
+								symbolId = "open";
+								break;
+							}
+							const found = MainController.instance.symbols.find((s) => s.tikzName === opt);
+							if (found) {
+								symbolId = opt;
+								break;
+							}
+						}
+
+						if (!symbolId) {
+							for (const key of Object.keys(TIKZ_NAME_MAP)) {
+								if (toKv[key] !== undefined) {
+									symbolId = TIKZ_NAME_MAP[key];
+									if (!labelValue) {
+										labelValue = toKv[key];
+										let labelClean = cleanTikzText(labelValue);
+										labelObj = {
+											value: labelClean,
+											otherSide: otherSide || undefined
+										};
+									}
+									break;
+								}
+							}
+						}
+
+						if (isShort) {
+							components.push({
+								type: "short",
+								points: [coords[i].simplifyForJson(), coords[i + 1].simplifyForJson()],
+								poles: poles,
+								label: labelObj,
+								lines: [cmdObj.startLine, cmdObj.endLine]
+							});
+						} else if (isOpen) {
+							components.push({
+								type: "open",
+								points: [coords[i].simplifyForJson(), coords[i + 1].simplifyForJson()],
+								poles: poles,
+								label: labelObj,
+								lines: [cmdObj.startLine, cmdObj.endLine]
+							});
+						} else if (symbolId) {
+							// PathSymbolComponent
+							components.push({
+								type: "path",
+								id: symbolId,
+								points: [coords[i].simplifyForJson(), coords[i + 1].simplifyForJson()],
+								options: toStandalone.filter((o) => o !== symbolId && TIKZ_NAME_MAP[o] !== symbolId),
+								poles: poles,
+								label: labelObj,
+								lines: [cmdObj.startLine, cmdObj.endLine]
+							});
+						} else {
+							throwParseError("Unsupported or unrecognized component in to[...] path: \"" + toMatch[0] + "\" in command \"" + cmdObj.text + "\"", cmdObj.startLine, cmdObj.endLine);
+						}
+
+						// Start next running wire at the end of the "to" component
+						currentWire.points.push(coords[i + 1]);
+					} else {
+						// Wire connector (--, -|, |-)
+						let direction = "Straight";
+						if (connectorStr === "-|") direction = "HV";
+						else if (connectorStr === "|-") direction = "VH";
+
+						if (currentWire.points.length === 0) {
+							currentWire.points.push(coords[i]);
+						}
+						currentWire.points.push(coords[i + 1]);
+						currentWire.directions.push(direction);
+					}
+				}
+
+				// Flush remaining wire segments at the end of draw command
+				flushWire();
+			} else {
+				const hasConnector = /\bto\b|--|-\||\|-/.test(drawBody);
+				if (hasConnector) {
+					throwParseError("Draw command must contain at least two coordinates: \"" + cmdObj.text + "\"", cmdObj.startLine, cmdObj.endLine);
 				}
 			}
 		}
@@ -479,3 +841,4 @@ export function parseTikz(tikzCode: string): any[] {
 
 	return components;
 }
+

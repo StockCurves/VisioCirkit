@@ -122,7 +122,7 @@ export class ExportController {
 			let requiredTikzLibraries: Set<string> = new Set<string>()
 			for (const circuitElement of MainController.instance.circuitComponents) {
 				circuitElement.requiredTikzLibraries().forEach((item) => requiredTikzLibraries.add(item))
-				circuitElements.push("\t" + circuitElement.toTikzString())
+				circuitElements.push("  " + circuitElement.toTikzString())
 			}
 			let libraryStr =
 				requiredTikzLibraries.size > 0 ?
@@ -134,8 +134,8 @@ export class ExportController {
 			const tikzSettings = EnvironmentVariableController.instance.getTikzSettings()
 			let arr = [
 				"\\begin{tikzpicture}" + "[" + ["transform shape"].concat(tikzSettings.environment).join(", ") + "]",
-				...tikzSettings.ctikzset.map((setting) => "\t\\ctikzset{" + setting + "}"),
-				"\t% Paths, nodes and wires:",
+				...tikzSettings.ctikzset.map((setting) => "  \\ctikzset{" + setting + "}"),
+				"  % Paths, nodes and wires:",
 				...circuitElements,
 				"\\end{tikzpicture}",
 			]

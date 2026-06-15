@@ -799,10 +799,14 @@ export class PathSymbolComponent extends Currentable(Voltageable(PathLabelable(N
 			symbol = MainController.instance.symbols.find((symbol) => symbol.tikzName == saveObject.id)
 		} else {
 			let idParts = saveObject.id.split("_")
-			symbol = MainController.instance.symbols.find(
-				(symbol) => symbol.tikzName == idParts[1].replaceAll("-", " ")
-			)
-			saveObject.options = idParts.slice(2)
+			if (idParts.length >= 2) {
+				symbol = MainController.instance.symbols.find(
+					(symbol) => symbol.tikzName == idParts[1].replaceAll("-", " ")
+				)
+				saveObject.options = idParts.slice(2)
+			} else {
+				symbol = MainController.instance.symbols.find((symbol) => symbol.tikzName == saveObject.id)
+			}
 			// @ts-ignore
 			saveObject.points = [saveObject.start, saveObject.end]
 		}

@@ -456,10 +456,10 @@ export class SymbolEditorController {
 			const collectFlatElements = (el: SVG.Element, inheritedStyles: { stroke?: string; strokeWidth?: string; fill?: string; className?: string }) => {
 				if (el.node.tagName.toLowerCase() === "g") {
 					const currentStyles = {
-						stroke: el.attr("stroke") || inheritedStyles.stroke,
-						strokeWidth: el.attr("stroke-width") || inheritedStyles.strokeWidth,
-						fill: el.attr("fill") || inheritedStyles.fill,
-						className: el.attr("class") || inheritedStyles.className
+						stroke: el.node.hasAttribute("stroke") ? el.attr("stroke") : inheritedStyles.stroke,
+						strokeWidth: el.node.hasAttribute("stroke-width") ? el.attr("stroke-width") : inheritedStyles.strokeWidth,
+						fill: el.node.hasAttribute("fill") ? el.attr("fill") : inheritedStyles.fill,
+						className: el.node.hasAttribute("class") ? el.attr("class") : inheritedStyles.className
 					}
 					const children = el.children()
 					for (const child of children) {
@@ -467,17 +467,52 @@ export class SymbolEditorController {
 					}
 				} else {
 					// Inherit styles if not set on the leaf node
-					if (inheritedStyles.stroke && !el.attr("stroke")) el.attr("stroke", inheritedStyles.stroke)
-					if (inheritedStyles.strokeWidth && !el.attr("stroke-width")) el.attr("stroke-width", inheritedStyles.strokeWidth)
+					if (inheritedStyles.stroke && !el.node.hasAttribute("stroke")) el.attr("stroke", inheritedStyles.stroke)
+					if (inheritedStyles.strokeWidth && !el.node.hasAttribute("stroke-width")) el.attr("stroke-width", inheritedStyles.strokeWidth)
 					
-					const finalFill = el.attr("fill") || inheritedStyles.fill || "none"
+					const finalFill = el.node.hasAttribute("fill") ? el.attr("fill") : (inheritedStyles.fill || "none")
 					el.attr("fill", finalFill)
 
 					if (inheritedStyles.className) {
 						const childClass = el.attr("class")
 						el.attr("class", childClass ? `${childClass} ${inheritedStyles.className}` : inheritedStyles.className)
 					}
-					flatElements.push(el)
+					if (el.node.tagName.toLowerCase() === "path" && finalFill === "none") {
+						const pathStr = el.attr("d")
+						if (pathStr) {
+							const pathArr = new SVG.PathArray(pathStr)
+							let currentSubpath: any[] = []
+							const subpaths: any[][] = []
+							
+							for (const cmd of pathArr as any) {
+								if (cmd[0] === 'M' || cmd[0] === 'm') {
+									if (currentSubpath.length > 0) {
+										subpaths.push(currentSubpath)
+									}
+									currentSubpath = [cmd]
+								} else {
+									currentSubpath.push(cmd)
+								}
+							}
+							if (currentSubpath.length > 0) {
+								subpaths.push(currentSubpath)
+							}
+
+							if (subpaths.length > 1) {
+								for (const sub of subpaths) {
+									const clonedEl = SVG.adopt(el.node.cloneNode(true) as HTMLElement) as SVG.Path
+									clonedEl.plot(new SVG.PathArray(sub).toString())
+									flatElements.push(clonedEl)
+								}
+							} else {
+								flatElements.push(el)
+							}
+						} else {
+							flatElements.push(el)
+						}
+					} else {
+						flatElements.push(el)
+					}
 				}
 			}
 
@@ -488,7 +523,7 @@ export class SymbolEditorController {
 					const tag = node.tagName.toLowerCase()
 					if (tag === "rect" && node.classList.contains("clickBackground")) continue
 					
-					const adopted = SVG.adopt(node.cloneNode(true) as Element)
+					const adopted = SVG.adopt(node.cloneNode(true) as HTMLElement)
 					collectFlatElements(adopted, {})
 				}
 			}
@@ -795,72 +830,197 @@ export class SymbolEditorController {
 			})
 		})
 
-		// Rebuild the SVG `<symbol>` definition XML content
-		// We'll retain the clickBackground rectangle for standard layout snapping
 		const box = this.originalViewBox || new SVG.Box(0, 0, 40, 40)
 		const clickRectHtml = `<rect width="${box.w}" height="${box.h}" cx="${box.cx}" cy="${box.cy}" fill="transparent" stroke="none" class="clickBackground"></rect>`
-		
-		const symbolId = `node_custom_${this.tikzName}_default`
-		const newSymbolXml = `<symbol id="${symbolId}">\n<g fill="none" stroke="${defaultStroke}" stroke-miterlimit="10" stroke-width=".4">\n${elementsXmlArr.join("\n")}\n</g>\n${clickRectHtml}\n</symbol>`
 
-		// Parse the custom component xml metadata and replace pins
 		const parser = new DOMParser()
-		const compDoc = parser.parseFromString(this.customSymbol.componentXml, "image/svg+xml")
+		const compDoc = parser.parseFromString(this.customSymbol.componentXml, "text/xml")
 		const compNode = compDoc.querySelector("component")!
-		
-		// Remove existing pins from variant
-		const variantNode = compNode.querySelector("variant")!
-		const pinNodes = variantNode.querySelectorAll("pin")
-		pinNodes.forEach(node => node.remove())
 
-		// Append new pins nodes
-		for (const pin of pins) {
-			const pinEl = compDoc.createElement("pin")
-			pinEl.setAttribute("name", pin.name!)
-			pinEl.setAttribute("x", pin.x.toString())
-			pinEl.setAttribute("y", pin.y.toString())
-			if (pin.isDefault) pinEl.setAttribute("isDefault", "true")
-			variantNode.appendChild(pinEl)
+		const symbolDB = document.getElementById("symbolDB")
+		const baseSymbolName = this.customSymbol.baseSymbol || "nmos"
+		
+		console.log("[HVNMOS_DEBUG] save() initiated. baseSymbol:", baseSymbolName, "symbolDB exists:", !!symbolDB);
+
+		// Locate original base component to perform SVG/pins diffing
+		const baseComponentNode = symbolDB ? 
+			Array.from(symbolDB.getElementsByTagName("component")).find(c => c.getAttribute("tikz") === baseSymbolName) : 
+			null
+		console.log("[HVNMOS_DEBUG] baseComponentNode found:", !!baseComponentNode);
+		
+		const baseVariants = baseComponentNode ? Array.from(baseComponentNode.getElementsByTagName("variant")) : []
+		console.log("[HVNMOS_DEBUG] baseVariants count:", baseVariants.length);
+
+		const compVariants = compNode.getElementsByTagName("variant")
+		const newSymbolsMap: { [key: string]: string } = {}
+
+		// Rebuild all variant symbol definitions
+		for (let i = 0; i < compVariants.length; i++) {
+			const variantNode = compVariants[i]
+			const newSymbolId = variantNode.getAttribute("for")!
+
+			// 1. Rebuild pins list for this variant (keep edited base pins, merge variant-specific original pins)
+			const existingPinNodes = variantNode.querySelectorAll("pin")
+			existingPinNodes.forEach(node => node.remove())
+
+			let variantPins: TikZAnchor[] = []
+			if (i === 0) {
+				variantPins = pins
+			} else {
+				variantPins = [...pins]
+				const origBaseVariant = baseVariants[0]
+				const origVarVariant = baseVariants[i]
+				const basePinNames = new Set(
+					origBaseVariant ? 
+					Array.from(origBaseVariant.getElementsByTagName("pin")).map(p => p.getAttribute("name")) : 
+					[]
+				)
+
+				if (origVarVariant) {
+					Array.from(origVarVariant.getElementsByTagName("pin")).forEach(p => {
+						const pinName = p.getAttribute("name")
+						if (pinName && !basePinNames.has(pinName)) {
+							const px = parseFloat(p.getAttribute("x") || "0")
+							const py = parseFloat(p.getAttribute("y") || "0")
+							const isDefault = p.getAttribute("isDefault") === "true" || p.getAttribute("isdefault") === "true"
+							
+							if (!variantPins.some(vp => vp.name === pinName)) {
+								variantPins.push({
+									name: pinName,
+									x: new SVG.Number(px),
+									y: new SVG.Number(py),
+									isDefault,
+									point: new SVG.Point(px, py)
+								})
+							}
+						}
+					})
+				}
+			}
+
+			// Append new merged pin nodes to variant metadata
+			for (const vp of variantPins) {
+				const pinEl = compDoc.createElement("pin")
+				pinEl.setAttribute("name", vp.name!)
+				pinEl.setAttribute("x", vp.x.toString())
+				pinEl.setAttribute("y", vp.y.toString())
+				if (vp.isDefault) {
+					pinEl.setAttribute("isDefault", "true")
+				}
+				variantNode.appendChild(pinEl)
+			}
+
+			// 2. Diffing original SVG elements to build composed SVG graphic
+			let newSymbolXml = ""
+			if (i === 0) {
+				newSymbolXml = `<symbol id="${newSymbolId}">\n<g fill="none" stroke="${defaultStroke}" stroke-miterlimit="10" stroke-width=".4">\n${elementsXmlArr.join("\n")}\n</g>\n${clickRectHtml}\n</symbol>`
+			} else {
+				const origBaseSymId = baseVariants[0]?.getAttribute("for")
+				const origVarSymId = baseVariants[i]?.getAttribute("for")
+				const origBaseSymNode = origBaseSymId ? document.getElementById(origBaseSymId) : null
+				const origVarSymNode = origVarSymId ? document.getElementById(origVarSymId) : null
+
+				const decoratorElements: string[] = []
+				if (origBaseSymNode && origVarSymNode) {
+					const getLeafElements = (symNode: Element) => {
+						const els: string[] = []
+						const traverse = (node: Element) => {
+							if (node.tagName.toLowerCase() === "pin" || node.classList.contains("clickBackground")) return
+							if (node.tagName.toLowerCase() === "g" || node.tagName.toLowerCase() === "symbol") {
+								Array.from(node.children).forEach(traverse)
+							} else {
+								els.push(node.outerHTML.trim())
+							}
+						}
+						traverse(symNode)
+						return els
+					}
+
+					const baseLeafs = new Set(getLeafElements(origBaseSymNode))
+					const varLeafs = getLeafElements(origVarSymNode)
+					
+					varLeafs.forEach(leaf => {
+						if (!baseLeafs.has(leaf)) {
+							decoratorElements.push(leaf)
+						}
+					})
+				}
+
+				newSymbolXml = `<symbol id="${newSymbolId}">\n<g fill="none" stroke="${defaultStroke}" stroke-miterlimit="10" stroke-width=".4">\n${elementsXmlArr.join("\n")}\n${decoratorElements.join("\n")}\n</g>\n${clickRectHtml}\n</symbol>`
+			}
+
+			newSymbolsMap[newSymbolId] = newSymbolXml
 		}
+
+		console.log("[HVNMOS_DEBUG] rebuilt symbols keys:", Object.keys(newSymbolsMap));
 
 		// Update database record
 		this.customSymbol.componentXml = compNode.outerHTML
-		this.customSymbol.symbols[symbolId] = newSymbolXml
+		this.customSymbol.symbols = newSymbolsMap
 
 		const transaction = MainController.instance.db.transaction("customSymbols", "readwrite")
 		transaction.objectStore("customSymbols").put(this.customSymbol).onsuccess = () => {
 			console.log("Custom symbol successfully saved in IndexedDB:", this.tikzName)
 			
 			// Hot-reload DOM `#symbolDB` content
-			const symbolDB = document.getElementById("symbolDB")
 			if (symbolDB) {
-				const oldSymbol = document.getElementById(symbolId)
-				if (oldSymbol) oldSymbol.remove()
+				for (const newSymbolId in newSymbolsMap) {
+					const oldSymbol = document.getElementById(newSymbolId)
+					if (oldSymbol) oldSymbol.remove()
 
-				const wrapper = `<svg xmlns="http://www.w3.org/2000/svg">${newSymbolXml}</svg>`
-				const parsedSymbol = parser.parseFromString(wrapper, "image/svg+xml")
-				const symbolNode = parsedSymbol.querySelector("symbol")
-				if (symbolNode) {
-					const adoptedSymbol = document.adoptNode(symbolNode)
-					symbolDB.appendChild(adoptedSymbol)
+					const wrapper = `<svg xmlns="http://www.w3.org/2000/svg">${newSymbolsMap[newSymbolId]}</svg>`
+					const parsedSymbol = parser.parseFromString(wrapper, "image/svg+xml")
+					const symbolNode = parsedSymbol.querySelector("symbol")
+					if (symbolNode) {
+						const adoptedSymbol = document.adoptNode(symbolNode)
+						symbolDB.appendChild(adoptedSymbol)
+					}
 				}
 			}
 
 			// Update runtime memory `ComponentSymbol` instance mapping
 			const compSymbol = MainController.instance.symbols.find(s => s.tikzName === this.tikzName)
 			if (compSymbol) {
-				const variantKey = compSymbol._mapping.keys().toArray()[0]
-				const variantObj = compSymbol._mapping.get(variantKey)!
-				
-				variantObj.pins = pins
-				variantObj.symbol = new SVG.Symbol(document.getElementById(symbolId) as any)
-				
-				// Re-preprocess symbol colors on the newly appended DOM element
-				const g = document.getElementById(symbolId)!.querySelector("g")
-				if (g) {
-					// We call preprocessSymbolColors from MainController instance.
-					// Note preprocessSymbolColors is private in MainController, so we use bracket notation to bypass
-					(MainController.instance as any).preprocessSymbolColors(g)
+				const variantNodes = compNode.getElementsByTagName("variant")
+				for (let i = 0; i < variantNodes.length; i++) {
+					const vNode = variantNodes[i]
+					const currentSymbolId = vNode.getAttribute("for")!
+					
+					// Resolve options key to update target variantObj in memory map
+					const options = compSymbol.getOptionsFromOptionNames(
+						Array.from(vNode.getElementsByTagName("option")).map(o => o.getAttribute("name")!)
+					)
+					const mappingKey = compSymbol.optionsToStringArray(options).join(", ")
+					
+					const variantObj = compSymbol._mapping.get(mappingKey)
+					if (variantObj) {
+						const symElement = document.getElementById(currentSymbolId)
+						if (symElement) {
+							variantObj.symbol = new SVG.Symbol(symElement as any)
+							
+							// Re-preprocess symbol colors on the newly appended DOM element
+							const g = symElement.querySelector("g")
+							if (g) {
+								(MainController.instance as any).preprocessSymbolColors(g)
+							}
+						}
+
+						// Update mapping pins structure from newly updated componentXml
+						const pinElements = Array.from(vNode.getElementsByTagName("pin"))
+						variantObj.pins = pinElements.map(p => {
+							const name = p.getAttribute("name") || p.getAttribute("anchorname") || undefined
+							const px = parseFloat(p.getAttribute("x") || "0")
+							const py = parseFloat(p.getAttribute("y") || "0")
+							const isDefault = p.getAttribute("isDefault") === "true" || p.getAttribute("isdefault") === "true"
+							return {
+								name,
+								x: new SVG.Number(px),
+								y: new SVG.Number(py),
+								isDefault,
+								point: new SVG.Point(px, py)
+							}
+						})
+					}
 				}
 			}
 

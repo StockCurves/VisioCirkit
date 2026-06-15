@@ -115,6 +115,7 @@ export abstract class CircuitComponent {
 	 * A List of all the Snapping points of this component
 	 */
 	public snappingPoints: SnapPoint[]
+	public tikzLines: [number, number] | null = null
 
 	/**
 	 * A map of all the properties which are used by this component. The key is the ID of the property, which can be used to filter for multi-component editing
@@ -401,11 +402,14 @@ export abstract class CircuitComponent {
 	 * 1) Define a public static fromJson method which returns an instance of the component. This should only handle proper initialization and no parameter setting. See NodeSymbolComponent
 	 * 2) Override the applyJson method which should contain a super.applyJson call. This method should only handle parameters not already handled by the respective super class(es)
 	 */
-	protected applyJson(saveObject: ComponentSaveObject): void {
+	protected applyJson(saveObject: ComponentSaveObject & { lines?: [number, number] }): void {
 		// highest level doesn't do anything (essentially only the type but this is not used here)
 		SnapCursorController.instance.visible = false
 		this.finishedPlacing = true
 		this.draggable(true)
+		if (saveObject.lines) {
+			this.tikzLines = saveObject.lines
+		}
 	}
 
 	protected static jsonSaveMap: Map<string, Constructor<CircuitComponent>> = new Map()

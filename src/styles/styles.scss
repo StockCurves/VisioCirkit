@@ -234,12 +234,23 @@ body {
 
 // Modals styling
 .modal-content {
+  font-family: var(--font-sans) !important;
   background-color: var(--bg-panel);
   border-radius: 16px;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, button, a {
+    &:not(.material-symbols-outlined) {
+      font-family: var(--font-sans) !important;
+    }
+  }
+
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+  }
 }
 
 .modal-header {
@@ -278,3 +289,57 @@ body {
 @import "exportModal.scss";
 @import "saveModal.scss";
 @import "properties.scss";
+
+// TikZ Editor custom styling for contenteditable editor lines highlighting and errors
+#tikzEditorTextArea {
+  min-height: 200px;
+  max-height: 100%;
+  white-space: pre;
+  word-wrap: normal;
+  overflow-x: auto;
+  line-height: 1.5;
+  outline: none;
+  padding: 10px;
+  background-color: var(--bg-editor);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+
+  > div {
+    position: relative;
+    padding: 0 8px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    min-height: 1.5em;
+
+    &.highlight-blue {
+      background-color: rgba(30, 112, 230, 0.15);
+      border-left: 3px solid var(--primary);
+      padding-left: 5px;
+    }
+
+    &.highlight-red {
+      background-color: rgba(217, 56, 58, 0.15);
+      border-left: 3px solid var(--danger);
+      padding-left: 5px;
+    }
+  }
+
+  .error-msg {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    padding: 6px 12px;
+    background-color: rgba(217, 56, 58, 0.1);
+    border: 1px solid rgba(217, 56, 58, 0.3);
+    border-radius: 6px;
+    color: var(--danger);
+    font-size: 13px;
+    white-space: pre-wrap;
+    user-select: none;
+    pointer-events: none;
+    display: block;
+    line-height: 1.4;
+    font-family: var(--font-sans);
+  }
+}
+

@@ -6,6 +6,7 @@ import {
 	CircuitComponent,
 	Undo,
 	defaultStroke,
+	TikzEditorController,
 } from "../internal"
 
 export enum SelectionMode {
@@ -225,6 +226,7 @@ export class SelectionController {
 			component.draggable(false)
 		}
 		this.currentlySelectedComponents.splice(0)
+		TikzEditorController.instance.highlightSelectedComponents()
 	}
 
 	public viewSelection(show = true) {
@@ -258,6 +260,7 @@ export class SelectionController {
 		this.viewSelection()
 
 		PropertyController.instance.update()
+		TikzEditorController.instance.highlightSelectedComponents()
 	}
 
 	public selectAll() {
@@ -270,6 +273,7 @@ export class SelectionController {
 
 		this.viewSelection()
 		PropertyController.instance.update()
+		TikzEditorController.instance.highlightSelectedComponents()
 	}
 
 	public getOverallBoundingBox(): SVG.Box {

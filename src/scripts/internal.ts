@@ -11,6 +11,7 @@ export * from "./controllers/propertiesController"
 export * from "./controllers/environmentVariableController"
 export * from "./controllers/tikzEditorController"
 export * from "./controllers/contextMenu"
+export * from "./controllers/templateController"
 // properties
 export * from "./properties/editableProperty"
 export * from "./properties/booleanProperty"

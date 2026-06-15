@@ -41,6 +41,7 @@ import {
 	SubcircuitComponent,
 	SubcircuitSaveObject,
 	SymbolEditorController,
+	TemplateController,
 } from "../internal"
 
 type TabState = {
@@ -132,12 +133,14 @@ export class MainController {
 		// dark mode init
 		const htmlElement = document.documentElement
 		const switchElement = document.getElementById("darkModeSwitch") as HTMLInputElement
-		const defaultTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-		this.currentTheme = localStorage.getItem("circuitikz-designer-theme") || defaultTheme
-		htmlElement.setAttribute("data-bs-theme", this.currentTheme)
+		this.currentTheme = "light"
+		htmlElement.setAttribute("data-bs-theme", "light")
+		localStorage.setItem("circuitikz-designer-theme", "light")
 		this.darkModeLast = false
-		this.darkMode = this.currentTheme === "dark"
-		switchElement.checked = this.darkMode
+		this.darkMode = false
+		if (switchElement) {
+			switchElement.checked = false
+		}
 
 		let mathJaxPromise = this.loadMathJax()
 		let canvasPromise = this.initCanvas()
@@ -158,7 +161,7 @@ export class MainController {
 		const fileExportName = document.getElementById("exportModalFileBasename") as HTMLInputElement
 		this.designName = new TextProperty("Design Name", "")
 		this.designName.addChangeListener(() => {
-			document.title = this.designName.value + (this.designName.value ? " - " : "") + "CircuiTikZ Designer"
+			document.title = this.designName.value + (this.designName.value ? " - " : "") + "CkTikZ"
 			fileExportName.placeholder =
 				MainController.instance.designName.value.replace(/[^a-z0-9]/gi, "_") || "Circuit"
 
@@ -219,14 +222,14 @@ export class MainController {
 						const menuEntries = []
 						
 						if (selected.length > 1) {
-							menuEntries.push({ result: "group", text: "建立群組 (Group Selection)" })
+							menuEntries.push({ result: "group", text: "Group Selection" })
 						}
 						
 						if (selected.length === 1 && (selected[0] instanceof GroupComponent || selected[0].constructor.name === "GroupComponent" || selected[0].constructor.name === "SubcircuitComponent")) {
-							menuEntries.push({ result: "ungroup", text: "取消群組 (Ungroup)" })
+							menuEntries.push({ result: "ungroup", text: "Ungroup" })
 						}
 						
-						menuEntries.push({ result: "subcircuit", text: "儲存為自訂元件 (Save Selection as Symbol)..." })
+						menuEntries.push({ result: "subcircuit", text: "Save Selection as Symbol..." })
 						
 						const menu = new ContextMenu(menuEntries)
 						menu.openForResult(evt.clientX, evt.clientY).then((res) => {
@@ -260,6 +263,13 @@ export class MainController {
 			})
 			MainController.instance.updateTheme()
 			PropertyController.instance.update()
+			
+			TemplateController.instance.fetchFiles().then(() => {
+				if (!window.location.search.includes("base=")) {
+					TemplateController.instance.loadRemoteFile("template", "rc-lowpass.tex")
+				}
+			}).catch(err => console.error("Error loading templates:", err))
+
 			this.isInitDone = true
 		})
 	}
@@ -1399,10 +1409,10 @@ export class MainController {
 					}
 					const menuEntries = this.customCategories.map(c => ({
 						result: "add:" + c.name,
-						text: `加到 "${c.name}"`
+						text: `Add to "${c.name}"`
 					})).concat([
-						{ result: "new", text: "加到新分類..." },
-						{ result: "duplicate", text: "複製此符號並自訂..." }
+						{ result: "new", text: "Add to new category..." },
+						{ result: "duplicate", text: "Duplicate symbol and customize..." }
 					])
 
 					const menu = new ContextMenu(menuEntries)
@@ -1743,7 +1753,10 @@ export class MainController {
 			const variant = variants[i]
 			const originalFor = variant.getAttribute("for")
 			if (originalFor) {
-				const originalSymbolNode = document.getElementById(originalFor)
+				let originalSymbolNode = document.getElementById(originalFor)
+				if (!originalSymbolNode && symbolSVGElement) {
+					originalSymbolNode = symbolSVGElement.querySelector(`symbol[id="${originalFor}"], [id="${originalFor}"]`)
+				}
 				if (originalSymbolNode) {
 					const newSymbolId = `node_custom_${newTikzName}_${i === 0 ? "default" : i}`
 					const newSymbolNode = originalSymbolNode.cloneNode(true) as Element
@@ -1757,6 +1770,8 @@ export class MainController {
 					
 					// 收集 XML
 					symbolsMap[newSymbolId] = newSymbolNode.outerHTML
+				} else {
+					console.error(`[Duplicate] Could not find original symbol node for ID: ${originalFor}`);
 				}
 			}
 		}
@@ -1972,8 +1987,8 @@ export class MainController {
 				ev.preventDefault()
 				ev.stopPropagation()
 				const menu = new ContextMenu([
-					{ result: "rename", iconText: "edit", text: "更名分類..." },
-					{ result: "delete", iconText: "delete", text: `刪除分類 "${cat.name}"` }
+					{ result: "rename", iconText: "edit", text: "Rename category..." },
+					{ result: "delete", iconText: "delete", text: `Delete category "${cat.name}"` }
 				])
 				menu.openForResult(ev.clientX, ev.clientY).then(async (res) => {
 					if (res === "rename") {
@@ -2013,10 +2028,10 @@ export class MainController {
 						if (customSymbol.isCustomSymbol) {
 							// Custom graphics symbol: edit / rename / remove / delete
 							const menu = new ContextMenu([
-								{ result: "edit", iconText: "edit", text: "編輯符號 (Edit)..." },
-								{ result: "rename", iconText: "drive_file_rename_outline", text: "更名符號..." },
-								{ result: "remove", iconText: "playlist_remove", text: "從此分類移除" },
-								{ result: "delete", iconText: "delete", text: "刪除自訂符號定義" }
+								{ result: "edit", iconText: "edit", text: "Edit Symbol..." },
+								{ result: "rename", iconText: "drive_file_rename_outline", text: "Rename symbol..." },
+								{ result: "remove", iconText: "playlist_remove", text: "Remove from this category" },
+								{ result: "delete", iconText: "delete", text: "Delete custom symbol definition" }
 							])
 							menu.openForResult(ev.clientX, ev.clientY).then(async (res) => {
 								if (res === "edit") {
@@ -2035,9 +2050,9 @@ export class MainController {
 						} else {
 							// Subcircuit: rename / remove / delete all
 							const menu = new ContextMenu([
-								{ result: "rename", iconText: "edit", text: "更名子電路..." },
-								{ result: "remove", iconText: "playlist_remove", text: "從此分類移除" },
-								{ result: "delete", iconText: "delete", text: "刪除子電路定義" }
+								{ result: "rename", iconText: "edit", text: "Rename subcircuit..." },
+								{ result: "remove", iconText: "playlist_remove", text: "Remove from this category" },
+								{ result: "delete", iconText: "delete", text: "Delete subcircuit definition" }
 							])
 							menu.openForResult(ev.clientX, ev.clientY).then(async (res) => {
 								if (res === "rename") {
@@ -2055,7 +2070,7 @@ export class MainController {
 					} else {
 						// Standard symbol: only remove from category
 						const menu = new ContextMenu([
-							{ result: "remove", iconText: "playlist_remove", text: "從此分類移除" }
+							{ result: "remove", iconText: "playlist_remove", text: "Remove from this category" }
 						])
 						menu.openForResult(ev.clientX, ev.clientY).then((res) => {
 							if (res === "remove") this.removeSymbolFromCategory(cat.name, symbolId)
@@ -2666,13 +2681,13 @@ export class MainController {
 			for (const component of sub.groupedComponents) {
 				component.moveRel(rel)
 			}
-			const lines = sub.groupedComponents.map(c => "\t\t" + c.toTikzString())
+			const lines = sub.groupedComponents.map(c => "    " + c.toTikzString())
 			const relBack = originalPos.sub(new SVG.Point(0, 0))
 			for (const component of sub.groupedComponents) {
 				component.moveRel(relBack)
 			}
 
-			definitions.push(`\t${sub.displayName}/.pic={\n${lines.join("\n")}\n\t}`)
+			definitions.push(`  ${sub.displayName}/.pic={\n${lines.join("\n")}\n  }`)
 		}
 
 		return `\\tikzset{\n${definitions.join(",\n")}\n}`
@@ -2880,13 +2895,13 @@ export class MainController {
 					}
 
 					if (drawCommands.length > 0) {
-						definitions.push(`\t${tikzName}/.style={\n\t\t${baseSymbol},\n\t\tdraw=none,\n\t\tfill=none,\n\t\tappend after command={\n\t\t\t\\begin{scope}[shift={(\\tikzlastnode.center)}]\n\t\t\t\t${drawCommands.join("\n\t\t\t\t")}\n\t\t\t\\end{scope}\n\t\t}\n\t}`)
+						definitions.push(`  ${tikzName}/.style={\n    ${baseSymbol},\n    draw=none,\n    fill=none,\n    append after command={\n      \\begin{scope}[shift={(\\tikzlastnode.center)}]\n        ${drawCommands.join("\n        ")}\n      \\end{scope}\n    }\n  }`)
 						continue
 					}
 				}
 			}
 
-			definitions.push(`\t${tikzName}/.style={${baseSymbol}}`)
+			definitions.push(`  ${tikzName}/.style={${baseSymbol}}`)
 		}
 
 		return `\\tikzset{\n${definitions.join(",\n")}\n}`

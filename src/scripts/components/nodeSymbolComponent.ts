@@ -288,10 +288,14 @@ export class NodeSymbolComponent extends NodeComponent {
 			symbol = MainController.instance.symbols.find((symbol) => symbol.tikzName == saveObject.id)
 		} else {
 			let idParts = saveObject.id.split("_")
-			symbol = MainController.instance.symbols.find(
-				(symbol) => symbol.tikzName == idParts[1].replaceAll("-", " ")
-			)
-			saveObject.options = idParts.slice(2)
+			if (idParts.length >= 2) {
+				symbol = MainController.instance.symbols.find(
+					(symbol) => symbol.tikzName == idParts[1].replaceAll("-", " ")
+				)
+				saveObject.options = idParts.slice(2)
+			} else {
+				symbol = MainController.instance.symbols.find((symbol) => symbol.tikzName == saveObject.id)
+			}
 		}
 		if (symbol) {
 			let nodeComponent: NodeSymbolComponent = new NodeSymbolComponent(symbol)
