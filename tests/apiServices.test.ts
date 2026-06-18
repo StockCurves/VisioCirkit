@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { getApiBase } from "../src/scripts/services/apiBase"
+import { LocalTemplateFileService } from "../src/scripts/services/localTemplateFileService"
+import { createTemplateDataSource, getRuntimeMode } from "../src/scripts/services/runtimeMode"
 import { TemplateFileService } from "../src/scripts/services/templateFileService"
 import { LatexRenderService, prepareLatexSource } from "../src/scripts/services/latexRenderService"
 
@@ -17,6 +19,108 @@ describe("getApiBase", () => {
 
 	it("uses same-origin API paths for deployed hosts", () => {
 		expect(getApiBase("example.com")).toBe("")
+	})
+})
+
+describe("runtime mode", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals()
+	})
+
+	it("uses server mode on localhost and local mode on deployed hosts", () => {
+		expect(getRuntimeMode("localhost")).toBe("server")
+		expect(getRuntimeMode("127.0.0.1")).toBe("server")
+		expect(getRuntimeMode("example.com")).toBe("local")
+	})
+
+	it("creates a local template data source for local mode", () => {
+		expect(createTemplateDataSource("local")).toBeInstanceOf(LocalTemplateFileService)
+		expect(createTemplateDataSource("server")).toBeInstanceOf(TemplateFileService)
+	})
+})
+
+const makeLocalTemplateDb = () => {
+	const records = new Map<string, any>()
+	const request = <T>(result: T) => ({ result, onsuccess: null, onerror: null } as unknown as IDBRequest<T>)
+	const completeTransaction = (transaction: any) => {
+		setTimeout(() => transaction.oncomplete?.(), 0)
+	}
+
+	return {
+		transaction(_storeNames: string | string[], _mode?: IDBTransactionMode) {
+			const transaction: any = {
+				oncomplete: null,
+				onerror: null,
+				onabort: null,
+				objectStore() {
+					return {
+						getAll() {
+							const req = request(Array.from(records.values()))
+							setTimeout(() => req.onsuccess?.({ target: req } as any), 0)
+							return req
+						},
+						get(name: string) {
+							const req = request(records.get(name))
+							setTimeout(() => req.onsuccess?.({ target: req } as any), 0)
+							return req
+						},
+						put(record: any) {
+							records.set(record.name, record)
+							completeTransaction(transaction)
+							return request(undefined)
+						},
+						delete(name: string) {
+							records.delete(name)
+							completeTransaction(transaction)
+							return request(undefined)
+						},
+					}
+				},
+			}
+			return transaction
+		},
+	}
+}
+
+describe("LocalTemplateFileService", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals()
+	})
+
+	it("lists static templates and IndexedDB work files", async () => {
+		const db = makeLocalTemplateDb() as unknown as IDBDatabase
+		const service = new LocalTemplateFileService(() => Promise.resolve(db))
+
+		await service.saveWork("draft.tex", "\\draw (0,0) -- (1,0);")
+
+		const result = await service.listFiles()
+		expect(result.templates).toContain("rc-lowpass.tex")
+		expect(result.works).toEqual(["draft.tex"])
+	})
+
+	it("reads templates from static URLs and work files from IndexedDB", async () => {
+		const db = makeLocalTemplateDb() as unknown as IDBDatabase
+		const service = new LocalTemplateFileService(() => Promise.resolve(db))
+		const fetchMock = mockFetch({
+			ok: true,
+			text: vi.fn().mockResolvedValue("\\begin{circuitikz}\\end{circuitikz}"),
+		})
+
+		expect(await service.readFile("template", "rc-lowpass.tex")).toBe("\\begin{circuitikz}\\end{circuitikz}")
+		expect(fetchMock).toHaveBeenCalledTimes(1)
+
+		await service.saveWork("draft.tex", "\\draw (0,0) -- (2,0);")
+		expect(await service.readFile("work", "draft.tex")).toBe("\\draw (0,0) -- (2,0);")
+	})
+
+	it("deletes IndexedDB work files", async () => {
+		const db = makeLocalTemplateDb() as unknown as IDBDatabase
+		const service = new LocalTemplateFileService(() => Promise.resolve(db))
+
+		await service.saveWork("draft.tex", "\\draw (0,0) -- (1,0);")
+		await service.deleteWork("draft.tex")
+
+		await expect(service.readFile("work", "draft.tex")).rejects.toThrow("Work file not found.")
 	})
 })
 

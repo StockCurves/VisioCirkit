@@ -21,7 +21,8 @@
 		"main": false
 	},
 	"scripts": {
-		"build": "parcel build --public-url ./",
+		"generate:template-manifest": "node scripts/generate-template-manifest.js",
+		"build": "npm run generate:template-manifest && parcel build --public-url ./",
 		"update": "npx npm-check-updates -u",
 		"prepack": "npm run build",
 		"start": "node scripts/dev.js",
