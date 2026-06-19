@@ -2,7 +2,6 @@ import { Point } from "@svgdotjs/svg.js"
 import {
 	ComponentSaveObject,
 	MainController,
-	MessageData,
 	SaveController,
 	SelectionController,
 	SelectionMode,

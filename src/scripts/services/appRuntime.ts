@@ -6,6 +6,8 @@ import { IndexedDbTemplateDataSource } from "./indexedDbTemplateDataSource"
 import { LatexRenderService } from "./latexRenderService"
 import { StaticTemplateDataSource } from "./staticTemplateDataSource"
 import { SubcircuitPreviewService } from "./subcircuitPreviewService"
+import { TabApplicationService } from "./tabApplicationService"
+import { TabBroadcastService } from "./tabBroadcastService"
 import { TabRepository } from "./tabRepository"
 import { TabSessionService } from "./tabSessionService"
 import { TemplateApplicationService } from "./templateApplicationService"
@@ -24,6 +26,11 @@ export interface AppRuntime {
 	createIndexedDbService(): IndexedDbService
 	createTabRepository<TTabState>(db: IDBDatabase): TabRepository<TTabState>
 	createTabSessionService<TData, TSettings>(db: IDBDatabase): TabSessionService<TData, TSettings>
+	createTabApplicationService<TData, TSettings>(
+		getDb: () => IDBDatabase,
+		hasPersistedComponents: (data: TData) => boolean
+	): TabApplicationService<TData, TSettings>
+	createTabBroadcastService(): TabBroadcastService
 	createCustomSymbolDomService(): CustomSymbolDomService
 	createSubcircuitPreviewService(): SubcircuitPreviewService
 	createCustomSymbolService(getDb: () => IDBDatabase): CustomSymbolService
@@ -34,6 +41,7 @@ class DefaultAppRuntime implements AppRuntime {
 	private indexedDbPromise: Promise<IDBDatabase> | null = null
 	private customSymbolDomService: CustomSymbolDomService | null = null
 	private subcircuitPreviewService: SubcircuitPreviewService | null = null
+	private tabBroadcastService: TabBroadcastService | null = null
 
 	public constructor(public readonly config: AppRuntimeConfig = runtimeConfig) {}
 
@@ -66,6 +74,23 @@ class DefaultAppRuntime implements AppRuntime {
 
 	public createTabSessionService<TData, TSettings>(db: IDBDatabase): TabSessionService<TData, TSettings> {
 		return new TabSessionService<TData, TSettings>(this.createTabRepository(db))
+	}
+
+	public createTabApplicationService<TData, TSettings>(
+		getDb: () => IDBDatabase,
+		hasPersistedComponents: (data: TData) => boolean
+	): TabApplicationService<TData, TSettings> {
+		return new TabApplicationService<TData, TSettings>(
+			() => this.createTabSessionService<TData, TSettings>(getDb()),
+			hasPersistedComponents
+		)
+	}
+
+	public createTabBroadcastService(): TabBroadcastService {
+		if (!this.tabBroadcastService) {
+			this.tabBroadcastService = new TabBroadcastService()
+		}
+		return this.tabBroadcastService
 	}
 
 	public createCustomSymbolDomService(): CustomSymbolDomService {

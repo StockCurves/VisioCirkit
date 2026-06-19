@@ -6,8 +6,7 @@ import hotkeys from "hotkeys-js"
 import { version } from "../../../package.json"
 import { CustomSymbolService, type CustomSymbolRecord } from "../services/customSymbolService"
 import { getAppRuntime } from "../services/appRuntime"
-import { TabSessionService } from "../services/tabSessionService"
-
+import type { BroadcastMessage, BroadcastMessageType } from "../services/tabBroadcastService"
 import {
 	CanvasController,
 	ExportController,
@@ -47,20 +46,6 @@ import {
 	TemplateController,
 	LiveRenderController,
 } from "../internal"
-
-type TabState = {
-	id: number
-	open: string
-	data: SaveFileFormat
-	settings: CanvasSettings
-	designName?: string
-}
-
-export type MessageData = {
-	type: string
-	from: number
-	payload?: any
-}
 
 export type CanvasSettings = {
 	gridVisible?: boolean
@@ -128,6 +113,11 @@ export class MainController {
 	private db: IDBDatabase
 	private readonly appRuntime = getAppRuntime()
 	private readonly indexedDbService = this.appRuntime.createIndexedDbService()
+	private readonly tabApplicationService = this.appRuntime.createTabApplicationService<SaveFileFormat, CanvasSettings>(
+		() => this.db,
+		(data) => data.components.length > 0
+	)
+	private readonly tabBroadcastService = this.appRuntime.createTabBroadcastService()
 	private readonly customSymbolService: CustomSymbolService = this.appRuntime.createCustomSymbolService(() => this.db)
 
 	/**
@@ -173,7 +163,7 @@ export class MainController {
 			fileExportName.placeholder =
 				MainController.instance.designName.value.replace(/[^a-z0-9]/gi, "_") || "Circuit"
 
-			this.createTabSessionService().updateDesignName(this.tabID, MainController.instance.designName.value || undefined).then((updated) => {
+			this.tabApplicationService.updateDesignName(this.tabID, MainController.instance.designName.value || undefined).then((updated) => {
 				if (!updated) return
 				MainController.instance.sendBroadcastMessage("update")
 			})
@@ -364,7 +354,7 @@ export class MainController {
 			var url = new URL(window.location.href)
 			// check if a tabID is requested in the URL, otherwise use the first closed tab
 			var requestedID = parseInt(url.searchParams.get("tabID"))
-			this.createTabSessionService().initializeTab(requestedID, emtpySaveState, defaultSettings).then((session) => {
+			this.tabApplicationService.initializeTab(requestedID, emtpySaveState, defaultSettings).then((session) => {
 				MainController.instance.tabID = session.tabId
 				MainController.instance.designName.updateValue(session.designName ?? "", true, true)
 				CanvasController.instance.setSettings(session.settings)
@@ -379,7 +369,7 @@ export class MainController {
 
 		settingsModalEl.addEventListener("show.bs.modal", (event) => {
 			this.saveCurrentState(false)
-			this.createTabSessionService().getTabManagementSummary(
+			this.tabApplicationService.getTabManagementSummary(
 				MainController.instance.tabID,
 				(data) => memorySizeOf(data),
 				(data) => countComponents(data.components)
@@ -408,7 +398,7 @@ export class MainController {
 						deleteButton.classList.add("btn", "btn-danger", "material-symbols-outlined")
 						deleteButton.innerText = "delete"
 						deleteButton.addEventListener("click", () => {
-							this.createTabSessionService().deleteTab(tabData.id).then(() => {
+							this.tabApplicationService.deleteTab(tabData.id).then(() => {
 								settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
 								MainController.instance.sendBroadcastMessage("update")
 							})
@@ -450,10 +440,7 @@ export class MainController {
 
 		document.getElementById("probeRefresh").addEventListener("click", () => {
 			// set all open states in indexedDB to false, then send a probe message to all tabs
-			this.createTabSessionService().markOtherTabsClosedForProbe(
-				MainController.instance.tabID,
-				(data) => data.components.length > 0
-			).then(() => {
+			this.tabApplicationService.markOtherTabsClosedForProbe(MainController.instance.tabID).then(() => {
 				// after all tabs are closed (in the db, not the tab in the browser), send a probe message to all tabs
 				// this will cause all open tabs to set their state to open=true again
 				settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
@@ -471,61 +458,50 @@ export class MainController {
 		faviconAlternate.disabled = true
 
 		this.broadcastChannel.onmessage = (event) => {
-			const msg = event.data as MessageData
+			const msg = event.data as BroadcastMessage
 
-			if (msg.type == "show") {
-				const tabID = parseInt(msg.payload) // get the tabID
-				if (tabID == MainController.instance.tabID) {
-					const oldTitle = document.title
+			this.tabBroadcastService
+				.handleIncomingMessage(msg, this.tabID, (tabId) => this.tabApplicationService.markTabOpen(tabId))
+				.then((reaction) => {
+					if (reaction.flashCurrentTab) {
+						const oldTitle = document.title
 
-					let darkMode = true
-					const switchFavicon = () => {
-						if (darkMode) {
-							favicon.href = alternateLink
-							document.title = "Click here!"
-						} else {
-							favicon.href = faviconLink
-							document.title = oldTitle
+						let darkMode = true
+						const switchFavicon = () => {
+							if (darkMode) {
+								favicon.href = alternateLink
+								document.title = "Click here!"
+							} else {
+								favicon.href = faviconLink
+								document.title = oldTitle
+							}
+							darkMode = !darkMode
 						}
-						darkMode = !darkMode
+						const interval = setInterval(switchFavicon, 1100)
+						switchFavicon()
+
+						// Stop flashing if tab becomes visible
+						document.addEventListener("visibilitychange", () => {
+							if (!document.hidden) {
+								clearInterval(interval)
+								darkMode = false
+								switchFavicon()
+							}
+						})
 					}
-					const interval = setInterval(switchFavicon, 1100)
-					switchFavicon()
 
-					// Stop flashing if tab becomes visible
-					document.addEventListener("visibilitychange", () => {
-						if (!document.hidden) {
-							clearInterval(interval)
-							darkMode = false
-							switchFavicon()
-						}
-					})
-				}
-			} else if (msg.type == "update") {
-				if (settingsModalEl.classList.contains("show")) {
-					settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
-				}
-			} else if (msg.type == "clipboard") {
-				CopyPaste.setClipboard(msg.payload)
-			} else if (msg.type == "probe") {
-				// also respond with the orginal sender as the payload
-				this.sendBroadcastMessage("probe-response", msg.from)
-			} else if (msg.type == "probe-response") {
-				if (msg.payload != this.tabID) {
-					// only handle response if the orignal probe message came from this tab
-					return
-				}
+					if (reaction.refreshTabManagement && settingsModalEl.classList.contains("show")) {
+						settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
+					}
 
-				// set the indexedDB entry with tabID msg.tabID to open=true
-				this.createTabSessionService().markTabOpen(msg.from).then((updated) => {
-					if (updated) {
-						MainController.instance.sendBroadcastMessage("update")
+					if (reaction.clipboardPayload) {
+						CopyPaste.setClipboard(reaction.clipboardPayload)
+					}
+
+					if (reaction.outgoingMessage) {
+						this.postBroadcastMessage(reaction.outgoingMessage)
 					}
 				})
-				if (settingsModalEl.classList.contains("show")) {
-					settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
-				}
-			}
 			return false
 		}
 
@@ -553,20 +529,17 @@ export class MainController {
 		}
 	}
 
-	public sendBroadcastMessage(type: string, payload?: any) {
-		const broadcastMessage: MessageData = {
-			type: type,
-			from: this.tabID,
-		}
-		if (payload != undefined) {
-			broadcastMessage.payload = payload
-		}
-		this.broadcastChannel.postMessage(broadcastMessage)
+	public sendBroadcastMessage(type: BroadcastMessageType, payload?: any) {
+		this.postBroadcastMessage(this.tabBroadcastService.createMessage(type, this.tabID, payload))
+	}
+
+	private postBroadcastMessage(message: BroadcastMessage) {
+		this.broadcastChannel.postMessage(message)
 	}
 
 	private saveCurrentState(closeTab = true) {
 		Undo.addState()
-		this.createTabSessionService().persistSnapshot(
+		this.tabApplicationService.persistSnapshot(
 			this.tabID,
 			{
 				data: Undo.getCurrentState(),
@@ -579,17 +552,12 @@ export class MainController {
 				},
 				designName: MainController.instance.designName.value || undefined,
 			},
-			closeTab,
-			(data) => data.components.length > 0
+			closeTab
 		).then((result) => {
 			if (result === "updated" || result === "deleted") {
 				MainController.instance.sendBroadcastMessage("update")
 			}
 		})
-	}
-
-	private createTabSessionService(): TabSessionService<SaveFileFormat, CanvasSettings> {
-		return this.appRuntime.createTabSessionService<SaveFileFormat, CanvasSettings>(MainController.instance.db)
 	}
 
 	/**

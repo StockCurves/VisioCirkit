@@ -117,6 +117,26 @@ describe("createRuntimeConfig", () => {
 			renameCustomGraphicsSymbol: expect.any(Function),
 		})
 	})
+
+	it("creates tab application services through the runtime instead of controller-local session wiring", () => {
+		const service = getAppRuntime().createTabApplicationService(
+			() => ({}) as IDBDatabase,
+			(data: { components?: unknown[] }) => (data.components?.length ?? 0) > 0
+		)
+		expect(service).toMatchObject({
+			initializeTab: expect.any(Function),
+			getTabManagementSummary: expect.any(Function),
+			persistSnapshot: expect.any(Function),
+		})
+	})
+
+	it("creates tab broadcast services through the runtime for cross-tab coordination", () => {
+		const service = getAppRuntime().createTabBroadcastService()
+		expect(service).toMatchObject({
+			createMessage: expect.any(Function),
+			handleIncomingMessage: expect.any(Function),
+		})
+	})
 })
 
 describe("TemplateFileService", () => {
