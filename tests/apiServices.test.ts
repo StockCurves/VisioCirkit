@@ -118,6 +118,22 @@ describe("createRuntimeConfig", () => {
 		})
 	})
 
+	it("creates custom symbol application services through the runtime for symbol-state orchestration", () => {
+		const service = getAppRuntime().createCustomSymbolApplicationService(() => ({}) as IDBDatabase)
+		expect(service).toMatchObject({
+			loadState: expect.any(Function),
+			loadRuntimeSymbols: expect.any(Function),
+			renameGraphicsSymbol: expect.any(Function),
+		})
+	})
+
+	it("creates symbol library services through the runtime for base symbol boot", () => {
+		const service = getAppRuntime().createSymbolLibraryService()
+		expect(service).toMatchObject({
+			loadIntoDocument: expect.any(Function),
+		})
+	})
+
 	it("creates tab application services through the runtime instead of controller-local session wiring", () => {
 		const service = getAppRuntime().createTabApplicationService(
 			() => ({}) as IDBDatabase,
@@ -135,6 +151,15 @@ describe("createRuntimeConfig", () => {
 		expect(service).toMatchObject({
 			createMessage: expect.any(Function),
 			handleIncomingMessage: expect.any(Function),
+		})
+	})
+
+	it("creates tab lifecycle services through the runtime for autosave boot wiring", () => {
+		const service = getAppRuntime().createTabLifecycleService()
+		expect(service).toMatchObject({
+			clearLegacyStorage: expect.any(Function),
+			bindPersistenceHandlers: expect.any(Function),
+			initializeCurrentTab: expect.any(Function),
 		})
 	})
 })

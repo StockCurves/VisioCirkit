@@ -86,6 +86,7 @@ vi.mock("../src/scripts/internal", () => ({
 }))
 
 import { MainController } from "../src/scripts/controllers/mainController"
+import { CustomSymbolApplicationService } from "../src/scripts/services/customSymbolApplicationService"
 import { CustomSymbolService } from "../src/scripts/services/customSymbolService"
 import { CustomSymbolDomService } from "../src/scripts/services/customSymbolDomService"
 
@@ -126,6 +127,17 @@ function makeTransaction(
 						const request: { onsuccess: null | ((ev: any) => void) } = { onsuccess: null }
 						setTimeout(() => {
 							request.onsuccess?.({ target: { result: stores.customSymbols.get(key) } })
+						}, 0)
+						return request
+					},
+					getAll() {
+						const request: { onsuccess: null | ((ev: any) => void) } = { onsuccess: null }
+						setTimeout(() => {
+							request.onsuccess?.({
+								target: {
+									result: [...stores.customSymbols.values()],
+								},
+							})
 						}, 0)
 						return request
 					},
@@ -220,6 +232,9 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 				() => db as any,
 				new CustomSymbolDomService(),
 				vi.fn().mockResolvedValue(null)
+			),
+			customSymbolApplicationService: new CustomSymbolApplicationService(
+				new CustomSymbolService(() => db as any, new CustomSymbolDomService(), vi.fn().mockResolvedValue(null))
 			),
 			symbols: [oldRuntimeSymbol],
 			customSymbols: [{ id: oldSymbolRecord.id, tikzName: "old mos" }],

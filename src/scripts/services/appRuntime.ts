@@ -1,4 +1,5 @@
 import { createRuntimeConfig, runtimeConfig, type AppRuntimeConfig } from "../config/runtimeConfig"
+import { CustomSymbolApplicationService } from "./customSymbolApplicationService"
 import { CustomSymbolDomService } from "./customSymbolDomService"
 import { CustomSymbolService } from "./customSymbolService"
 import { IndexedDbService } from "./indexedDbService"
@@ -8,6 +9,7 @@ import { StaticTemplateDataSource } from "./staticTemplateDataSource"
 import { SubcircuitPreviewService } from "./subcircuitPreviewService"
 import { TabApplicationService } from "./tabApplicationService"
 import { TabBroadcastService } from "./tabBroadcastService"
+import { TabLifecycleService } from "./tabLifecycleService"
 import { TabRepository } from "./tabRepository"
 import { TabSessionService } from "./tabSessionService"
 import { TemplateApplicationService } from "./templateApplicationService"
@@ -17,6 +19,7 @@ import type {
 	TemplateEditorPort,
 	TemplateNotifierPort,
 } from "./templateTypes"
+import { SymbolLibraryService } from "./symbolLibraryService"
 
 export interface AppRuntime {
 	readonly config: AppRuntimeConfig
@@ -31,6 +34,9 @@ export interface AppRuntime {
 		hasPersistedComponents: (data: TData) => boolean
 	): TabApplicationService<TData, TSettings>
 	createTabBroadcastService(): TabBroadcastService
+	createTabLifecycleService<TData, TSettings>(): TabLifecycleService<TData, TSettings>
+	createCustomSymbolApplicationService(getDb: () => IDBDatabase): CustomSymbolApplicationService
+	createSymbolLibraryService(): SymbolLibraryService
 	createCustomSymbolDomService(): CustomSymbolDomService
 	createSubcircuitPreviewService(): SubcircuitPreviewService
 	createCustomSymbolService(getDb: () => IDBDatabase): CustomSymbolService
@@ -42,6 +48,8 @@ class DefaultAppRuntime implements AppRuntime {
 	private customSymbolDomService: CustomSymbolDomService | null = null
 	private subcircuitPreviewService: SubcircuitPreviewService | null = null
 	private tabBroadcastService: TabBroadcastService | null = null
+	private tabLifecycleService: TabLifecycleService<unknown, unknown> | null = null
+	private symbolLibraryService: SymbolLibraryService | null = null
 
 	public constructor(public readonly config: AppRuntimeConfig = runtimeConfig) {}
 
@@ -91,6 +99,24 @@ class DefaultAppRuntime implements AppRuntime {
 			this.tabBroadcastService = new TabBroadcastService()
 		}
 		return this.tabBroadcastService
+	}
+
+	public createTabLifecycleService<TData, TSettings>(): TabLifecycleService<TData, TSettings> {
+		if (!this.tabLifecycleService) {
+			this.tabLifecycleService = new TabLifecycleService()
+		}
+		return this.tabLifecycleService as TabLifecycleService<TData, TSettings>
+	}
+
+	public createCustomSymbolApplicationService(getDb: () => IDBDatabase): CustomSymbolApplicationService {
+		return new CustomSymbolApplicationService(this.createCustomSymbolService(getDb))
+	}
+
+	public createSymbolLibraryService(): SymbolLibraryService {
+		if (!this.symbolLibraryService) {
+			this.symbolLibraryService = new SymbolLibraryService()
+		}
+		return this.symbolLibraryService
 	}
 
 	public createCustomSymbolDomService(): CustomSymbolDomService {

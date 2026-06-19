@@ -4,6 +4,8 @@ import "../utils/impSVGNumber"
 import { waitForElementLoaded } from "../utils/domWatcher"
 import hotkeys from "hotkeys-js"
 import { version } from "../../../package.json"
+import { TabManagementController } from "./tabManagementController"
+import { CustomSymbolApplicationService } from "../services/customSymbolApplicationService"
 import { CustomSymbolService, type CustomSymbolRecord } from "../services/customSymbolService"
 import { getAppRuntime } from "../services/appRuntime"
 import type { BroadcastMessage, BroadcastMessageType } from "../services/tabBroadcastService"
@@ -106,6 +108,7 @@ export class MainController {
 	selectionController: SelectionController
 
 	broadcastChannel: BroadcastChannel
+	private readonly tabManagementController = new TabManagementController()
 
 	public designName: TextProperty
 	public pendingLoadData: SaveFileFormat | null = null
@@ -118,6 +121,10 @@ export class MainController {
 		(data) => data.components.length > 0
 	)
 	private readonly tabBroadcastService = this.appRuntime.createTabBroadcastService()
+	private readonly tabLifecycleService = this.appRuntime.createTabLifecycleService<SaveFileFormat, CanvasSettings>()
+	private readonly customSymbolApplicationService: CustomSymbolApplicationService =
+		this.appRuntime.createCustomSymbolApplicationService(() => this.db)
+	private readonly symbolLibraryService = this.appRuntime.createSymbolLibraryService()
 	private readonly customSymbolService: CustomSymbolService = this.appRuntime.createCustomSymbolService(() => this.db)
 
 	/**
@@ -327,12 +334,7 @@ export class MainController {
 	 * handle tabs and save state management
 	 */
 	private addSaveStateManagement(dbResolve: (db: IDBDatabase) => void) {
-		// remove old localStorage data
-		localStorage.removeItem("currentProgress")
-		localStorage.removeItem("circuit2tikz-designer-grid")
-		localStorage.removeItem("circuitikz-designer-grid")
-		localStorage.removeItem("circuitikz-designer-saveState")
-		sessionStorage.removeItem("circuitikz-designer-tabID")
+		this.tabLifecycleService.clearLegacyStorage(localStorage, sessionStorage)
 
 		const defaultSettings: CanvasSettings = {}
 
@@ -340,110 +342,53 @@ export class MainController {
 			MainController.instance.db = db
 			dbResolve(MainController.instance.db)
 
-			window.addEventListener("visibilitychange", (ev) => {
-				if (document.visibilityState == "hidden") {
-					MainController.instance.saveCurrentState(false)
-				}
-			})
-
-			window.addEventListener("beforeunload", (ev) => {
-				MainController.instance.saveCurrentState()
-			})
-
-			// the URL of the current page
-			var url = new URL(window.location.href)
-			// check if a tabID is requested in the URL, otherwise use the first closed tab
-			var requestedID = parseInt(url.searchParams.get("tabID"))
-			this.tabApplicationService.initializeTab(requestedID, emtpySaveState, defaultSettings).then((session) => {
-				MainController.instance.tabID = session.tabId
-				MainController.instance.designName.updateValue(session.designName ?? "", true, true)
-				CanvasController.instance.setSettings(session.settings)
-				MainController.instance.pendingLoadData = session.pendingData
-				MainController.instance.sendBroadcastMessage("update")
-			})
+			this.tabLifecycleService.bindPersistenceHandlers(window, document, (closeTab = true) => this.saveCurrentState(closeTab))
+			this.tabLifecycleService
+				.initializeCurrentTab(
+					window.location.href,
+					emtpySaveState,
+					defaultSettings,
+					(requestedId, data, settings) => this.tabApplicationService.initializeTab(requestedId, data, settings),
+					(session) => {
+						MainController.instance.tabID = session.tabId
+						MainController.instance.designName.updateValue(session.designName ?? "", true, true)
+						CanvasController.instance.setSettings(session.settings)
+						MainController.instance.pendingLoadData = session.pendingData
+					}
+				)
+				.then(() => {
+					MainController.instance.sendBroadcastMessage("update")
+				})
 		})
 
 		//settings modal
-		const settingsModalEl = document.getElementById("tabManagementModal") as HTMLDivElement
-		const settingsTableBody = document.getElementById("tabManagementTableBody") as HTMLTableSectionElement
-
-		settingsModalEl.addEventListener("show.bs.modal", (event) => {
+		this.tabManagementController.onShow(() => {
 			this.saveCurrentState(false)
 			this.tabApplicationService.getTabManagementSummary(
 				MainController.instance.tabID,
 				(data) => memorySizeOf(data),
 				(data) => countComponents(data.components)
 			).then((summary) => {
-				settingsTableBody.innerHTML = ""
-
-				for (const tabData of summary.entries) {
-					let row = settingsTableBody.appendChild(document.createElement("tr"))
-					row.classList.add("text-end")
-					let cell1 = row.appendChild(document.createElement("td"))
-					cell1.innerText = tabData.displayName
-					let cell2 = row.appendChild(document.createElement("td"))
-					cell2.innerText = tabData.componentCount + ""
-					let cell3 = row.appendChild(document.createElement("td"))
-					cell3.innerText = sizeString(tabData.size)
-					let cell4 = row.appendChild(document.createElement("td"))
-					if (!tabData.open) {
-						let openButton = cell4.appendChild(document.createElement("button"))
-						openButton.classList.add("btn", "btn-primary", "me-2")
-						openButton.innerText = "Open"
-						openButton.addEventListener("click", () => {
-							window.open(tabData.openUrl, "_blank")
+				this.tabManagementController.renderSummary(summary, {
+					openTab: (url) => window.open(url, "_blank"),
+					deleteTab: (tabId) => {
+						this.tabApplicationService.deleteTab(tabId).then(() => {
+							this.tabManagementController.requestRefresh()
+							MainController.instance.sendBroadcastMessage("update")
 						})
-
-						let deleteButton = cell4.appendChild(document.createElement("button"))
-						deleteButton.classList.add("btn", "btn-danger", "material-symbols-outlined")
-						deleteButton.innerText = "delete"
-						deleteButton.addEventListener("click", () => {
-							this.tabApplicationService.deleteTab(tabData.id).then(() => {
-								settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
-								MainController.instance.sendBroadcastMessage("update")
-							})
-						})
-					} else {
-						if (tabData.isCurrent) {
-							let infoButton = cell4.appendChild(document.createElement("button"))
-							infoButton.classList.add("btn")
-							infoButton.innerText = "This tab"
-							infoButton.disabled = true
-							let _ = [cell1, cell2, cell3, cell4].forEach((cell) => {
-								cell.classList.add("bg-primary")
-							})
-						} else {
-							let closeButton = cell4.appendChild(document.createElement("button"))
-							closeButton.classList.add("btn", "btn-primary")
-							closeButton.innerText = "Highlight tab"
-							closeButton.addEventListener("click", () => {
-								// send a message to the broadcast channel to show the tab
-								MainController.instance.sendBroadcastMessage("show", tabData.id)
-							})
-						}
-					}
-				}
-				let row = settingsTableBody.appendChild(document.createElement("tr"))
-				let cell1 = row.appendChild(document.createElement("td"))
-				cell1.colSpan = 4
-				cell1.classList.add("text-center")
-				let newTabButton = cell1.appendChild(document.createElement("button"))
-				newTabButton.classList.add("btn", "btn-primary")
-				newTabButton.innerText = "New tab"
-				newTabButton.addEventListener("click", () => {
-					window.open(summary.newTabUrl, "_blank")
+					},
+					highlightTab: (tabId) => MainController.instance.sendBroadcastMessage("show", tabId),
+					openNewTab: (url) => window.open(url, "_blank"),
 				})
-
-				document.getElementById("storageUsed").innerHTML = sizeString(summary.totalSize)
 			})
 		})
 
-		document.getElementById("probeRefresh").addEventListener("click", () => {
+		this.tabManagementController.onProbeRefresh(() => {
 			// set all open states in indexedDB to false, then send a probe message to all tabs
 			this.tabApplicationService.markOtherTabsClosedForProbe(MainController.instance.tabID).then(() => {
 				// after all tabs are closed (in the db, not the tab in the browser), send a probe message to all tabs
 				// this will cause all open tabs to set their state to open=true again
-				settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
+				this.tabManagementController.requestRefresh()
 				setTimeout(() => {
 					MainController.instance.sendBroadcastMessage("probe")
 				}, 10)
@@ -490,8 +435,8 @@ export class MainController {
 						})
 					}
 
-					if (reaction.refreshTabManagement && settingsModalEl.classList.contains("show")) {
-						settingsModalEl.dispatchEvent(new Event("show.bs.modal"))
+					if (reaction.refreshTabManagement) {
+						this.tabManagementController.refreshIfOpen()
 					}
 
 					if (reaction.clipboardPayload) {
@@ -503,18 +448,6 @@ export class MainController {
 					}
 				})
 			return false
-		}
-
-		function sizeString(size: number) {
-			if (size < 1024) {
-				return size + " B"
-			} else if (size < 1024 * 1024) {
-				return (size / 1024).toFixed(2) + " KB"
-			} else if (size < 1024 * 1024 * 1024) {
-				return (size / (1024 * 1024)).toFixed(2) + " MB"
-			} else {
-				return (size / (1024 * 1024 * 1024)).toFixed(2) + " GB"
-			}
 		}
 
 		function countComponents(data: ComponentSaveObject[]) {
@@ -734,32 +667,9 @@ export class MainController {
 	 * Fetch & parse the symbol(s) svg.
 	 */
 	private async initSymbolDB() {
-		// Fetch symbol DB
-		const symbolDBlink: HTMLLinkElement = await waitForElementLoaded("symbolDBlink")
-		const response = await fetch(symbolDBlink.href, {
-			method: "GET",
-			// must match symbolDBlink cors options in order to actually use the preloaded file
-			mode: "cors",
-			credentials: "same-origin",
-		})
-		const textContent = await response.text()
-
-		// Parse & add to DOM
-		const symbolsDocument: XMLDocument = new DOMParser().parseFromString(textContent, "image/svg+xml")
-		const symbolsSVGSVGElement: SVGSVGElement = document.adoptNode(
-			symbolsDocument.firstElementChild as SVGSVGElement
-		)
-		symbolsSVGSVGElement.style.display = "none"
-		symbolsSVGSVGElement.setAttribute("id", "symbolDB")
-		document.body.appendChild(symbolsSVGSVGElement)
-
-		// Extract symbols
-		this.symbolsSVG = new SVG.Svg(symbolsSVGSVGElement)
-		const componentsMetadata = Array.from(this.symbolsSVG.node.getElementsByTagName("component"))
-
-		this.symbols = componentsMetadata.flatMap((componentMetadata) => {
-			return new ComponentSymbol(componentMetadata)
-		})
+		const loadedLibrary = await this.symbolLibraryService.loadIntoDocument()
+		this.symbolsSVG = loadedLibrary.symbolsSVG
+		this.symbols = loadedLibrary.symbols
 	}
 
 	/**
@@ -1569,53 +1479,51 @@ export class MainController {
 		const symbolsSVGElement = document.getElementById("symbolDB")
 		if (!symbolsSVGElement) return
 
-		this.customSymbols = await this.customSymbolService.loadCustomSymbolsIntoDomAndRuntime(
-			symbolsSVGElement,
-			this.symbols
-		)
+		const state = await this.customSymbolApplicationService.loadRuntimeSymbols(symbolsSVGElement, this.symbols)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 	}
 
 	public async duplicateSymbol(originalSymbol: ComponentSymbol, newTikzName: string, categoryName: string) {
-		const symbolSVGElement = document.getElementById("symbolDB")
-		if (!symbolSVGElement) return
-
-		const duplicated = await this.customSymbolService.duplicateSymbol(
-			symbolSVGElement,
+		const state = await this.customSymbolApplicationService.duplicateGraphicsSymbol(
+			document.getElementById("symbolDB"),
 			this.symbols,
+			this.customSymbols,
 			originalSymbol,
 			newTikzName,
 			categoryName
 		)
-		if (!duplicated) {
+		if (state === "missing-dom") return
+		if (state === "missing-metadata") {
 			await this.openAlert("Missing Metadata", "Could not find the metadata for the original symbol!")
 			return
 		}
 
-		this.customSymbolService.replaceCustomSymbolRecord(this.customSymbols, duplicated.updatedRecord)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
 	public async renameCustomGraphicsSymbol(oldTikzName: string, newTikzName: string) {
-		newTikzName = newTikzName.trim()
-		if (!newTikzName || newTikzName === oldTikzName) return
-
-		const symbolDB = document.getElementById("symbolDB")
-		if (!symbolDB) return
-
-		await this.customSymbolService.renameCustomGraphicsSymbol(
+		const state = await this.customSymbolApplicationService.renameGraphicsSymbol(
 			oldTikzName,
 			newTikzName,
-			symbolDB,
+			document.getElementById("symbolDB"),
 			this.symbols,
 			this.customSymbols,
 			this.circuitComponents
 		)
+		if (state === "no-op" || state === "missing-dom") return
 
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
 	public async deleteCustomGraphicsSymbol(tikzName: string) {
-		await this.customSymbolService.deleteCustomGraphicsSymbol(tikzName, this.symbols, this.customSymbols)
+		const state = await this.customSymbolApplicationService.deleteGraphicsSymbol(tikzName, this.symbols, this.customSymbols)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
@@ -1623,8 +1531,9 @@ export class MainController {
 	public customSymbols: CustomSymbolRecord[] = []
 
 	public async loadAndRenderCustomCategories() {
-		this.customCategories = await this.customSymbolService.getCustomCategories()
-		this.customSymbols = await this.customSymbolService.getCustomSymbols()
+		const state = await this.customSymbolApplicationService.loadState()
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 
 		const leftOffcanvasAccordion = document.getElementById("leftOffcanvasAccordion") as HTMLDivElement
 		const leftOffcanvas: HTMLDivElement = document.getElementById("leftOffcanvas") as HTMLDivElement
@@ -1863,12 +1772,16 @@ export class MainController {
 	public async addCustomCategory(name: string) {
 		name = name.trim()
 		if (!name) return
-		await this.customSymbolService.addCategory(name)
+		const state = await this.customSymbolApplicationService.addCategory(name)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
 	public async deleteCustomCategory(name: string) {
-		await this.customSymbolService.deleteCategory(name)
+		const state = await this.customSymbolApplicationService.deleteCategory(name)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
@@ -2036,10 +1949,10 @@ export class MainController {
 	 * Subcircuit displayNames/tikzNames are NOT changed (category is just a container).
 	 */
 	public async renameCustomCategory(oldName: string, newName: string) {
-		newName = newName.trim()
-		if (!newName || newName === oldName) return
-
-		await this.customSymbolService.renameCategory(oldName, newName)
+		const state = await this.customSymbolApplicationService.renameCategory(oldName, newName)
+		if (state === "no-op") return
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
@@ -2048,16 +1961,15 @@ export class MainController {
 	 * and any placed SubcircuitComponents on the canvas.
 	 */
 	public async renameCustomSymbol(symbolId: string, newName: string) {
-		newName = newName.trim()
-		if (!newName) return
-
-		const renamed = await this.customSymbolService.renameCustomSymbol(
+		const state = await this.customSymbolApplicationService.renameCustomSymbol(
 			symbolId,
 			newName,
 			this.customSymbols,
 			this.circuitComponents
 		)
-		if (!renamed) return
+		if (state === "no-op" || state === "missing") return
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
@@ -2067,22 +1979,28 @@ export class MainController {
 	 * Canvas components already placed are NOT removed.
 	 */
 	public async deleteCustomSymbol(symbolId: string) {
-		await this.customSymbolService.deleteCustomSymbol(symbolId, this.customSymbols)
+		const state = await this.customSymbolApplicationService.deleteCustomSymbol(symbolId, this.customSymbols)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
 	public async addSymbolToCategory(categoryName: string, symbolId: string, customSymbolData?: CustomSymbolRecord) {
-		await this.customSymbolService.addSymbolToCategory(categoryName, symbolId, customSymbolData)
+		const state = await this.customSymbolApplicationService.addSymbolToCategory(categoryName, symbolId, customSymbolData)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
 	public async removeSymbolFromCategory(categoryName: string, symbolId: string) {
-		await this.customSymbolService.removeSymbolFromCategory(categoryName, symbolId)
+		const state = await this.customSymbolApplicationService.removeSymbolFromCategory(categoryName, symbolId)
+		this.customCategories = state.customCategories
+		this.customSymbols = state.customSymbols
 		this.loadAndRenderCustomCategories()
 	}
 
 	public async putCustomSymbolRecord(customSymbol: CustomSymbolRecord): Promise<void> {
-		await this.customSymbolService.putCustomSymbol(customSymbol)
+		await this.customSymbolApplicationService.putCustomSymbol(customSymbol)
 	}
 
 	public async createSubcircuitFromSelection() {
@@ -2194,7 +2112,7 @@ export class MainController {
 
 			// 建立 SubcircuitComponent
 			const subJson = new SubcircuitComponent(name, children).toJson()
-			const customSymbolData = this.customSymbolService.buildSubcircuitRecord(name, subJson, this.customSymbols)
+			const customSymbolData = this.customSymbolApplicationService.buildSubcircuitRecord(name, subJson, this.customSymbols)
 			await this.addSymbolToCategory(categoryName, customSymbolData.id, customSymbolData)
 
 			Undo.addState()
