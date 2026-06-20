@@ -287,6 +287,7 @@ custom symbol 這條線目前已完成大半：
 - `CustomSymbolWorkspaceController` 已建立，作為 custom symbol state + drawer actions 的 façade
 - `CustomSymbolStateController` 已建立，負責 custom symbol state 與 drawer render 的中介
 - `CustomSymbolSaveController` 已建立
+- `CustomSymbolCatalogController` 已建立，接手 custom category / subcircuit mutation 與 reload orchestration
 - `SymbolLibraryMenuController` 已建立，且已接上 `openAndExecute()` 這種一站式 symbol menu 協調入口
 - `customSymbolDrawerActionsFactory` 已把 drawer 的 placement / runtime callback 組裝從 `MainController` 抽出去
 - `CustomSymbolSubcircuitSaveController` 已建立，接手 selection/group/save/restore/persist 這條 subcircuit save orchestration
@@ -295,7 +296,7 @@ custom symbol 這條線目前已完成大半：
 
 但這一階段還沒完全結束，因為：
 
-- `MainController` 仍保有少量 custom symbol orchestration 入口，但 selection/save orchestration 已經再往 `CustomSymbolSubcircuitSaveController` 收斂
+- `MainController` 仍保有少量 custom symbol UI glue，但 selection/save orchestration 與 category mutation 已經再往專用 controller 收斂
 - `serverless latex adapter` 還沒接完
 - `api/latex.js` 已成為可切換 provider
 

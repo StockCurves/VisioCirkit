@@ -9,6 +9,7 @@ import { CustomSymbolSaveController } from "./customSymbolSaveController"
 import { CustomSymbolSelectionController } from "./customSymbolSelectionController"
 import { CustomSymbolWorkspaceController } from "./customSymbolWorkspaceController"
 import { CustomSymbolSubcircuitSaveController } from "./customSymbolSubcircuitSaveController"
+import { CustomSymbolCatalogController } from "./customSymbolCatalogController"
 import { SymbolLibraryMenuController } from "./symbolLibraryMenuController"
 import { ShapeLibraryController } from "./shapeLibraryController"
 import { ComponentLibraryController } from "./componentLibraryController"
@@ -145,6 +146,12 @@ export class MainController {
 		},
 		generateSubcircuitPreview: (subcircuitData: any) => this.generateSubcircuitSvgPreview(subcircuitData),
 		persistCustomSymbol: (customSymbol) => this.customSymbolApplicationService.putCustomSymbol(customSymbol),
+	})
+	private readonly customSymbolCatalogController = new CustomSymbolCatalogController({
+		applicationService: this.customSymbolApplicationService,
+		workspaceController: this.customSymbolWorkspaceController,
+		runtimeSymbols: this.symbols,
+		circuitComponents: this.circuitComponents,
 	})
 	private readonly customSymbolSubcircuitSaveController = new CustomSymbolSubcircuitSaveController({
 		selectionController: this.customSymbolSelectionController,
@@ -995,20 +1002,15 @@ export class MainController {
 	}
 
 	public async loadAndRenderCustomCategories() {
-		const state = await this.customSymbolApplicationService.loadState()
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.loadAndRenderCustomCategories()
 	}
 
 	public async addCustomCategory(name: string) {
-		name = name.trim()
-		if (!name) return
-		const state = await this.customSymbolApplicationService.addCategory(name)
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.addCustomCategory(name)
 	}
 
 	public async deleteCustomCategory(name: string) {
-		const state = await this.customSymbolApplicationService.deleteCategory(name)
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.deleteCustomCategory(name)
 	}
 
 	/**
@@ -1045,9 +1047,7 @@ export class MainController {
 	 * Subcircuit displayNames/tikzNames are NOT changed (category is just a container).
 	 */
 	public async renameCustomCategory(oldName: string, newName: string) {
-		const state = await this.customSymbolApplicationService.renameCategory(oldName, newName)
-		if (state === "no-op") return
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.renameCustomCategory(oldName, newName)
 	}
 
 	/**
@@ -1055,14 +1055,7 @@ export class MainController {
 	 * and any placed SubcircuitComponents on the canvas.
 	 */
 	public async renameCustomSymbol(symbolId: string, newName: string) {
-		const state = await this.customSymbolApplicationService.renameCustomSymbol(
-			symbolId,
-			newName,
-			this.customSymbols,
-			this.circuitComponents
-		)
-		if (state === "no-op" || state === "missing") return
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.renameCustomSymbol(symbolId, newName)
 	}
 
 	/**
@@ -1071,22 +1064,19 @@ export class MainController {
 	 * Canvas components already placed are NOT removed.
 	 */
 	public async deleteCustomSymbol(symbolId: string) {
-		const state = await this.customSymbolApplicationService.deleteCustomSymbol(symbolId, this.customSymbols)
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.deleteCustomSymbol(symbolId)
 	}
 
 	public async addSymbolToCategory(categoryName: string, symbolId: string, customSymbolData?: CustomSymbolRecord) {
-		const state = await this.customSymbolApplicationService.addSymbolToCategory(categoryName, symbolId, customSymbolData)
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.addSymbolToCategory(categoryName, symbolId, customSymbolData)
 	}
 
 	public async removeSymbolFromCategory(categoryName: string, symbolId: string) {
-		const state = await this.customSymbolApplicationService.removeSymbolFromCategory(categoryName, symbolId)
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolCatalogController.removeSymbolFromCategory(categoryName, symbolId)
 	}
 
 	public async putCustomSymbolRecord(customSymbol: CustomSymbolRecord): Promise<void> {
-		await this.customSymbolApplicationService.putCustomSymbol(customSymbol)
+		await this.customSymbolCatalogController.putCustomSymbolRecord(customSymbol)
 	}
 
 	public async createSubcircuitFromSelection() {
