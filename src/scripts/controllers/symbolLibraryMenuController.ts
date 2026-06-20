@@ -31,6 +31,23 @@ type SymbolLibraryMenuOptions = {
 	openConfirm: (title: string, body: string) => Promise<boolean>
 }
 
+type OpenAndExecuteOptions = {
+	clientX: number
+	clientY: number
+	symbolName: string
+	isCustomSymbol: boolean
+	categoryNames: string[]
+	openPrompt: (title: string, message: string, defaultValue?: string) => Promise<string | null>
+	openRenameModal: (title: string, currentName: string) => Promise<string | null>
+	openConfirm: (title: string, body: string) => Promise<boolean>
+	openEditor: (symbolName: string) => void
+	renameSymbol: (oldName: string, newName: string) => Promise<void>
+	deleteSymbol: (symbolName: string) => Promise<void>
+	addCategory: (categoryName: string) => Promise<void>
+	addToCategory: (categoryName: string, symbolName: string) => Promise<void>
+	duplicateSymbol: (symbolName: string, newName: string, categoryName: string) => Promise<void>
+}
+
 export class SymbolLibraryMenuController {
 	public async openForSymbol(options: SymbolLibraryMenuOptions): Promise<SymbolLibraryMenuAction> {
 		if (!options.isCustomSymbol && options.categoryNames.length === 0) {
@@ -132,5 +149,19 @@ export class SymbolLibraryMenuController {
 			await options.addCategory(action.categoryName)
 		}
 		await options.duplicateSymbol(options.symbolName, action.newName, action.categoryName)
+	}
+
+	public async openAndExecute(options: OpenAndExecuteOptions): Promise<void> {
+		const action = await this.openForSymbol(options)
+		await this.executeAction(action, {
+			symbolName: options.symbolName,
+			categoryNames: options.categoryNames,
+			openEditor: options.openEditor,
+			renameSymbol: options.renameSymbol,
+			deleteSymbol: options.deleteSymbol,
+			addCategory: options.addCategory,
+			addToCategory: options.addToCategory,
+			duplicateSymbol: options.duplicateSymbol,
+		})
 	}
 }

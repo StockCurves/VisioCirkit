@@ -123,4 +123,36 @@ describe("SymbolLibraryMenuController", () => {
 		expect(addCategory).toHaveBeenNthCalledWith(2, "Fresh")
 		expect(duplicateSymbol).toHaveBeenCalledWith("pmos", "pmos_copy", "Fresh")
 	})
+
+	it("opens the menu and dispatches the chosen action in one step", async () => {
+		const controller = new SymbolLibraryMenuController()
+		const openEditor = vi.fn()
+		const renameSymbol = vi.fn(async () => {})
+		const deleteSymbol = vi.fn(async () => {})
+		const addCategory = vi.fn(async () => {})
+		const addToCategory = vi.fn(async () => {})
+		const duplicateSymbol = vi.fn(async () => {})
+
+		menuResponses.push("edit")
+		await controller.openAndExecute({
+			clientX: 3,
+			clientY: 4,
+			symbolName: "pmos",
+			isCustomSymbol: true,
+			categoryNames: ["Mine"],
+			openPrompt: vi.fn(async () => null),
+			openRenameModal: vi.fn(async () => null),
+			openConfirm: vi.fn(async () => false),
+			openEditor,
+			renameSymbol,
+			deleteSymbol,
+			addCategory,
+			addToCategory,
+			duplicateSymbol,
+		})
+
+		expect(openForResult).toHaveBeenCalled()
+		expect(openEditor).toHaveBeenCalledWith("pmos")
+		expect(renameSymbol).not.toHaveBeenCalled()
+	})
 })
