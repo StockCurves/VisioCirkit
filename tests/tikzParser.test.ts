@@ -77,6 +77,8 @@ vi.mock("@svgdotjs/svg.js", () => {
 
 import { parseTikz } from "../src/scripts/utils/tikzParser"
 
+const scale = 127 / 4800;
+
 describe("parseTikz parser lint relaxation", () => {
 	it("should parse single point node placement without throwing error", () => {
 		const code = `\\draw (0,0) node[ground] {};`;
@@ -125,4 +127,29 @@ describe("parseTikz parser lint relaxation", () => {
 		expect(result[0].text.text).toBe("V_{out}");
 		expect(result[0].text.isMath).toBe(true);
 	});
+
+	it("should ignore arc arguments and not treat them as coordinate points", () => {
+		const code = `\\draw (8.0, 3.0) -- (9.8, 3.0) arc(180:0:0.2) -- (12.0, 3.0);`;
+		const result = parseTikz(code);
+		expect(result).toHaveLength(1);
+		expect(result[0].type).toBe("wire");
+		// Should only have 3 points: (8,3), (9.8,3), and (12,3)
+		expect(result[0].points).toHaveLength(3);
+		expect(result[0].points[0]).toEqual({ x: 8.0 / scale, y: -3.0 / scale });
+		expect(result[0].points[1]).toEqual({ x: 9.8 / scale, y: -3.0 / scale });
+		expect(result[0].points[2]).toEqual({ x: 12.0 / scale, y: -3.0 / scale });
+	});
+
+	it("should parse standalone circle node as an ellipse component with correct type", () => {
+		const code = `\\draw (2.0, 3.0) node[circle, fill, inner sep=1.2pt] {};`;
+		const result = parseTikz(code);
+		expect(result).toHaveLength(1);
+		expect(result[0].type).toBe("ellipse");
+		// Size should be computed from inner sep (1.2pt = 1.2 * 2.54 / 72 = 0.04233cm -> * 2 = 0.08466cm)
+		const expectedCm = (1.2 * 2.54 / 72) * 2;
+		const expectedPx = expectedCm / scale;
+		expect(result[0].size.x).toBeCloseTo(expectedPx, 1);
+		expect(result[0].size.y).toBeCloseTo(expectedPx, 1);
+	});
 });
+

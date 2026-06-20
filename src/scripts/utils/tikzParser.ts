@@ -29,6 +29,24 @@ export function cmToPx(x_cm: number, y_cm: number): SVG.Point {
 	return new SVG.Point(x_cm / scale, -y_cm / scale);
 }
 
+function parseDimension(str: string | undefined, defaultCm: number): number {
+	if (!str) return defaultCm;
+	str = str.trim();
+	let val = parseFloat(str);
+	if (Number.isNaN(val)) return defaultCm;
+	if (str.endsWith("cm")) {
+		return val;
+	} else if (str.endsWith("pt")) {
+		return (val * 2.54) / 72;
+	} else if (str.endsWith("px")) {
+		return val * scale;
+	} else if (str.endsWith("mm")) {
+		return val / 10;
+	}
+	return val;
+}
+
+
 function parseCoordinate(coordStr: string): SVG.Point {
 	const parts = coordStr.split(",");
 	if (parts.length !== 2) return new SVG.Point(0, 0);
@@ -554,8 +572,29 @@ export function parseTikz(tikzCode: string): any[] {
 				}
 			} else {
 				if (content || optionsStr) {
-					const widthCm = kv["minimum width"] ? parseFloat(kv["minimum width"]) : 1.5;
-					const heightCm = kv["minimum height"] ? parseFloat(kv["minimum height"]) : 1.0;
+					let isCircle = standalone.includes("circle") || kv["shape"] === "circle";
+					let isEllipse = standalone.includes("ellipse") || kv["shape"] === "ellipse";
+					let shapeType = (isCircle || isEllipse) ? "ellipse" : "rect";
+
+					let widthCm = parseDimension(kv["minimum width"] || kv["minimum size"], shapeType === "ellipse" ? 1.0 : 1.5);
+					let heightCm = parseDimension(kv["minimum height"] || kv["minimum size"], 1.0);
+
+					if (kv["inner sep"]) {
+						const innerSepCm = parseDimension(kv["inner sep"], 0.1);
+						if (!kv["minimum width"] && !kv["minimum size"]) {
+							widthCm = innerSepCm * 2;
+						}
+						if (!kv["minimum height"] && !kv["minimum size"]) {
+							heightCm = innerSepCm * 2;
+						}
+					}
+
+					if (isCircle) {
+						const size = Math.max(widthCm, heightCm);
+						widthCm = size;
+						heightCm = size;
+					}
+
 					const widthPx = widthCm / scale;
 					const heightPx = heightCm / scale;
 
@@ -608,7 +647,7 @@ export function parseTikz(tikzCode: string): any[] {
 					else if (dir.y === 1) justifyVal = 1; // END (Bottom)
 
 					components.push({
-						type: "rect",
+						type: shapeType,
 						position: actualPos.simplifyForJson(),
 						size: { x: widthPx, y: heightPx },
 						rotation: rotation,
@@ -679,8 +718,12 @@ export function parseTikz(tikzCode: string): any[] {
 			for (const opt of globalStandalone) {
 				if (opt.includes("-")) {
 					const parts = opt.split("-");
-					const startArrow = arrowTips.find((t) => t.tikz === parts[0]);
-					const endArrow = arrowTips.find((t) => t.tikz === parts[1]);
+					let startTikz = parts[0];
+					let endTikz = parts[1];
+					if (startTikz === "<") startTikz = "latex";
+					if (endTikz === ">") endTikz = "latex";
+					const startArrow = arrowTips.find((t) => t.tikz === startTikz);
+					const endArrow = arrowTips.find((t) => t.tikz === endTikz);
 					if (startArrow) globalArrows.start = startArrow.key;
 					if (endArrow) globalArrows.end = endArrow.key;
 				}
@@ -694,6 +737,10 @@ export function parseTikz(tikzCode: string): any[] {
 			const rawCoords: string[] = [];
 
 			while ((match = coordRegex.exec(drawBody)) !== null) {
+				const prevSub = drawBody.substring(0, match.index).trim();
+				if (/(?:^|\s)arc(?:\s*\[[^\]]*\])?\s*$/i.test(prevSub)) {
+					continue;
+				}
 				const coordStr = match[1].trim();
 				let pos = new SVG.Point(0, 0);
 

@@ -81,4 +81,46 @@ describe("SymbolLibraryMenuController", () => {
 
 		expect(action).toEqual({ type: "duplicate", newName: "hvnmos", categoryName: "Lab" })
 	})
+
+	it("executes create-category, add, and duplicate actions through callbacks", async () => {
+		const controller = new SymbolLibraryMenuController()
+		const openEditor = vi.fn()
+		const renameSymbol = vi.fn(async () => {})
+		const deleteSymbol = vi.fn(async () => {})
+		const addCategory = vi.fn(async () => {})
+		const addToCategory = vi.fn(async () => {})
+		const duplicateSymbol = vi.fn(async () => {})
+
+		await controller.executeAction(
+			{ type: "create-category-and-add", categoryName: "Fresh" },
+			{
+				symbolName: "pmos",
+				categoryNames: ["Mine"],
+				openEditor,
+				renameSymbol,
+				deleteSymbol,
+				addCategory,
+				addToCategory,
+				duplicateSymbol,
+			}
+		)
+		await controller.executeAction(
+			{ type: "duplicate", newName: "pmos_copy", categoryName: "Fresh" },
+			{
+				symbolName: "pmos",
+				categoryNames: ["Mine"],
+				openEditor,
+				renameSymbol,
+				deleteSymbol,
+				addCategory,
+				addToCategory,
+				duplicateSymbol,
+			}
+		)
+
+		expect(addCategory).toHaveBeenNthCalledWith(1, "Fresh")
+		expect(addToCategory).toHaveBeenCalledWith("Fresh", "pmos")
+		expect(addCategory).toHaveBeenNthCalledWith(2, "Fresh")
+		expect(duplicateSymbol).toHaveBeenCalledWith("pmos", "pmos_copy", "Fresh")
+	})
 })

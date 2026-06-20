@@ -9,6 +9,17 @@ export type SymbolLibraryMenuAction =
 	| { type: "create-category-and-add"; categoryName: string }
 	| { type: "duplicate"; newName: string; categoryName: string }
 
+type ExecuteMenuActionOptions = {
+	symbolName: string
+	categoryNames: string[]
+	openEditor: (symbolName: string) => void
+	renameSymbol: (oldName: string, newName: string) => Promise<void>
+	deleteSymbol: (symbolName: string) => Promise<void>
+	addCategory: (categoryName: string) => Promise<void>
+	addToCategory: (categoryName: string, symbolName: string) => Promise<void>
+	duplicateSymbol: (symbolName: string, newName: string, categoryName: string) => Promise<void>
+}
+
 type SymbolLibraryMenuOptions = {
 	clientX: number
 	clientY: number
@@ -92,5 +103,34 @@ export class SymbolLibraryMenuController {
 			: rawCategory
 
 		return { type: "duplicate", newName: newName.trim(), categoryName }
+	}
+
+	public async executeAction(action: SymbolLibraryMenuAction, options: ExecuteMenuActionOptions): Promise<void> {
+		if (action.type === "none") return
+		if (action.type === "edit") {
+			options.openEditor(options.symbolName)
+			return
+		}
+		if (action.type === "rename") {
+			await options.renameSymbol(options.symbolName, action.newName)
+			return
+		}
+		if (action.type === "delete") {
+			await options.deleteSymbol(options.symbolName)
+			return
+		}
+		if (action.type === "add-to-category") {
+			await options.addToCategory(action.categoryName, options.symbolName)
+			return
+		}
+		if (action.type === "create-category-and-add") {
+			await options.addCategory(action.categoryName)
+			await options.addToCategory(action.categoryName, options.symbolName)
+			return
+		}
+		if (!options.categoryNames.includes(action.categoryName)) {
+			await options.addCategory(action.categoryName)
+		}
+		await options.duplicateSymbol(options.symbolName, action.newName, action.categoryName)
 	}
 }

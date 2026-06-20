@@ -2,13 +2,13 @@
 
 更新基準：本文已同步到目前 `main` 的 runtime / tab / custom symbol 分層進度，包含 `CustomSymbolDrawerController`、`CustomSymbolSaveController`、`SymbolLibraryMenuController` 等最新切片。
 
-本文整理目前討論過的三個主題：
+本文整理三個主題：
 
 - 方案 B 的定位與限制
 - 專案分層方向與 Git 控管建議
 - 推薦的實作方式與優先順序
 
-目標是讓目前正式版可以持續穩定開發，同時保留一條低成本、可快速部署的 demo 路線。
+目標是讓正式版可以持續穩定開發，同時保留一條低成本、可快速部署的 demo 路線。
 
 ## 1. 方案 B 是什麼
 
@@ -17,7 +17,7 @@
 - 前端維持靜態網站部署
 - 使用者作品改存瀏覽器本地
 - LaTeX 預覽代理改成 Vercel Serverless Function
-- 不依賴目前的本機 `server.js` 檔案系統 API
+- 不依賴目前本機 `server.js` 的檔案系統 API
 
 適合情境：
 
@@ -29,8 +29,8 @@
 不適合情境：
 
 - 需要帳號登入
-- 需要多裝置同步
 - 需要多人協作
+- 需要跨裝置同步
 - 需要伺服器端持久化資料
 
 ## 2. 方案 B 的實際結構
@@ -40,17 +40,17 @@
 - 前端：Parcel build 後部署到 Vercel
 - 儲存：使用 `IndexedDB`
 - 模板：當作靜態資產部署
-- 模板清單：用 manifest 檔管理
+- 模板清單：用 manifest 管理
 - LaTeX proxy：放在 `api/latex.js`
 
-這代表目前這些 API 不應再是前端的核心依賴：
+這代表目前這些 API 不應再是前端核心依賴：
 
 - `/api/files`
 - `/api/file`
 - `/api/save`
 - `/api/delete`
 
-只有 `/api/latex` 仍適合保留，而且可以改成 serverless。
+只有 `/api/latex` 還適合保留，而且可以改成 serverless。
 
 ## 3. 方案 B 的主要限制
 
@@ -59,7 +59,7 @@
 - 使用者資料存在瀏覽器本機，不是雲端
 - 清除瀏覽器資料後，作品可能消失
 - 不保證跨瀏覽器、跨裝置可見
-- 模板清單不能靠伺服器掃描目錄
+- 模板清單不能再依賴伺服器掃描目錄
 - 後續若要回到雲端同步，仍需要正式後端
 
 所以比較合理的產品定位是：
@@ -72,7 +72,7 @@
 
 ## 4. Git 控管建議
 
-建議把正式版與 demo 版當成同一個專案的兩種運作模式，而不是兩個完全分開的產品。
+建議把正式版與 demo 版當成同一個專案的兩種運作模式，而不是兩個完全分離的產品。
 
 推薦分支策略：
 
@@ -97,54 +97,50 @@
 
 ## 5. 分層方向
 
-第 5 點之後要以 `main` 現況為基準，不再用理想式描述。現在的重點不是「要不要分層」，而是「哪些切換點已經落地、哪些殘留責任還卡在 `MainController`」。
+第 5 點之後要以 `main` 現況為基準，不再用理想式藍圖描述。現在的重點不是「要不要分層」，而是「哪些切換點已經落地、哪些責任仍卡在 `MainController`」。
 
 ### 現況盤點
 
-- UI / controller / service 已有第一波分檔，但還不是完整分層
-- `TemplateController` 已透過 `TemplateApplicationService` 與 template data source 抽出主要模板流程
+- UI / controller / service 已經有第一波拆分，但還不是完整分層
+- `TemplateController` 已透過 `TemplateApplicationService` 與 `TemplateFileService` 抽出大部分模板流程
 - `LiveRenderController` 已透過 `LatexRenderService` 吃 runtime render dependency
-- custom symbol 目前已經有：
-- `CustomSymbolRepository`
-- `CustomSymbolService`
-- `CustomSymbolApplicationService`
-- `CustomSymbolDomService`
-- `CustomSymbolDrawerController`
-- `CustomSymbolSaveController`
-- `SymbolLibraryService`
-- `SymbolLibraryMenuController`
-
-- tab / lifecycle / modal 目前已經有：
-- `TabSessionService`
-- `TabApplicationService`
-- `TabBroadcastService`
-- `TabLifecycleService`
-- `TabManagementController`
-
+- custom symbol 目前已拆出：
+  - `CustomSymbolRepository`
+  - `CustomSymbolService`
+  - `CustomSymbolApplicationService`
+  - `CustomSymbolDomService`
+  - `CustomSymbolDrawerController`
+  - `CustomSymbolSaveController`
+  - `SymbolLibraryService`
+  - `SymbolLibraryMenuController`
+- tab / lifecycle / modal 目前已拆出：
+  - `TabSessionService`
+  - `TabApplicationService`
+  - `TabBroadcastService`
+  - `TabLifecycleService`
+  - `TabManagementController`
 - `MainController` 已不再直接 `new IndexedDbService`、`TemplateFileService`、`LatexRenderService`
 - `runtimeConfig` 已集中定義：
-- `storageMode = "server" | "indexeddb"`
-- `templateSource = "server" | "static-manifest"`
-- `latexMode = "server-proxy" | "serverless-proxy"`
-
+  - `storageMode = "server" | "indexeddb"`
+  - `templateSource = "server" | "static-manifest"`
+  - `latexMode = "server-proxy" | "serverless-proxy"`
 - `appRuntime` 已負責建立：
-- template data source / application service
-- latex render service
-- IndexedDB service
-- tab application / broadcast / lifecycle services
-- custom symbol application service
-- symbol library service
-
-- `server.js` 仍同時承擔 static serving、template/work filesystem API、QuickLaTeX proxy，表示部署假設尚未完全拆開
-- `latexMode = "serverless-proxy"` 已有命名與 runtime 切換點，但實際 `api/latex.js` provider 尚未接完
+  - template data source / application service
+  - latex render service
+  - IndexedDB service
+  - tab application / broadcast / lifecycle services
+  - custom symbol application service
+  - symbol library service
+- `server.js` 目前仍同時承擔 static serving、template/work filesystem API、QuickLaTeX proxy，表示部署假設尚未完全拆開
+- `latexMode = "serverless-proxy"` 已有命名與 runtime 切換點，但實際 `api/latex.js` provider 仍未完全接好
 
 ### 目前真正的核心問題
 
-- `MainController` 雖然已經比前幾輪瘦很多，但仍保有過多 custom symbol orchestration
-- 左側 symbol library 的 `contextmenu` 舊 dead code 還留在 `MainController`
-- 舊的 `openSaveSymbolModal()` dead code 還留在 `MainController`
-- `createSubcircuitFromSelection()` 雖然已改走 `CustomSymbolSaveController`，但整條 custom symbol UI flow 仍未完全收斂成純 app shell
-- `server.js` 與 serverless latex provider 的切換仍未完成，所以方案 B 還沒到「只換 provider 即可」的最後狀態
+- `MainController` 雖然比之前瘦很多，但仍保有過多 custom symbol orchestration
+- 左側 symbol library 的 `contextmenu` 舊 dead code 仍留在 `MainController`
+- 舊的 `openSaveSymbolModal()` dead code 仍留在 `MainController`
+- `createSubcircuitFromSelection()` 雖然已改走 `CustomSymbolSaveController`，但整條 custom symbol UI flow 還沒完全收斂成純 app shell
+- `server.js` 與 serverless latex provider 的切換仍未完成，所以方案 B 還沒到「只換 provider 就能完整運作」的最後狀態
 
 ### 四層目標
 
@@ -191,7 +187,7 @@
 
 目標：
 
-- `MainController` 收斂為 app shell / orchestrator
+- `MainController` 收斂成 app shell / orchestrator
 - 不再承擔 persistence 細節
 - 不再承擔大段 modal / menu 決策與 DOM 建立
 
@@ -213,7 +209,7 @@
 
 #### Integration Layer
 
-這一層是方案 B 的真正切換點。
+這一層是方案 B 真正的切換點。
 
 目前已落地的代表：
 
@@ -234,7 +230,7 @@
 
 ## 6. 推薦實作方式
 
-第 6 點要視為「依現況排序的 rollout 狀態」，不是重新腦補藍圖。
+第 6 點要視為「依現況排序的 rollout 狀態」，不是重新畫藍圖。
 
 ### 第一階段：收斂 `MainController` 依賴注入邊界
 
@@ -281,11 +277,11 @@
 
 尚未完成：
 
-- `latexMode = "serverless-proxy"` 實際 provider / adapter
+- `latexMode = "serverless-proxy"` 的實際 provider / adapter
 
 ### 第四階段：接上 custom symbol / 方案 B 專用實作
 
-custom symbol 這條線目前已完成一大段：
+custom symbol 這條線目前已完成大半：
 
 - `CustomSymbolApplicationService` 已建立
 - `SymbolLibraryService` 已建立
@@ -297,10 +293,9 @@ custom symbol 這條線目前已完成一大段：
 
 但這一階段還沒完全結束，因為：
 
-- `MainController` 仍留有 custom symbol 相關 dead code
-- `serverless latex adapter`
-- `api/latex.js`
-- 最後的 provider 切換驗證
+- `MainController` 還留有 custom symbol dead code
+- `serverless latex adapter` 還沒接完
+- `api/latex.js` 還沒完全成為可切換 provider
 
 ### 目前最合理的下一步
 
@@ -315,8 +310,8 @@ custom symbol 這條線目前已完成一大段：
 後續 PR 應遵守：
 
 - 不新增直接依賴 `localhost:3001` 的程式碼
-- 不在 controller 中直接操作 `fetch("/api/...")`
-- 不在 controller 中直接建立 IndexedDB transaction
+- 不在 controller 內直接操作 `fetch("/api/...")`
+- 不在 controller 內直接建立 IndexedDB transaction
 - 不把 work file 存回 `tabs`
 - 不把 template 清單建立邏輯綁死在 server filesystem
 - 不把 custom symbol DOM 修補邏輯混進 repository
@@ -348,46 +343,38 @@ custom symbol 這條線目前已完成一大段：
 - `customSymbolDrawerController.test.ts`
 - `customSymbolSaveController.test.ts`
 - `symbolLibraryMenuController.test.ts`
+- `customSymbolSelectionController.test.ts`
 - `mainController.renameCustomGraphicsSymbol.test.ts`
 - `symbolLibraryService.test.ts`
 - `indexedDbTemplateDataSource.test.ts`
 - `staticTemplateDataSource.test.ts`
+- `modalDialogService.test.ts`
 
 ### 驗證原則
 
 - 以 targeted vitest 為主要 gate
-- build 與完整 app 啟動可列為輔助驗證，但不作為唯一 gate
-- 若 Parcel 在 Windows temp path 出現 `ENOENT unlink` 類型噪音，可改用隔離 cache/dist build 驗證
-- 若 graphify 結果與實際程式碼衝突，以當前 repo 程式碼為準
+- build 與完整 app 啟動可列為輔助驗證，但不是唯一 gate
+- 如果 Parcel 在 Windows temp path 出現 `ENOENT unlink` 類型噪音，可改用隔離 cache / dist build 驗證
+- 如果 graphify 結果與實際程式碼衝突，以當前 repo 程式碼為準
 
-### 本次更新文件前的實際 gate
+### 最近一次實際 gate
 
-- targeted vitest：
-- `14` 個 test files
-- `60` 個 tests
-- 全部通過
-
-- build：
-- 隔離的 Parcel build 已成功
-- `generate-template-manifest` 已成功
+- targeted vitest：`16` 個 test files，`67` 個 tests，全數通過
+- build：隔離的 Parcel build 成功
+- `generate-template-manifest` 成功
 
 ## 9. 建議結論
 
 現在不是先做 demo branch 特化，而是先把 `main` 的切換點抽乾淨。
 
-目前已經完成的重點是：
+目前已經完成的重點：
 
-- runtime/provider 骨架已存在
-- tab/session/work/template 已大幅離開 `MainController`
-- custom symbol 已經從純大 controller 流程，進一步切出：
-- application service
-- symbol library service
-- drawer controller
-- save modal controller
-- symbol library menu controller
+- runtime / provider 骨架已存在
+- tab / session / work / template 已大幅離開 `MainController`
+- custom symbol 已拆成 application service、drawer controller、save modal controller、menu controller
 
-接下來的成功條件不是「維護第二套前端」，而是：
+接下來真正的成功條件不是「再重寫 UI」，而是：
 
 - `MainController` 繼續從 persistence / runtime 判斷 / custom symbol dead code 中鬆開
-- demo mode 最後能靠 `indexeddb + static manifest + serverless latex` 運作
-- 方案 B 最終成為「切換 provider」，不是「重寫 UI」
+- demo mode 最後能靠 `indexeddb + static manifest + serverless latex` 正常運作
+- 方案 B 最終變成「切換 provider」，不是「維護第二套前端」

@@ -1,5 +1,5 @@
 import * as SVG from "@svgdotjs/svg.js"
-import { Button as _bootstrapButton, Collapse as _bootstrapCollapse, Offcanvas, Tooltip, Modal } from "bootstrap"
+import { Button as _bootstrapButton, Collapse as _bootstrapCollapse, Offcanvas, Tooltip } from "bootstrap"
 import "../utils/impSVGNumber"
 import { waitForElementLoaded } from "../utils/domWatcher"
 import hotkeys from "hotkeys-js"
@@ -7,9 +7,11 @@ import { version } from "../../../package.json"
 import { TabManagementController } from "./tabManagementController"
 import { CustomSymbolDrawerController } from "./customSymbolDrawerController"
 import { CustomSymbolSaveController } from "./customSymbolSaveController"
+import { CustomSymbolSelectionController } from "./customSymbolSelectionController"
 import { SymbolLibraryMenuController } from "./symbolLibraryMenuController"
 import { CustomSymbolApplicationService } from "../services/customSymbolApplicationService"
 import type { CustomSymbolRecord } from "../services/customSymbolService"
+import { ModalDialogService } from "../services/modalDialogService"
 import { getAppRuntime } from "../services/appRuntime"
 import type { BroadcastMessage, BroadcastMessageType } from "../services/tabBroadcastService"
 import {
@@ -51,6 +53,14 @@ import {
 	TemplateController,
 	LiveRenderController,
 } from "../internal"
+
+const applyAndRenderCustomSymbolState = (
+	controller: { applyCustomSymbolState: (state: { customCategories: { name: string; symbolIds: string[] }[]; customSymbols: CustomSymbolRecord[] }) => void; renderCustomCategories: () => void },
+	state: { customCategories: { name: string; symbolIds: string[] }[]; customSymbols: CustomSymbolRecord[] }
+) => {
+	controller.applyCustomSymbolState(state)
+	controller.renderCustomCategories()
+}
 
 export type CanvasSettings = {
 	gridVisible?: boolean
@@ -114,7 +124,9 @@ export class MainController {
 	private readonly tabManagementController = new TabManagementController()
 	private readonly customSymbolDrawerController = new CustomSymbolDrawerController()
 	private readonly customSymbolSaveController = new CustomSymbolSaveController()
+	private readonly customSymbolSelectionController = new CustomSymbolSelectionController()
 	private readonly symbolLibraryMenuController = new SymbolLibraryMenuController()
+	private readonly modalDialogService = new ModalDialogService()
 
 	public designName: TextProperty
 	public pendingLoadData: SaveFileFormat | null = null
@@ -1163,104 +1175,24 @@ export class MainController {
 						openRenameModal: (title, currentName) => this.openRenameModal(title, currentName),
 						openConfirm: (title, body) => this.openConfirm(title, body),
 					})
-					await this.handleSymbolLibraryMenuAction(symbol, action)
-					return
-					if (!symbol.isCustomSymbol && this.customCategories.length === 0) {
-						const name = await this.openPrompt(
-							"Create Category",
-							"You don't have any custom categories. Please enter a name to create one:"
-						)
-						if (name) {
-							this.addCustomCategory(name).then(() => {
-								setTimeout(() => {
-									this.addSymbolToCategory(name, symbol.tikzName)
-								}, 100)
-							})
-						}
-						return
-					}
-
-					let menuEntries: { result: string; text: string; iconText?: string }[] = []
-					if (symbol.isCustomSymbol) {
-						menuEntries.push(
-							{ result: "edit", iconText: "edit", text: "Edit Symbol..." },
-							{ result: "rename", iconText: "drive_file_rename_outline", text: "Rename symbol..." }
-						)
-					}
-
-					this.customCategories.forEach(c => {
-						menuEntries.push({
-							result: "add:" + c.name,
-							text: `Add to "${c.name}"`
-						})
+					await this.symbolLibraryMenuController.executeAction(action, {
+						symbolName: symbol.tikzName,
+						categoryNames: this.customCategories.map((category) => category.name),
+						openEditor: (symbolName) => {
+							SymbolEditorController.instance.open("custom-" + symbolName)
+						},
+						renameSymbol: (oldName, newName) => this.renameCustomGraphicsSymbol(oldName, newName),
+						deleteSymbol: (symbolName) => this.deleteCustomGraphicsSymbol(symbolName),
+						addCategory: (categoryName) => this.addCustomCategory(categoryName),
+						addToCategory: (categoryName, symbolName) => this.addSymbolToCategory(categoryName, symbolName),
+						duplicateSymbol: (symbolName, newName, categoryName) => {
+							const menuSymbol = symbolName === symbol.tikzName ? symbol : this.symbolsDB.get(symbolName)
+							if (!menuSymbol) return Promise.resolve()
+							return this.duplicateSymbol(menuSymbol, newName, categoryName)
+						},
 					})
 
-					menuEntries.push({ result: "new", text: "Add to new category..." })
-					menuEntries.push({ result: "duplicate", text: "Duplicate symbol and customize..." })
-
-					if (symbol.isCustomSymbol) {
-						menuEntries.push({ result: "delete", iconText: "delete", text: "Delete from library" })
-					}
-
-					const menu = new ContextMenu(menuEntries)
-					menu.openForResult(ev.clientX, ev.clientY).then(async (res) => {
-						if (res === "edit") {
-							SymbolEditorController.instance.open("custom-" + symbol.tikzName)
-						} else if (res === "rename") {
-							const newName = await this.openRenameModal("Rename Custom Symbol", symbol.tikzName)
-							if (newName) this.renameCustomGraphicsSymbol(symbol.tikzName, newName)
-						} else if (res === "delete") {
-							console.log("[addButton delete] Triggered openConfirm for:", symbol.tikzName);
-							const ok = await this.openConfirm(
-								"Delete Symbol",
-								`Are you sure you want to completely delete custom symbol "${symbol.tikzName}"?\n(Components already placed on the canvas will not be affected)`
-							);
-							console.log("[addButton delete] openConfirm resolved:", ok);
-							if (ok) {
-								console.log("[addButton delete] executing deleteCustomGraphicsSymbol for:", symbol.tikzName);
-								this.deleteCustomGraphicsSymbol(symbol.tikzName)
-							}
-						} else if (res === "new") {
-							const name = await this.openPrompt("New Category", "Please enter a custom category name:")
-							if (name) {
-								this.addCustomCategory(name).then(() => {
-									setTimeout(() => {
-										this.addSymbolToCategory(name, symbol.tikzName)
-									}, 100)
-								})
-							}
-						} else if (res.startsWith("add:")) {
-							const catName = res.substring(4)
-							this.addSymbolToCategory(catName, symbol.tikzName)
-						} else if (res === "duplicate") {
-							const newName = await this.openPrompt(
-								"Duplicate Symbol",
-								"Please enter a name for the new custom symbol (e.g., hvnmos):"
-							)
-							if (!newName) return
-							const cleanName = newName.trim()
-							if (!cleanName) return
-
 							// 選擇分類
-							let catName = ""
-							const catOptions = this.customCategories.map((c, i) => `${i + 1}. ${c.name}`).join("\n")
-							const catIndexStr = await this.openPrompt(
-								"Select Category",
-								`Please enter a number to select a category:\n${catOptions}\n\nOr enter a new category name directly:`
-							)
-							if (!catIndexStr) return
-							const inputVal = catIndexStr.trim()
-							const index = parseInt(inputVal)
-							if (!isNaN(index) && index >= 1 && index <= this.customCategories.length) {
-								catName = this.customCategories[index - 1].name
-							} else {
-								catName = inputVal
-								await this.addCustomCategory(catName)
-							}
-
-							this.duplicateSymbol(symbol, cleanName, catName)
-						}
-					}).catch(() => {})
 				})
 
 				let svgIcon = SVG.SVG().addTo(addButton)
@@ -1515,8 +1447,7 @@ export class MainController {
 			return
 		}
 
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	public async renameCustomGraphicsSymbol(oldTikzName: string, newTikzName: string) {
@@ -1530,14 +1461,12 @@ export class MainController {
 		)
 		if (state === "no-op" || state === "missing-dom") return
 
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	public async deleteCustomGraphicsSymbol(tikzName: string) {
 		const state = await this.customSymbolApplicationService.deleteGraphicsSymbol(tikzName, this.symbols, this.customSymbols)
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	public customCategories: { name: string; symbolIds: string[] }[] = []
@@ -1545,8 +1474,7 @@ export class MainController {
 
 	public async loadAndRenderCustomCategories() {
 		const state = await this.customSymbolApplicationService.loadState()
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	private applyCustomSymbolState(state: { customCategories: { name: string; symbolIds: string[] }[]; customSymbols: CustomSymbolRecord[] }) {
@@ -1598,14 +1526,12 @@ export class MainController {
 		name = name.trim()
 		if (!name) return
 		const state = await this.customSymbolApplicationService.addCategory(name)
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	public async deleteCustomCategory(name: string) {
 		const state = await this.customSymbolApplicationService.deleteCategory(name)
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	/**
@@ -1613,158 +1539,28 @@ export class MainController {
 	 * Returns the trimmed string, or null if cancelled / empty.
 	 */
 	private openRenameModal(title: string, currentName: string): Promise<string | null> {
-		return new Promise((resolve) => {
-			const modalEl = document.getElementById("renameModal") as HTMLDivElement
-			const input = document.getElementById("renameModalInput") as HTMLInputElement
-			const label = document.getElementById("renameModalLabel") as HTMLElement
-			const confirmBtn = document.getElementById("renameModalConfirm") as HTMLButtonElement
-
-			label.textContent = title
-			input.value = currentName
-
-			const bsModal = new Modal(modalEl)
-			let isConfirmed = false
-			let resolvedValue: string | null = null
-
-			const cleanup = () => {
-				confirmBtn.removeEventListener("click", onConfirm)
-				input.removeEventListener("keydown", onKeydown)
-				modalEl.removeEventListener("hidden.bs.modal", onDismiss)
-			}
-			const onConfirm = () => {
-				resolvedValue = input.value.trim() || null
-				isConfirmed = true
-				bsModal.hide()
-			}
-			const onDismiss = () => {
-				cleanup()
-				resolve(isConfirmed ? resolvedValue : null)
-			}
-			const onKeydown = (ev: KeyboardEvent) => {
-				if (ev.key === "Enter") onConfirm()
-			}
-
-			confirmBtn.addEventListener("click", onConfirm)
-			input.addEventListener("keydown", onKeydown)
-			modalEl.addEventListener("hidden.bs.modal", onDismiss, { once: true })
-			modalEl.addEventListener("shown.bs.modal", () => { input.focus(); input.select() }, { once: true })
-
-			bsModal.show()
-		})
+		return this.modalDialogService.openRenameModal(title, currentName)
 	}
 
 	/**
 	 * Opens a custom Bootstrap Prompt Modal with English UI.
 	 */
 	public openPrompt(title: string, message: string, defaultValue = ""): Promise<string | null> {
-		return new Promise((resolve) => {
-			const modalEl = document.getElementById("customPromptModal") as HTMLDivElement
-			const input = document.getElementById("customPromptModalInput") as HTMLInputElement
-			const label = document.getElementById("customPromptModalLabel") as HTMLElement
-			const messageEl = document.getElementById("customPromptModalMessage") as HTMLElement
-			const confirmBtn = document.getElementById("customPromptModalConfirm") as HTMLButtonElement
-
-			label.textContent = title
-			messageEl.textContent = message
-			input.value = defaultValue
-
-			const bsModal = new Modal(modalEl)
-			let isConfirmed = false
-			let resolvedValue: string | null = null
-
-			const cleanup = () => {
-				confirmBtn.removeEventListener("click", onConfirm)
-				input.removeEventListener("keydown", onKeydown)
-				modalEl.removeEventListener("hidden.bs.modal", onDismiss)
-			}
-			const onConfirm = () => {
-				resolvedValue = input.value.trim() || null
-				isConfirmed = true
-				bsModal.hide()
-			}
-			const onDismiss = () => {
-				cleanup()
-				resolve(isConfirmed ? resolvedValue : null)
-			}
-			const onKeydown = (ev: KeyboardEvent) => {
-				if (ev.key === "Enter") onConfirm()
-			}
-
-			confirmBtn.addEventListener("click", onConfirm)
-			input.addEventListener("keydown", onKeydown)
-			modalEl.addEventListener("hidden.bs.modal", onDismiss, { once: true })
-			modalEl.addEventListener("shown.bs.modal", () => { input.focus(); input.select() }, { once: true })
-
-			bsModal.show()
-		})
+		return this.modalDialogService.openPrompt(title, message, defaultValue)
 	}
 
 	/**
 	 * Opens a custom Bootstrap Confirm Modal with English UI.
 	 */
 	public openConfirm(title: string, message: string): Promise<boolean> {
-		return new Promise((resolve) => {
-			const modalEl = document.getElementById("customConfirmModal") as HTMLDivElement
-			const label = document.getElementById("customConfirmModalLabel") as HTMLElement
-			const messageEl = document.getElementById("customConfirmModalMessage") as HTMLElement
-			const confirmBtn = document.getElementById("customConfirmModalConfirm") as HTMLButtonElement
-
-			label.textContent = title
-			messageEl.textContent = message
-
-			const bsModal = new Modal(modalEl)
-			let isConfirmed = false
-
-			const cleanup = () => {
-				confirmBtn.removeEventListener("click", onConfirm)
-				modalEl.removeEventListener("hidden.bs.modal", onDismiss)
-			}
-			const onConfirm = () => {
-				isConfirmed = true
-				bsModal.hide()
-			}
-			const onDismiss = () => {
-				cleanup()
-				resolve(isConfirmed)
-			}
-
-			confirmBtn.addEventListener("click", onConfirm)
-			modalEl.addEventListener("hidden.bs.modal", onDismiss, { once: true })
-
-			bsModal.show()
-		})
+		return this.modalDialogService.openConfirm(title, message)
 	}
 
 	/**
 	 * Opens a custom Bootstrap message modal for system notifications.
 	 */
 	public openAlert(title: string, message: string): Promise<void> {
-		return new Promise((resolve) => {
-			const modalEl = document.getElementById("systemMessageModal") as HTMLDivElement
-			const label = document.getElementById("systemMessageModalLabel") as HTMLElement
-			const messageEl = document.getElementById("systemMessageModalMessage") as HTMLElement
-			const confirmBtn = document.getElementById("systemMessageModalConfirm") as HTMLButtonElement
-
-			label.textContent = title
-			messageEl.textContent = message
-
-			const bsModal = new Modal(modalEl)
-
-			const cleanup = () => {
-				confirmBtn.removeEventListener("click", onConfirm)
-				modalEl.removeEventListener("hidden.bs.modal", onDismiss)
-			}
-			const onConfirm = () => bsModal.hide()
-			const onDismiss = () => {
-				cleanup()
-				resolve()
-			}
-
-			confirmBtn.addEventListener("click", onConfirm)
-			modalEl.addEventListener("hidden.bs.modal", onDismiss, { once: true })
-
-			bsModal.show()
-		})
+		return this.modalDialogService.openAlert(title, message)
 	}
 
 	/**
@@ -1774,8 +1570,7 @@ export class MainController {
 	public async renameCustomCategory(oldName: string, newName: string) {
 		const state = await this.customSymbolApplicationService.renameCategory(oldName, newName)
 		if (state === "no-op") return
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	/**
@@ -1790,8 +1585,7 @@ export class MainController {
 			this.circuitComponents
 		)
 		if (state === "no-op" || state === "missing") return
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	/**
@@ -1801,55 +1595,17 @@ export class MainController {
 	 */
 	public async deleteCustomSymbol(symbolId: string) {
 		const state = await this.customSymbolApplicationService.deleteCustomSymbol(symbolId, this.customSymbols)
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	public async addSymbolToCategory(categoryName: string, symbolId: string, customSymbolData?: CustomSymbolRecord) {
 		const state = await this.customSymbolApplicationService.addSymbolToCategory(categoryName, symbolId, customSymbolData)
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	public async removeSymbolFromCategory(categoryName: string, symbolId: string) {
 		const state = await this.customSymbolApplicationService.removeSymbolFromCategory(categoryName, symbolId)
-		this.applyCustomSymbolState(state)
-		this.renderCustomCategories()
-	}
-
-	private async handleSymbolLibraryMenuAction(symbol: ComponentSymbol, action: {
-		type: "none" | "edit" | "rename" | "delete" | "add-to-category" | "create-category-and-add" | "duplicate"
-		newName?: string
-		categoryName?: string
-	}) {
-		if (action.type === "none") return
-		if (action.type === "edit") {
-			SymbolEditorController.instance.open("custom-" + symbol.tikzName)
-			return
-		}
-		if (action.type === "rename" && action.newName) {
-			await this.renameCustomGraphicsSymbol(symbol.tikzName, action.newName)
-			return
-		}
-		if (action.type === "delete") {
-			await this.deleteCustomGraphicsSymbol(symbol.tikzName)
-			return
-		}
-		if (action.type === "add-to-category" && action.categoryName) {
-			await this.addSymbolToCategory(action.categoryName, symbol.tikzName)
-			return
-		}
-		if (action.type === "create-category-and-add" && action.categoryName) {
-			await this.addCustomCategory(action.categoryName)
-			await this.addSymbolToCategory(action.categoryName, symbol.tikzName)
-			return
-		}
-		if (action.type === "duplicate" && action.newName && action.categoryName) {
-			if (!this.customCategories.some((category) => category.name === action.categoryName)) {
-				await this.addCustomCategory(action.categoryName)
-			}
-			await this.duplicateSymbol(symbol, action.newName, action.categoryName)
-		}
+		applyAndRenderCustomSymbolState(this, state)
 	}
 
 	public async putCustomSymbolRecord(customSymbol: CustomSymbolRecord): Promise<void> {
@@ -1857,26 +1613,17 @@ export class MainController {
 	}
 
 	public async createSubcircuitFromSelection() {
-		let selected = SelectionController.instance.currentlySelectedComponents
-		if (selected.length === 0) {
-			await this.openAlert("Create Custom Component", "Please select components to create a custom component.")
-			return
-		}
+		const groupComp = await this.customSymbolSelectionController.resolveGroupSelection({
+			selectedComponents: SelectionController.instance.currentlySelectedComponents,
+			getCurrentSelection: () => SelectionController.instance.currentlySelectedComponents,
+			groupSelection: (selectedComponents) => {
+				GroupComponent.group(selectedComponents)
+			},
+			showAlert: (title, body) => this.openAlert(title, body),
+		})
+		if (!groupComp) return
 
-		let groupComp: GroupComponent
-		if (selected.length === 1 && (selected[0] instanceof GroupComponent || selected[0].constructor.name === "GroupComponent" || selected[0].constructor.name === "SubcircuitComponent")) {
-			groupComp = selected[0] as GroupComponent
-		} else {
 			// 先將複數元件進行 Group
-			GroupComponent.group(selected)
-			const newSelected = SelectionController.instance.currentlySelectedComponents
-			if (newSelected.length === 1 && (newSelected[0] instanceof GroupComponent || newSelected[0].constructor.name === "GroupComponent")) {
-				groupComp = newSelected[0] as GroupComponent
-			} else {
-				await this.openAlert("Create Custom Component", "Failed to create a group, cannot save as custom component.")
-				return
-			}
-		}
 
 		const saveRequest = await this.customSymbolSaveController.open({
 			initialName: groupComp.displayName !== "Group" ? groupComp.displayName : "",
@@ -1888,26 +1635,9 @@ export class MainController {
 		await this.saveGroupedSelectionAsCustomSymbol(groupComp, saveRequest.name, saveRequest.categoryName)
 	}
 
-	private openSaveSymbolModal(group: GroupComponent) {
-		const modalEl = document.getElementById("saveSymbolModal") as HTMLDivElement
-		const nameInput = document.getElementById("saveSymbolNameInput") as HTMLInputElement
-		const categorySelect = document.getElementById("saveSymbolCategorySelect") as HTMLSelectElement
-		const newCategoryContainer = document.getElementById("saveSymbolNewCategoryContainer") as HTMLDivElement
-		const newCategoryInput = document.getElementById("saveSymbolNewCategoryInput") as HTMLInputElement
-		const confirmBtn = document.getElementById("saveSymbolModalConfirm") as HTMLButtonElement
+	
 
-		nameInput.value = group.displayName !== "Group" ? group.displayName : ""
-		newCategoryInput.value = ""
-		newCategoryContainer.classList.add("d-none")
-
-		categorySelect.innerHTML = ""
-		for (const cat of this.customCategories) {
-			const opt = document.createElement("option")
-			opt.value = cat.name
-			opt.textContent = cat.name
-			categorySelect.appendChild(opt)
-		}
-
+/*
 		if (this.customCategories.length === 0) {
 			const opt = document.createElement("option")
 			opt.value = "我的最愛"
@@ -1920,23 +1650,7 @@ export class MainController {
 		newCatOpt.textContent = "+ 新增分類..."
 		categorySelect.appendChild(newCatOpt)
 
-		const onCategoryChange = () => {
-			if (categorySelect.value === "__NEW_CATEGORY__") {
-				newCategoryContainer.classList.remove("d-none")
-			} else {
-				newCategoryContainer.classList.add("d-none")
-			}
-		}
-		categorySelect.addEventListener("change", onCategoryChange)
 
-		const bsModal = new Modal(modalEl)
-
-		const cleanup = () => {
-			categorySelect.removeEventListener("change", onCategoryChange)
-			confirmBtn.onclick = null
-		}
-
-		confirmBtn.onclick = async () => {
 			let name = nameInput.value.trim()
 			if (!name) {
 				await this.openAlert("Save Custom Component", "Please enter a component name.")
@@ -1988,11 +1702,8 @@ export class MainController {
 		bsModal.show()
 	}
 
+*/
 	private async saveGroupedSelectionAsCustomSymbol(group: GroupComponent, name: string, categoryName: string) {
-		if (!this.customCategories.some((category) => category.name === categoryName)) {
-			await this.addCustomCategory(categoryName)
-		}
-
 		const idx = this.circuitComponents.indexOf(group)
 		if (idx === -1) {
 			await this.openAlert("Save Custom Component", "Cannot find the group object; unable to save.")
@@ -2006,8 +1717,14 @@ export class MainController {
 		group.visualization.remove()
 
 		const subJson = new SubcircuitComponent(name, children).toJson()
-		const customSymbolData = this.customSymbolApplicationService.buildSubcircuitRecord(name, subJson, this.customSymbols)
-		await this.addSymbolToCategory(categoryName, customSymbolData.id, customSymbolData)
+		const state = await this.customSymbolApplicationService.saveSubcircuitRecord(
+			categoryName,
+			name,
+			subJson,
+			this.customSymbols,
+			this.customCategories.map((category) => category.name)
+		)
+		applyAndRenderCustomSymbolState(this, state)
 
 		Undo.addState()
 	}

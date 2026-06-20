@@ -49,4 +49,30 @@ describe("CustomSymbolApplicationService", () => {
 			[]
 		)
 	})
+
+	it("saves a subcircuit record and creates its category when missing", async () => {
+		const customSymbolService = {
+			addCategory: vi.fn().mockResolvedValue(undefined),
+			buildSubcircuitRecord: vi.fn().mockReturnValue({ id: "custom-opamp", tikzName: "opamp" }),
+			addSymbolToCategory: vi.fn().mockResolvedValue(undefined),
+			getCustomCategories: vi.fn().mockResolvedValue([{ name: "Fresh", symbolIds: ["custom-opamp"] }]),
+			getCustomSymbols: vi.fn().mockResolvedValue([{ id: "custom-opamp", tikzName: "opamp" }]),
+		}
+		const service = new CustomSymbolApplicationService(customSymbolService as any)
+
+		await expect(
+			service.saveSubcircuitRecord("Fresh", "opamp", { nodes: [] }, [], ["Mine"])
+		).resolves.toEqual({
+			customCategories: [{ name: "Fresh", symbolIds: ["custom-opamp"] }],
+			customSymbols: [{ id: "custom-opamp", tikzName: "opamp" }],
+		})
+
+		expect(customSymbolService.addCategory).toHaveBeenCalledWith("Fresh")
+		expect(customSymbolService.buildSubcircuitRecord).toHaveBeenCalledWith("opamp", { nodes: [] }, [])
+		expect(customSymbolService.addSymbolToCategory).toHaveBeenCalledWith(
+			"Fresh",
+			"custom-opamp",
+			{ id: "custom-opamp", tikzName: "opamp" }
+		)
+	})
 })

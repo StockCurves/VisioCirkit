@@ -140,4 +140,19 @@ export class CustomSymbolApplicationService {
 	public buildSubcircuitRecord(proposedName: string, subcircuitData: any, existingSymbols: CustomSymbolRecord[]) {
 		return this.customSymbolService.buildSubcircuitRecord(proposedName, subcircuitData, existingSymbols)
 	}
+
+	public async saveSubcircuitRecord(
+		categoryName: string,
+		proposedName: string,
+		subcircuitData: any,
+		existingSymbols: CustomSymbolRecord[],
+		existingCategoryNames: string[]
+	): Promise<CustomSymbolState> {
+		if (!existingCategoryNames.includes(categoryName)) {
+			await this.customSymbolService.addCategory(categoryName)
+		}
+		const customSymbolData = this.customSymbolService.buildSubcircuitRecord(proposedName, subcircuitData, existingSymbols)
+		await this.customSymbolService.addSymbolToCategory(categoryName, customSymbolData.id, customSymbolData)
+		return this.loadState()
+	}
 }
