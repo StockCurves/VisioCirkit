@@ -329,6 +329,7 @@ custom symbol 這條線目前已完成大半：
 - template open / save / delete application flow
 - latex request shape 與 render client wiring
 - custom symbol drawer / save modal / symbol library menu controller
+- component library controller / filter wiring
 
 ### 目前已補上的 targeted tests
 
@@ -344,6 +345,7 @@ custom symbol 這條線目前已完成大半：
 - `customSymbolSaveController.test.ts`
 - `symbolLibraryMenuController.test.ts`
 - `customSymbolSelectionController.test.ts`
+- `componentLibraryController.test.ts`
 - `mainController.renameCustomGraphicsSymbol.test.ts`
 - `symbolLibraryService.test.ts`
 - `indexedDbTemplateDataSource.test.ts`
@@ -359,7 +361,7 @@ custom symbol 這條線目前已完成大半：
 
 ### 最近一次實際 gate
 
-- targeted vitest：`16` 個 test files，`67` 個 tests，全數通過
+- targeted vitest：`9` 個 test files，`23` 個 tests，全數通過
 - build：隔離的 Parcel build 成功
 - `generate-template-manifest` 成功
 
@@ -372,6 +374,7 @@ custom symbol 這條線目前已完成大半：
 - runtime / provider 骨架已存在
 - tab / session / work / template 已大幅離開 `MainController`
 - custom symbol 已拆成 application service、drawer controller、save modal controller、menu controller
+- component library 的群組渲染與 filter wiring 已從 `MainController` 抽出
 
 接下來真正的成功條件不是「再重寫 UI」，而是：
 

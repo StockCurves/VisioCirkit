@@ -10,6 +10,7 @@ import { CustomSymbolSaveController } from "./customSymbolSaveController"
 import { CustomSymbolSelectionController } from "./customSymbolSelectionController"
 import { SymbolLibraryMenuController } from "./symbolLibraryMenuController"
 import { ShapeLibraryController } from "./shapeLibraryController"
+import { ComponentLibraryController } from "./componentLibraryController"
 import { CustomSymbolApplicationService } from "../services/customSymbolApplicationService"
 import { CustomSymbolExportService } from "../services/customSymbolExportService"
 import type { CustomSymbolRecord } from "../services/customSymbolService"
@@ -125,6 +126,7 @@ export class MainController {
 	private readonly customSymbolSelectionController = new CustomSymbolSelectionController()
 	private readonly symbolLibraryMenuController = new SymbolLibraryMenuController()
 	private readonly shapeLibraryController = new ShapeLibraryController()
+	private readonly componentLibraryController = new ComponentLibraryController()
 	private readonly modalDialogService = new ModalDialogService()
 	private readonly customSymbolExportService = new CustomSymbolExportService()
 
@@ -720,8 +722,8 @@ export class MainController {
 	private async initAddComponentOffcanvas() {
 		const leftOffcanvas: HTMLDivElement = document.getElementById("leftOffcanvas") as HTMLDivElement
 		const leftOffcanvasOC = new Offcanvas(leftOffcanvas)
-		document.getElementById("componentFilterInput").addEventListener("input", this.filterComponents)
-		document.getElementById("filterRegexButton").addEventListener("click", this.filterComponents)
+		document.getElementById("componentFilterInput").addEventListener("input", this.componentLibraryController.filterComponents)
+		document.getElementById("filterRegexButton").addEventListener("click", this.componentLibraryController.filterComponents)
 		document.getElementById("addCategoryButton").addEventListener("click", async () => {
 			const name = await this.openPrompt("New Category", "Please enter a custom category name:")
 			if (name) {
@@ -777,170 +779,16 @@ export class MainController {
 			placeComponent: (component) => ComponentPlacer.instance.placeComponent(component),
 		})
 		await this.loadAndRenderCustomCategories()
-
-		for (const [groupName, symbols] of groupedSymbols.entries()) {
-			const collapseGroupID = "collapseGroup-" + groupName.replace(/[^\d\w\-\_]+/gi, "-")
-
-			const accordionGroup = leftOffcanvasAccordion.appendChild(document.createElement("div"))
-			accordionGroup.classList.add("accordion-item")
-
-			const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
-			accordionItemHeader.classList.add("accordion-header")
-
-			const accordionItemButton = accordionItemHeader.appendChild(document.createElement("button"))
-			accordionItemButton.classList.add("accordion-button", "collapsed")
-			accordionItemButton.innerText = groupName
-			accordionItemButton.setAttribute("aria-controls", collapseGroupID)
-			accordionItemButton.setAttribute("aria-expanded", "false")
-			accordionItemButton.setAttribute("data-bs-target", "#" + collapseGroupID)
-			accordionItemButton.setAttribute("data-bs-toggle", "collapse")
-			accordionItemButton.type = "button"
-
-			const accordionItemCollapse = accordionGroup.appendChild(document.createElement("div"))
-			accordionItemCollapse.classList.add("accordion-collapse", "collapse")
-			accordionItemCollapse.id = collapseGroupID
-			accordionItemCollapse.setAttribute("data-bs-parent", "#leftOffcanvasAccordion")
-
-			const accordionItemBody = accordionItemCollapse.appendChild(document.createElement("div"))
-			accordionItemBody.classList.add("accordion-body", "iconLibAccordionBody")
-
-			for (const symbol of symbols) {
-				const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-				addButton.classList.add("libComponent")
-				addButton.setAttribute(
-					"searchData",
-					[symbol.tikzName, symbol.isNodeSymbol ? "node" : "path"]
-						.concat(
-							symbol.possibleOptions
-								.map((option) => option.displayName ?? option.name)
-								.concat(
-									symbol.possibleEnumOptions.flatMap((enumOption) =>
-										enumOption.options.map((option) => option.displayName ?? option.name)
-									)
-								)
-						)
-						.join(" ")
-				)
-				addButton.ariaRoleDescription = "button"
-				addButton.title = symbol.displayName || symbol.tikzName
-
-				const listener = (ev: MouseEvent) => {
-					if (ev.button !== 0) return
-					ev.preventDefault()
-					this.switchMode(Modes.COMPONENT)
-
-					if (ComponentPlacer.instance.component) {
-						ComponentPlacer.instance.placeCancel()
-					}
-
-					let newComponent: CircuitComponent
-					if (symbol.isNodeSymbol) {
-						newComponent = new NodeSymbolComponent(symbol)
-					} else {
-						newComponent = new PathSymbolComponent(symbol)
-					}
-					ComponentPlacer.instance.placeComponent(newComponent)
-
-					leftOffcanvasOC.hide()
+		this.componentLibraryController.render(leftOffcanvasAccordion, groupedSymbols, {
+			hideDrawer: () => leftOffcanvasOC.hide(),
+			switchToComponentMode: () => this.switchMode(Modes.COMPONENT),
+			cancelComponentPlacement: () => {
+				if (ComponentPlacer.instance.component) {
+					ComponentPlacer.instance.placeCancel()
 				}
-
-				addButton.addEventListener("mouseup", listener)
-				addButton.addEventListener("touchstart", listener, { passive: false })
-
-				addButton.addEventListener("contextmenu", async (ev) => {
-					await this.handleLibrarySymbolContextMenu(ev, symbol)
-				})
-
-				let svgIcon = SVG.SVG().addTo(addButton)
-
-				let firstVariant = symbol._mapping.values().toArray()[0]
-				let viewBox = new SVG.Box(firstVariant ? firstVariant.viewBox : new SVG.Box(0, 0, 30, 15))
-				let maxStroke = Number.isFinite(symbol.maxStroke) ? symbol.maxStroke : 0
-
-				//oversize viewbox due to stroke widths
-				viewBox.width += maxStroke
-				viewBox.height += maxStroke
-				viewBox.x -= maxStroke / 2
-				viewBox.y -= maxStroke / 2
-
-				if (!Number.isFinite(viewBox.x) || !Number.isFinite(viewBox.y) || !Number.isFinite(viewBox.w) || !Number.isFinite(viewBox.h)) {
-					viewBox = new SVG.Box(0, 0, 30, 15)
-				}
-
-				// svg icon should have new size
-				svgIcon.viewbox(viewBox).width(viewBox.width).height(viewBox.height)
-
-				let use = svgIcon.use(symbol.symbolElement.id())
-				use.width(symbol.viewBox.width).height(symbol.viewBox.height) // use should have original size values
-				use.stroke(defaultStroke).fill(defaultFill).node.style.color = defaultStroke
-			}
-		}
-	}
-
-	/**
-	 * filter the components in the left OffCanvas to only show what matches the search string (in a new accordeon item)
-	 */
-	private filterComponents(evt: Event) {
-		evt.preventDefault()
-		evt.stopPropagation()
-
-		const element = document.getElementById("componentFilterInput") as HTMLInputElement
-		const feedbacktext = document.getElementById("invalid-feedback-text")
-		const filterWithRegex = document.getElementById("filterRegexButton").classList.contains("active")
-
-		let text = element.value
-		let regex = null
-		if (filterWithRegex) {
-			regex = new RegExp(text, "i")
-			element.classList.remove("is-invalid")
-			feedbacktext.classList.add("d-none")
-		} else {
-			try {
-				regex = new RegExp(".*" + text.split("").join(".*") + ".*", "i")
-				element.classList.remove("is-invalid")
-				feedbacktext.classList.add("d-none")
-			} catch (e) {
-				text = ""
-				regex = new RegExp(text, "i")
-				element.classList.add("is-invalid")
-				feedbacktext.classList.remove("d-none")
-			}
-		}
-
-		const accordion = document.getElementById("leftOffcanvasAccordion")
-
-		const accordionItems = accordion.getElementsByClassName("accordion-item")
-		Array.prototype.forEach.call(accordionItems, (accordionItem: HTMLDivElement, index: number) => {
-			const libComponents = accordionItem.getElementsByClassName("libComponent")
-			let showCount = 0
-			Array.prototype.forEach.call(libComponents, (libComponent: HTMLDivElement) => {
-				if (text) {
-					if (!(regex.test(libComponent.title) || regex.test(libComponent.getAttribute("searchData")))) {
-						libComponent.classList.add("d-none")
-						return
-					}
-				}
-				libComponent.classList.remove("d-none")
-				showCount++
-			})
-			if (showCount === 0) {
-				accordionItem.classList.add("d-none")
-			} else {
-				accordionItem.classList.remove("d-none")
-			}
-
-			if (text) {
-				accordionItem.children[0]?.children[0]?.classList.remove("collapsed")
-				accordionItem.children[1]?.classList.add("show")
-			} else {
-				accordionItem.children[0]?.children[0]?.classList.add("collapsed")
-				accordionItem.children[1]?.classList.remove("show")
-			}
-
-			if (index === 0) {
-				accordionItem.children[0]?.children[0]?.classList.remove("collapsed")
-				accordionItem.children[1]?.classList.add("show")
-			}
+			},
+			placeComponent: (component) => ComponentPlacer.instance.placeComponent(component),
+			openContextMenu: (event, symbol) => this.handleLibrarySymbolContextMenu(event, symbol),
 		})
 	}
 
