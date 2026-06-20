@@ -97,30 +97,11 @@
 
 ## 5. 分層方向
 
-第 5 點之後要以 `main` 現況為基準，不再用理想式藍圖描述。現在的重點不是「要不要分層」，而是「哪些切換點已經落地、哪些責任仍卡在 `MainController`」。
+第 5 點之後要以 `main` 現況為基準，不再用理想式藍圖描述。現在的重點不是「要不要分層」，而是「哪些切換點已經落地、哪些責任仍卡在 `MainController`，以及 demo mode 還缺哪個啟動設定」。
 
 ### 現況盤點
 
-- UI / controller / service 已經有第一波拆分，但還不是完整分層
-- `TemplateController` 已透過 `TemplateApplicationService` 與 `TemplateFileService` 抽出大部分模板流程，runtime 接線已集中到 `controllerRuntime`
-- `LiveRenderController` 已透過 `LatexRenderService` 吃 runtime render dependency，runtime 接線已集中到 `controllerRuntime`
-- custom symbol 目前已拆出：
-  - `CustomSymbolRepository`
-  - `CustomSymbolService`
-  - `CustomSymbolApplicationService`
-  - `CustomSymbolDomService`
-  - `CustomSymbolDrawerController`
-  - `CustomSymbolSaveController`
-  - `SymbolLibraryService`
-  - `SymbolLibraryMenuController`
-- tab / lifecycle / modal 目前已拆出：
-  - `TabSessionService`
-  - `TabApplicationService`
-  - `TabBroadcastService`
-  - `TabLifecycleService`
-  - `TabManagementController`
-- `MainController` 已不再直接 `new IndexedDbService`、`TemplateFileService`、`LatexRenderService`
-- `runtimeConfig` 已集中定義：
+- runtime / provider 骨架已經落地，`runtimeConfig` 已集中定義：
   - `storageMode = "server" | "indexeddb"`
   - `templateSource = "server" | "static-manifest"`
   - `latexMode = "server-proxy" | "serverless-proxy"`
@@ -131,16 +112,42 @@
   - tab application / broadcast / lifecycle services
   - custom symbol application service
   - symbol library service
-- `server.js` 目前仍同時承擔 static serving 與 template/work filesystem API，但 QuickLaTeX proxy 已抽成共用 handler，並可由 `api/latex.js` 直接接入
-- `latexMode = "serverless-proxy"` 已有命名與 runtime 切換點，`api/latex.js` provider 已接好
-- `TemplateController` 與 `LiveRenderController` 的 runtime 接線已從 controller 內移到 `controllerRuntime`
+- `controllerRuntime` 已成為 `TemplateController` / `LiveRenderController` 的 runtime glue entry。
+- `TemplateController` 已透過 `TemplateApplicationService` 與 `TemplateFileService` 抽出大部分模板流程。
+- `LiveRenderController` 已透過 `LatexRenderService` 接 runtime render dependency。
+- `server.js` 目前仍同時承擔 static serving 與 template/work filesystem API，但 QuickLaTeX proxy 已抽成 `server/latexProxy.js` 共用 handler。
+- `api/latex.js` 已直接接入同一份 QuickLaTeX proxy，所以 `serverless-proxy` 的 provider 入口已存在。
+- tab / lifecycle / modal 已拆出：
+  - `TabSessionService`
+  - `TabApplicationService`
+  - `TabBroadcastService`
+  - `TabLifecycleService`
+  - `TabManagementController`
+- custom symbol / component library 已拆出：
+  - `CustomSymbolRepository`
+  - `CustomSymbolService`
+  - `CustomSymbolApplicationService`
+  - `CustomSymbolDomService`
+  - `CustomSymbolDrawerController`
+  - `CustomSymbolWorkspaceController`
+  - `CustomSymbolStateController`
+  - `CustomSymbolSaveController`
+  - `CustomSymbolSubcircuitSaveController`
+  - `CustomSymbolCatalogController`
+  - `CustomSymbolGraphicsController`
+  - `CustomSymbolExportService`
+  - `SymbolLibraryService`
+  - `SymbolLibraryBootstrapController`
+  - `SymbolLibraryMenuController`
+  - `AddComponentOffcanvasController`
+- `MainController` 已不再直接 `new IndexedDbService`、`TemplateFileService`、`LatexRenderService`，也不再直接處理大段 symbol DB bootstrap / category mutation / graphics symbol mutation / subcircuit save orchestration。
 
 ### 目前真正的核心問題
 
-- `MainController` 雖然比之前瘦很多，但仍保有過多 custom symbol orchestration
-- `createSubcircuitFromSelection()` 已改走 `CustomSymbolSaveController`，但整條 custom symbol UI flow 還可再持續收斂成更薄的 app shell
-- 方案 B 的 latex provider 切換點已完成，`server.js` 與 `api/latex.js` 共用同一份 proxy 行為
-- `controllerRuntime` 已成為 template / live render 的單一 runtime glue entry
+- `MainController` 已經比前一版薄很多，但仍保有 façade 型 public methods 與少量 UI glue。
+- custom symbol 的 selection/save/category/graphics/bootstrap/offcanvas orchestration 已往專用 controller 收斂；剩餘工作應是小切片整理，不適合再做大規模重寫。
+- `serverless-proxy` provider 入口已完成；真正尚未完成的是 demo mode 預設啟動/部署設定，還沒有一個明確入口把 runtime override 設成 `indexeddb + static-manifest + serverless-proxy`。
+- demo mode 還需要實際驗證不會走 `/api/files`、`/api/file`、`/api/save`、`/api/delete`。
 
 ### 四層目標
 
@@ -160,6 +167,7 @@
 - `CustomSymbolDrawerController`
 - `CustomSymbolSaveController`
 - `SymbolLibraryMenuController`
+- `AddComponentOffcanvasController`
 
 限制：
 
@@ -184,6 +192,9 @@
 - `TabBroadcastService`
 - `TabLifecycleService`
 - `CustomSymbolApplicationService`
+- `CustomSymbolCatalogController`
+- `CustomSymbolGraphicsController`
+- `CustomSymbolSubcircuitSaveController`
 
 目標：
 
@@ -215,6 +226,7 @@
 
 - `runtimeConfig`
 - `appRuntime`
+- `controllerRuntime`
 - `TemplateFileService`
 - `IndexedDbTemplateDataSource`
 - `StaticTemplateDataSource`
@@ -222,12 +234,14 @@
 - `SymbolLibraryService`
 - generated `staticTemplateManifest`
 - `server.js`
-- `controllerRuntime`
+- `server/latexProxy.js`
+- `api/latex.js`
 
 目標：
 
 - `server` 與 `local/static` 從這一層切換
-- `server.js` 與未來 `api/latex.js` 都屬於 integration layer，不屬於 controller
+- `server.js` 與 `api/latex.js` 都屬於 integration layer，不屬於 controller
+- demo mode 透過 runtime config injection 切換 provider，而不是維護第二套前端
 
 ## 6. 推薦實作方式
 
@@ -239,6 +253,7 @@
 
 - `runtimeConfig` 已建立
 - `appRuntime` 已建立
+- `controllerRuntime` 已建立
 - `TemplateController` / `LiveRenderController` / `MainController` 已改由 runtime 取依賴
 - `getApiBase()` 不再是 controller 內自行判斷 server/local 的主要入口
 
@@ -270,19 +285,19 @@
 - `storageMode = "server" | "indexeddb"`
 - `templateSource = "server" | "static-manifest"`
 - `latexMode = "server-proxy" | "serverless-proxy"`
-
-已落地切換：
-
 - `storageMode = "indexeddb"`
 - `templateSource = "static-manifest"`
+- `api/latex.js` 已接上 `server/latexProxy.js`
+- `server.js` 與 `api/latex.js` 共用同一份 QuickLaTeX proxy 行為
 
 尚未完成：
 
-- `latexMode = "serverless-proxy"` 的實際 provider / adapter
+- demo mode 的預設 runtime override / deployment bootstrap，尚未把 `indexeddb + static-manifest + serverless-proxy` 固定成 demo 啟動模式。
+- demo mode 尚未實際驗證完全避開 `/api/files`、`/api/file`、`/api/save`、`/api/delete`。
 
 ### 第四階段：接上 custom symbol / 方案 B 專用實作
 
-custom symbol 這條線目前已完成大半：
+custom symbol / component library 這條線目前已完成大半：
 
 - `CustomSymbolApplicationService` 已建立
 - `SymbolLibraryService` 已建立
@@ -304,16 +319,17 @@ custom symbol 這條線目前已完成大半：
 但這一階段還沒完全結束，因為：
 
 - `MainController` 仍保有少量 custom symbol UI glue，但 selection/save orchestration、category mutation、graphics symbol mutation、add-component offcanvas orchestration 已經再往專用 controller 收斂
-- `serverless latex adapter` 已完成切換點，但 demo mode 的啟動/部署設定還需持續對齊
-- `api/latex.js` 已成為可切換 provider
+- `MainController` 仍保有 façade 型 public methods，供舊呼叫點和 controller 間 callback 使用
+- demo mode 的啟動/部署設定還需持續對齊
+- `api/latex.js` 已成為 serverless provider 入口，但 runtime 預設仍是正式版 server-backed mode
 
 ### 目前最合理的下一步
 
 接下來建議順序：
 
-1. 確認 demo mode 的實際部署設定會把 latex provider 指向 `api/latex.js`
-2. 視需要再把 `MainController` 剩下的 custom symbol UI glue 繼續收斂
-3. 讓 demo mode 真正移除對 `/api/files`、`/api/file`、`/api/save`、`/api/delete` 的依賴
+1. 建立 demo runtime 設定入口，讓 demo mode 預設走 `storageMode = "indexeddb"`、`templateSource = "static-manifest"`、`latexMode = "serverless-proxy"`。
+2. 驗證 demo mode 不再依賴 `/api/files`、`/api/file`、`/api/save`、`/api/delete`。
+3. 再把 `MainController` 剩下的 façade / custom symbol UI glue 用小切片繼續收斂，避免一次大改。
 
 ## 7. 後續開發限制
 
@@ -327,6 +343,8 @@ custom symbol 這條線目前已完成大半：
 - 不把 custom symbol DOM 修補邏輯混進 repository
 - 不新增只能在 `server.js` 存在時才成立的功能假設
 - 不把已抽出的 runtime/provider 邊界再塞回 `MainController`
+- demo 專用差異優先放在 runtime config injection 或 demo branch bootstrap，不改 service method shape
+- `api/latex.js` / `server/latexProxy.js` 應保持共用 proxy 行為，避免 server 與 serverless 兩套實作漂移
 
 ## 8. 測試策略
 
@@ -340,10 +358,13 @@ custom symbol 這條線目前已完成大半：
 - latex request shape 與 render client wiring
 - custom symbol drawer / save modal / symbol library menu controller
 - component library controller / filter wiring / toolbar binding
+- demo runtime config override 不碰 server file API
 
 ### 目前已補上的 targeted tests
 
 - `apiServices.test.ts`
+- `controllerRuntime.test.ts`
+- `templateController.test.ts`
 - `tabSessionService.test.ts`
 - `tabApplicationService.test.ts`
 - `tabBroadcastService.test.ts`
@@ -353,7 +374,14 @@ custom symbol 這條線目前已完成大半：
 - `customSymbolApplicationService.test.ts`
 - `customSymbolDrawerController.test.ts`
 - `customSymbolSaveController.test.ts`
+- `customSymbolStateController.test.ts`
+- `customSymbolSubcircuitSaveController.test.ts`
+- `customSymbolCatalogController.test.ts`
+- `customSymbolGraphicsController.test.ts`
+- `customSymbolDrawerActionsFactory.test.ts`
+- `customSymbolExportService.test.ts`
 - `symbolLibraryMenuController.test.ts`
+- `symbolLibraryBootstrapController.test.ts`
 - `customSymbolSelectionController.test.ts`
 - `componentLibraryController.test.ts`
 - `mainController.renameCustomGraphicsSymbol.test.ts`
@@ -361,6 +389,7 @@ custom symbol 這條線目前已完成大半：
 - `indexedDbTemplateDataSource.test.ts`
 - `staticTemplateDataSource.test.ts`
 - `modalDialogService.test.ts`
+- `latexProxy.test.ts`
 
 ### 驗證原則
 
@@ -369,11 +398,13 @@ custom symbol 這條線目前已完成大半：
 - 如果 Parcel 在 Windows temp path 出現 `ENOENT unlink` 類型噪音，可改用隔離 cache / dist build 驗證
 - 如果 graphify 結果與實際程式碼衝突，以當前 repo 程式碼為準
 
-### 最近一次實際 gate
+### 下一階段建議 gate
 
-- targeted vitest：`9` 個 test files，`24` 個 tests，全數通過
-- build：隔離的 Parcel build 成功
-- `generate-template-manifest` 成功
+- 文件更新本身不用跑測試，但要重新檢查第 5-9 點沒有互相矛盾。
+- demo runtime config 實作後，先跑：
+  - `npm.cmd test -- tests/apiServices.test.ts tests/controllerRuntime.test.ts tests/templateController.test.ts tests/latexProxy.test.ts`
+- 如果碰到 custom symbol callback / façade cleanup，再加跑相關 custom-symbol focused tests。
+- 最後跑 `npm.cmd run build`；若遇到 Windows / Parcel temp path `ENOENT unlink`，改用 isolated cache / dist build 作輔助驗證。
 
 ## 9. 建議結論
 
@@ -383,13 +414,16 @@ custom symbol 這條線目前已完成大半：
 
 - runtime / provider 骨架已存在
 - tab / session / work / template 已大幅離開 `MainController`
-- custom symbol 已拆成 application service、drawer controller、save modal controller、menu controller
+- `TemplateController` / `LiveRenderController` 已透過 `controllerRuntime` 接 runtime services
+- `api/latex.js` 與 `server.js` 已共用 `server/latexProxy.js`
+- custom symbol 已拆成 application service、workspace/state/drawer/save/catalog/graphics/bootstrap/subcircuit controllers
 - component library 的群組渲染與 filter wiring 已從 `MainController` 抽出
 
 接下來真正的成功條件不是「再重寫 UI」，而是：
 
-- `MainController` 繼續從 persistence / runtime 判斷 / custom symbol orchestration 中鬆開
-- demo mode 最後能靠 `indexeddb + static manifest + serverless latex` 正常運作
+- demo mode 有明確 runtime config injection，能靠 `indexeddb + static manifest + serverless latex` 正常運作
+- demo mode 不再走 server filesystem API
+- `MainController` 繼續從 persistence / runtime 判斷 / custom symbol orchestration 中鬆開，但只做小切片
 - 方案 B 最終已在架構上接近「切換 provider」，不是「維護第二套前端」
 
 
