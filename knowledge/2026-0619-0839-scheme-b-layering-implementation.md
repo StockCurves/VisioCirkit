@@ -131,16 +131,14 @@
   - tab application / broadcast / lifecycle services
   - custom symbol application service
   - symbol library service
-- `server.js` 目前仍同時承擔 static serving、template/work filesystem API、QuickLaTeX proxy，表示部署假設尚未完全拆開
-- `latexMode = "serverless-proxy"` 已有命名與 runtime 切換點，但實際 `api/latex.js` provider 仍未完全接好
+- `server.js` 目前仍同時承擔 static serving 與 template/work filesystem API，但 QuickLaTeX proxy 已抽成共用 handler，並可由 `api/latex.js` 直接接入
+- `latexMode = "serverless-proxy"` 已有命名與 runtime 切換點，`api/latex.js` provider 已接好
 
 ### 目前真正的核心問題
 
 - `MainController` 雖然比之前瘦很多，但仍保有過多 custom symbol orchestration
-- 左側 symbol library 的 `contextmenu` 舊 dead code 仍留在 `MainController`
-- 舊的 `openSaveSymbolModal()` dead code 仍留在 `MainController`
-- `createSubcircuitFromSelection()` 雖然已改走 `CustomSymbolSaveController`，但整條 custom symbol UI flow 還沒完全收斂成純 app shell
-- `server.js` 與 serverless latex provider 的切換仍未完成，所以方案 B 還沒到「只換 provider 就能完整運作」的最後狀態
+- `createSubcircuitFromSelection()` 已改走 `CustomSymbolSaveController`，但整條 custom symbol UI flow 還可再持續收斂成更薄的 app shell
+- 方案 B 的 latex provider 切換點已完成，`server.js` 與 `api/latex.js` 共用同一份 proxy 行為
 
 ### 四層目標
 
@@ -293,16 +291,16 @@ custom symbol 這條線目前已完成大半：
 
 但這一階段還沒完全結束，因為：
 
-- `MainController` 還留有 custom symbol dead code
+- `MainController` 仍保有少量 custom symbol orchestration 與 callback wiring
 - `serverless latex adapter` 還沒接完
-- `api/latex.js` 還沒完全成為可切換 provider
+- `api/latex.js` 已成為可切換 provider
 
 ### 目前最合理的下一步
 
 接下來建議順序：
 
-1. 清掉 `MainController` 內已被取代的 custom symbol dead code
-2. 完成 `latexMode = "serverless-proxy"` 的 provider / adapter
+1. 確認 demo mode 的實際部署設定會把 latex provider 指向 `api/latex.js`
+2. 視需要再把 `MainController` 的 custom symbol orchestration 繼續收斂
 3. 讓 demo mode 真正移除對 `/api/files`、`/api/file`、`/api/save`、`/api/delete` 的依賴
 
 ## 7. 後續開發限制
@@ -378,6 +376,6 @@ custom symbol 這條線目前已完成大半：
 
 接下來真正的成功條件不是「再重寫 UI」，而是：
 
-- `MainController` 繼續從 persistence / runtime 判斷 / custom symbol dead code 中鬆開
+- `MainController` 繼續從 persistence / runtime 判斷 / custom symbol orchestration 中鬆開
 - demo mode 最後能靠 `indexeddb + static manifest + serverless latex` 正常運作
-- 方案 B 最終變成「切換 provider」，不是「維護第二套前端」
+- 方案 B 最終已在架構上接近「切換 provider」，不是「維護第二套前端」
