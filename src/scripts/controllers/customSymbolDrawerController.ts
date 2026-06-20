@@ -23,7 +23,7 @@ export type DrawerCustomSymbolRecord = {
 const defaultStroke = "var(--bs-emphasis-color)"
 const defaultFill = "var(--bs-body-bg)"
 
-type CustomSymbolDrawerActions = {
+export type CustomSymbolDrawerActions = {
 	hideDrawer: () => void
 	openRenameModal: (title: string, currentName: string) => Promise<string | null>
 	openConfirm: (title: string, body: string) => Promise<boolean>

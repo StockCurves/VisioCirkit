@@ -1,13 +1,14 @@
-import * as SVG from "@svgdotjs/svg.js"
+﻿import * as SVG from "@svgdotjs/svg.js"
 import { Button as _bootstrapButton, Collapse as _bootstrapCollapse, Offcanvas, Tooltip } from "bootstrap"
 import "../utils/impSVGNumber"
 import { waitForElementLoaded } from "../utils/domWatcher"
 import hotkeys from "hotkeys-js"
 import { version } from "../../../package.json"
 import { TabManagementController } from "./tabManagementController"
-import { CustomSymbolDrawerController } from "./customSymbolDrawerController"
 import { CustomSymbolSaveController } from "./customSymbolSaveController"
 import { CustomSymbolSelectionController } from "./customSymbolSelectionController"
+import { CustomSymbolWorkspaceController } from "./customSymbolWorkspaceController"
+import { CustomSymbolSubcircuitSaveController } from "./customSymbolSubcircuitSaveController"
 import { SymbolLibraryMenuController } from "./symbolLibraryMenuController"
 import { ShapeLibraryController } from "./shapeLibraryController"
 import { ComponentLibraryController } from "./componentLibraryController"
@@ -46,20 +47,11 @@ import {
 	TextProperty,
 	TikzEditorController,
 	ContextMenu,
-	SubcircuitComponent,
 	SubcircuitSaveObject,
 	SymbolEditorController,
 	TemplateController,
 	LiveRenderController,
 } from "../internal"
-
-const applyAndRenderCustomSymbolState = (
-	controller: { applyCustomSymbolState: (state: { customCategories: { name: string; symbolIds: string[] }[]; customSymbols: CustomSymbolRecord[] }) => void; renderCustomCategories: () => void },
-	state: { customCategories: { name: string; symbolIds: string[] }[]; customSymbols: CustomSymbolRecord[] }
-) => {
-	controller.applyCustomSymbolState(state)
-	controller.renderCustomCategories()
-}
 
 export type CanvasSettings = {
 	gridVisible?: boolean
@@ -121,13 +113,49 @@ export class MainController {
 
 	broadcastChannel: BroadcastChannel
 	private readonly tabManagementController = new TabManagementController()
-	private readonly customSymbolDrawerController = new CustomSymbolDrawerController()
 	private readonly customSymbolSaveController = new CustomSymbolSaveController()
 	private readonly customSymbolSelectionController = new CustomSymbolSelectionController()
 	private readonly symbolLibraryMenuController = new SymbolLibraryMenuController()
 	private readonly shapeLibraryController = new ShapeLibraryController()
 	private readonly componentLibraryController = new ComponentLibraryController()
 	private readonly modalDialogService = new ModalDialogService()
+	private readonly customSymbolWorkspaceController = new CustomSymbolWorkspaceController({
+		hideDrawer: () => {
+			const leftOffcanvas = document.getElementById("leftOffcanvas") as HTMLDivElement
+			new Offcanvas(leftOffcanvas).hide()
+		},
+		openRenameModal: (title: string, currentName: string) => this.openRenameModal(title, currentName),
+		openConfirm: (title: string, body: string) => this.openConfirm(title, body),
+		renameCategory: (oldName: string, newName: string) => { void this.renameCustomCategory(oldName, newName) },
+		deleteCategory: (name: string) => { void this.deleteCustomCategory(name) },
+		removeSymbolFromCategory: (categoryName: string, symbolId: string) => { void this.removeSymbolFromCategory(categoryName, symbolId) },
+		openSymbolEditor: (symbolId: string) => SymbolEditorController.instance.open(symbolId),
+		renameGraphicsSymbol: (oldName: string, newName: string) => { void this.renameCustomGraphicsSymbol(oldName, newName) },
+		deleteGraphicsSymbol: (symbolId: string) => { void this.deleteCustomGraphicsSymbol(symbolId) },
+		renameSubcircuit: (symbolId: string, newName: string) => { void this.renameCustomSymbol(symbolId, newName) },
+		deleteSubcircuit: (symbolId: string) => { void this.deleteCustomSymbol(symbolId) },
+		switchToComponentMode: () => this.switchMode(Modes.COMPONENT),
+		cancelComponentPlacement: () => {
+			if (ComponentPlacer.instance.component) {
+				ComponentPlacer.instance.placeCancel()
+			}
+		},
+		placeComponent: (component: CircuitComponent) => {
+			ComponentPlacer.instance.placeComponent(component)
+		},
+		generateSubcircuitPreview: (subcircuitData: any) => this.generateSubcircuitSvgPreview(subcircuitData),
+		persistCustomSymbol: (customSymbol) => this.customSymbolApplicationService.putCustomSymbol(customSymbol),
+	})
+	private readonly customSymbolSubcircuitSaveController = new CustomSymbolSubcircuitSaveController({
+		selectionController: this.customSymbolSelectionController,
+		saveController: this.customSymbolSaveController,
+		workspaceController: this.customSymbolWorkspaceController,
+		applicationService: this.customSymbolApplicationService,
+		circuitComponents: this.circuitComponents,
+		runtimeSymbols: this.symbols,
+		showAlert: (title: string, body: string) => this.openAlert(title, body),
+		addUndoState: () => Undo.addState(),
+	})
 	private readonly customSymbolExportService = new CustomSymbolExportService()
 
 	public designName: TextProperty
@@ -918,7 +946,7 @@ export class MainController {
 		if (!symbolsSVGElement) return
 
 		const state = await this.customSymbolApplicationService.loadRuntimeSymbols(symbolsSVGElement, this.symbols)
-		this.applyCustomSymbolState(state)
+		this.customSymbolWorkspaceController.applyState(state)
 	}
 
 	public async duplicateSymbol(originalSymbol: ComponentSymbol, newTikzName: string, categoryName: string) {
@@ -936,7 +964,7 @@ export class MainController {
 			return
 		}
 
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	public async renameCustomGraphicsSymbol(oldTikzName: string, newTikzName: string) {
@@ -950,77 +978,37 @@ export class MainController {
 		)
 		if (state === "no-op" || state === "missing-dom") return
 
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	public async deleteCustomGraphicsSymbol(tikzName: string) {
 		const state = await this.customSymbolApplicationService.deleteGraphicsSymbol(tikzName, this.symbols, this.customSymbols)
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
-	public customCategories: { name: string; symbolIds: string[] }[] = []
-	public customSymbols: CustomSymbolRecord[] = []
+	public get customCategories() {
+		return this.customSymbolWorkspaceController.customCategories
+	}
+
+	public get customSymbols() {
+		return this.customSymbolWorkspaceController.customSymbols
+	}
 
 	public async loadAndRenderCustomCategories() {
 		const state = await this.customSymbolApplicationService.loadState()
-		applyAndRenderCustomSymbolState(this, state)
-	}
-
-	private applyCustomSymbolState(state: { customCategories: { name: string; symbolIds: string[] }[]; customSymbols: CustomSymbolRecord[] }) {
-		this.customCategories = state.customCategories
-		this.customSymbols = state.customSymbols
-	}
-
-	private renderCustomCategories() {
-		const leftOffcanvas = document.getElementById("leftOffcanvas") as HTMLDivElement
-		const leftOffcanvasOC = new Offcanvas(leftOffcanvas)
-		this.customSymbolDrawerController.render(this.customCategories, this.customSymbols, this.symbols, {
-			hideDrawer: () => leftOffcanvasOC.hide(),
-			openRenameModal: (title, currentName) => this.openRenameModal(title, currentName),
-			openConfirm: (title, body) => this.openConfirm(title, body),
-			renameCategory: (oldName, newName) => { void this.renameCustomCategory(oldName, newName) },
-			deleteCategory: (name) => { void this.deleteCustomCategory(name) },
-			removeSymbolFromCategory: (categoryName, symbolId) => { void this.removeSymbolFromCategory(categoryName, symbolId) },
-			openSymbolEditor: (symbolId) => SymbolEditorController.instance.open(symbolId),
-			renameGraphicsSymbol: (oldName, newName) => { void this.renameCustomGraphicsSymbol(oldName, newName) },
-			deleteGraphicsSymbol: (symbolId) => { void this.deleteCustomGraphicsSymbol(symbolId) },
-			renameSubcircuit: (symbolId, newName) => { void this.renameCustomSymbol(symbolId, newName) },
-			deleteSubcircuit: (symbolId) => { void this.deleteCustomSymbol(symbolId) },
-			placeStandardSymbol: (standardSymbol) => {
-				this.switchMode(Modes.COMPONENT)
-				if (ComponentPlacer.instance.component) {
-					ComponentPlacer.instance.placeCancel()
-				}
-				let newComponent: CircuitComponent
-				if (standardSymbol.isNodeSymbol) {
-					newComponent = new NodeSymbolComponent(standardSymbol)
-				} else {
-					newComponent = new PathSymbolComponent(standardSymbol)
-				}
-				ComponentPlacer.instance.placeComponent(newComponent)
-			},
-			placeSubcircuit: (customSymbol) => {
-				this.switchMode(Modes.COMPONENT)
-				if (ComponentPlacer.instance.component) {
-					ComponentPlacer.instance.placeCancel()
-				}
-				ComponentPlacer.instance.placeComponent(SubcircuitComponent.fromJson(customSymbol.subcircuitData))
-			},
-			generateSubcircuitPreview: (subcircuitData) => this.generateSubcircuitSvgPreview(subcircuitData),
-			persistCustomSymbol: (customSymbol) => this.customSymbolApplicationService.putCustomSymbol(customSymbol),
-		})
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	public async addCustomCategory(name: string) {
 		name = name.trim()
 		if (!name) return
 		const state = await this.customSymbolApplicationService.addCategory(name)
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	public async deleteCustomCategory(name: string) {
 		const state = await this.customSymbolApplicationService.deleteCategory(name)
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	/**
@@ -1059,7 +1047,7 @@ export class MainController {
 	public async renameCustomCategory(oldName: string, newName: string) {
 		const state = await this.customSymbolApplicationService.renameCategory(oldName, newName)
 		if (state === "no-op") return
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	/**
@@ -1074,7 +1062,7 @@ export class MainController {
 			this.circuitComponents
 		)
 		if (state === "no-op" || state === "missing") return
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	/**
@@ -1084,17 +1072,17 @@ export class MainController {
 	 */
 	public async deleteCustomSymbol(symbolId: string) {
 		const state = await this.customSymbolApplicationService.deleteCustomSymbol(symbolId, this.customSymbols)
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	public async addSymbolToCategory(categoryName: string, symbolId: string, customSymbolData?: CustomSymbolRecord) {
 		const state = await this.customSymbolApplicationService.addSymbolToCategory(categoryName, symbolId, customSymbolData)
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	public async removeSymbolFromCategory(categoryName: string, symbolId: string) {
 		const state = await this.customSymbolApplicationService.removeSymbolFromCategory(categoryName, symbolId)
-		applyAndRenderCustomSymbolState(this, state)
+		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
 	}
 
 	public async putCustomSymbolRecord(customSymbol: CustomSymbolRecord): Promise<void> {
@@ -1102,62 +1090,13 @@ export class MainController {
 	}
 
 	public async createSubcircuitFromSelection() {
-		const groupComp = await this.customSymbolSelectionController.resolveGroupSelection({
-			selectedComponents: SelectionController.instance.currentlySelectedComponents,
-			getCurrentSelection: () => SelectionController.instance.currentlySelectedComponents,
-			groupSelection: (selectedComponents) => {
-				GroupComponent.group(selectedComponents)
-			},
-			showAlert: (title, body) => this.openAlert(title, body),
-		})
-		if (!groupComp) return
-
-		const saveRequest = await this.customSymbolSaveController.open({
-			initialName: groupComp.displayName !== "Group" ? groupComp.displayName : "",
-			categories: this.customCategories.map((category) => category.name),
-			showAlert: (title, body) => this.openAlert(title, body),
-		})
-		if (!saveRequest) return
-
-		await this.saveGroupedSelectionAsCustomSymbol(groupComp, saveRequest.name, saveRequest.categoryName)
-	}
-	private async saveGroupedSelectionAsCustomSymbol(group: GroupComponent, name: string, categoryName: string) {
-		const children = this.restoreGroupedSelection(group)
-		if (!children) {
-			return
-		}
-
-		const subJson = new SubcircuitComponent(name, children).toJson()
-		const state = await this.customSymbolApplicationService.saveSubcircuitRecord(
-			categoryName,
-			name,
-			subJson,
-			this.customSymbols,
-			this.customCategories.map((category) => category.name)
-		)
-		applyAndRenderCustomSymbolState(this, state)
-
-		Undo.addState()
-	}
-
-	private restoreGroupedSelection(group: GroupComponent): GroupComponent[] | null {
-		const idx = this.circuitComponents.indexOf(group)
-		if (idx === -1) {
-			void this.openAlert("Save Custom Component", "Cannot find the group object; unable to save.")
-			return null
-		}
-
-		const children = [...group.groupedComponents]
-		this.circuitComponents.splice(idx, 1, ...children)
-		group.groupedComponents = []
-		group.selectionElement?.remove()
-		group.visualization.remove()
-		return children
+		await this.customSymbolSubcircuitSaveController.createSubcircuitFromSelection()
 	}
 
 	private async generateSubcircuitSvgPreview(subcircuitData: any): Promise<string | null> {
 		return this.appRuntime.createSubcircuitPreviewService().generatePreview(subcircuitData)
 	}
+
 
 	public getCustomSubcircuitsTikzset(): string {
 		return this.customSymbolExportService.getCustomSubcircuitsTikzset(this.circuitComponents as any)
@@ -1171,5 +1110,8 @@ export class MainController {
 		)
 	}
 }
+
+
+
 
 

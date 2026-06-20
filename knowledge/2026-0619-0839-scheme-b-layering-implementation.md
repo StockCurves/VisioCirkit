@@ -1,4 +1,4 @@
-# 方案 B、分層計畫與推薦實作方式整理
+﻿# 方案 B、分層計畫與推薦實作方式整理
 
 更新基準：本文已同步到目前 `main` 的 runtime / tab / custom symbol 分層進度，包含 `CustomSymbolDrawerController`、`CustomSymbolSaveController`、`SymbolLibraryMenuController` 等最新切片。
 
@@ -284,14 +284,18 @@ custom symbol 這條線目前已完成大半：
 - `CustomSymbolApplicationService` 已建立
 - `SymbolLibraryService` 已建立
 - `CustomSymbolDrawerController` 已建立
+- `CustomSymbolWorkspaceController` 已建立，作為 custom symbol state + drawer actions 的 façade
+- `CustomSymbolStateController` 已建立，負責 custom symbol state 與 drawer render 的中介
 - `CustomSymbolSaveController` 已建立
 - `SymbolLibraryMenuController` 已建立，且已接上 `openAndExecute()` 這種一站式 symbol menu 協調入口
+- `customSymbolDrawerActionsFactory` 已把 drawer 的 placement / runtime callback 組裝從 `MainController` 抽出去
+- `CustomSymbolSubcircuitSaveController` 已建立，接手 selection/group/save/restore/persist 這條 subcircuit save orchestration
 - `MainController.renameCustomGraphicsSymbol()` / `duplicateSymbol()` / `deleteCustomGraphicsSymbol()` 已改走 application service
 - base symbol DB 的 fetch / parse / append / runtime extract 已從 `MainController.initSymbolDB()` 移出
 
 但這一階段還沒完全結束，因為：
 
-- `MainController` 仍保有少量 custom symbol state wrappers 與 callback wiring
+- `MainController` 仍保有少量 custom symbol orchestration 入口，但 selection/save orchestration 已經再往 `CustomSymbolSubcircuitSaveController` 收斂
 - `serverless latex adapter` 還沒接完
 - `api/latex.js` 已成為可切換 provider
 
@@ -300,7 +304,7 @@ custom symbol 這條線目前已完成大半：
 接下來建議順序：
 
 1. 確認 demo mode 的實際部署設定會把 latex provider 指向 `api/latex.js`
-2. 視需要再把 `MainController` 的 custom symbol orchestration 繼續收斂
+2. 視需要再把 `MainController` 剩下的 custom symbol UI glue 繼續收斂
 3. 讓 demo mode 真正移除對 `/api/files`、`/api/file`、`/api/save`、`/api/delete` 的依賴
 
 ## 7. 後續開發限制
@@ -379,3 +383,5 @@ custom symbol 這條線目前已完成大半：
 - `MainController` 繼續從 persistence / runtime 判斷 / custom symbol orchestration 中鬆開
 - demo mode 最後能靠 `indexeddb + static manifest + serverless latex` 正常運作
 - 方案 B 最終已在架構上接近「切換 provider」，不是「維護第二套前端」
+
+

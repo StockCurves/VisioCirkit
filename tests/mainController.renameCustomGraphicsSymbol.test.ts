@@ -84,6 +84,20 @@ vi.mock("../src/scripts/internal", () => ({
 	TemplateController: { instance: { initialize: vi.fn().mockResolvedValue(undefined) } },
 	LiveRenderController: { instance: { init: vi.fn() } },
 }))
+vi.mock("../src/scripts/components/groupComponent", () => ({
+	GroupComponent: class {
+		public static group = vi.fn()
+	},
+}))
+vi.mock("../src/scripts/components/subcircuitComponent", () => ({
+	SubcircuitComponent: class {
+		public constructor() {}
+
+		public toJson() {
+			return { type: "subcircuit" }
+		}
+	},
+}))
 
 import { MainController } from "../src/scripts/controllers/mainController"
 import { CustomSymbolApplicationService } from "../src/scripts/services/customSymbolApplicationService"
@@ -240,11 +254,12 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 			customSymbols: [{ id: oldSymbolRecord.id, tikzName: "old mos" }],
 			circuitComponents: [renamedComponent],
 			customCategories: [{ name: "My Favorite", symbolIds: ["old mos"] }],
-			applyCustomSymbolState(state: { customCategories: FakeCategory[]; customSymbols: any[] }) {
-				this.customCategories = state.customCategories
-				this.customSymbols = state.customSymbols
+			customSymbolWorkspaceController: {
+				applyAndRender: vi.fn((state: { customCategories: FakeCategory[]; customSymbols: any[] }) => {
+					context.customCategories = state.customCategories
+					context.customSymbols = state.customSymbols
+				}),
 			},
-			renderCustomCategories: vi.fn(),
 		}
 
 		await MainController.prototype.renameCustomGraphicsSymbol.call(context, "old mos", "new mos")
@@ -267,6 +282,6 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 		expect(document.querySelector(`component[tikz="old mos"]`)).toBeNull()
 		expect(document.getElementById("node_new mos")).not.toBeNull()
 		expect(document.querySelector(`component[tikz="new mos"]`)).not.toBeNull()
-		expect(context.renderCustomCategories).toHaveBeenCalledTimes(1)
+		expect(context.customSymbolWorkspaceController.applyAndRender).toHaveBeenCalledTimes(1)
 	})
 })
