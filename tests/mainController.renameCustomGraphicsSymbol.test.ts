@@ -239,7 +239,7 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 			transaction: vi.fn((storeNames: string | string[]) => makeTransaction(stores, storeNames)),
 		}
 
-		const context = {
+		const context: any = {
 			db,
 			customSymbolDomService: new CustomSymbolDomService(),
 			customSymbolService: new CustomSymbolService(
@@ -259,6 +259,20 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 					context.customCategories = state.customCategories
 					context.customSymbols = state.customSymbols
 				}),
+			},
+		}
+		context.customSymbolGraphicsController = {
+			renameCustomGraphicsSymbol: async (oldTikzName: string, newTikzName: string) => {
+				const state = await context.customSymbolApplicationService.renameGraphicsSymbol(
+					oldTikzName,
+					newTikzName,
+					document.getElementById("symbolDB"),
+					context.symbols,
+					context.customSymbols,
+					context.circuitComponents
+				)
+				if (state === "no-op" || state === "missing-dom") return
+				context.customSymbolWorkspaceController.applyAndRender(state, context.symbols)
 			},
 		}
 

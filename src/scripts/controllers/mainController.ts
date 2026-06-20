@@ -10,6 +10,7 @@ import { CustomSymbolSelectionController } from "./customSymbolSelectionControll
 import { CustomSymbolWorkspaceController } from "./customSymbolWorkspaceController"
 import { CustomSymbolSubcircuitSaveController } from "./customSymbolSubcircuitSaveController"
 import { CustomSymbolCatalogController } from "./customSymbolCatalogController"
+import { CustomSymbolGraphicsController } from "./customSymbolGraphicsController"
 import { SymbolLibraryMenuController } from "./symbolLibraryMenuController"
 import { ShapeLibraryController } from "./shapeLibraryController"
 import { ComponentLibraryController } from "./componentLibraryController"
@@ -152,6 +153,14 @@ export class MainController {
 		workspaceController: this.customSymbolWorkspaceController,
 		runtimeSymbols: this.symbols,
 		circuitComponents: this.circuitComponents,
+	})
+	private readonly customSymbolGraphicsController = new CustomSymbolGraphicsController({
+		applicationService: this.customSymbolApplicationService,
+		workspaceController: this.customSymbolWorkspaceController,
+		runtimeSymbols: this.symbols,
+		circuitComponents: this.circuitComponents,
+		getSymbolDbElement: () => document.getElementById("symbolDB"),
+		showAlert: (title: string, body: string) => this.openAlert(title, body),
 	})
 	private readonly customSymbolSubcircuitSaveController = new CustomSymbolSubcircuitSaveController({
 		selectionController: this.customSymbolSelectionController,
@@ -949,48 +958,19 @@ export class MainController {
 	}
 
 	public async loadCustomSymbolsIntoSymbolDB() {
-		const symbolsSVGElement = document.getElementById("symbolDB")
-		if (!symbolsSVGElement) return
-
-		const state = await this.customSymbolApplicationService.loadRuntimeSymbols(symbolsSVGElement, this.symbols)
-		this.customSymbolWorkspaceController.applyState(state)
+		await this.customSymbolGraphicsController.loadCustomSymbolsIntoSymbolDB()
 	}
 
 	public async duplicateSymbol(originalSymbol: ComponentSymbol, newTikzName: string, categoryName: string) {
-		const state = await this.customSymbolApplicationService.duplicateGraphicsSymbol(
-			document.getElementById("symbolDB"),
-			this.symbols,
-			this.customSymbols,
-			originalSymbol,
-			newTikzName,
-			categoryName
-		)
-		if (state === "missing-dom") return
-		if (state === "missing-metadata") {
-			await this.openAlert("Missing Metadata", "Could not find the metadata for the original symbol!")
-			return
-		}
-
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolGraphicsController.duplicateSymbol(originalSymbol, newTikzName, categoryName)
 	}
 
 	public async renameCustomGraphicsSymbol(oldTikzName: string, newTikzName: string) {
-		const state = await this.customSymbolApplicationService.renameGraphicsSymbol(
-			oldTikzName,
-			newTikzName,
-			document.getElementById("symbolDB"),
-			this.symbols,
-			this.customSymbols,
-			this.circuitComponents
-		)
-		if (state === "no-op" || state === "missing-dom") return
-
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolGraphicsController.renameCustomGraphicsSymbol(oldTikzName, newTikzName)
 	}
 
 	public async deleteCustomGraphicsSymbol(tikzName: string) {
-		const state = await this.customSymbolApplicationService.deleteGraphicsSymbol(tikzName, this.symbols, this.customSymbols)
-		this.customSymbolWorkspaceController.applyAndRender(state, this.symbols)
+		await this.customSymbolGraphicsController.deleteCustomGraphicsSymbol(tikzName)
 	}
 
 	public get customCategories() {
