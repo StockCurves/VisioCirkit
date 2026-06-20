@@ -46,6 +46,18 @@ vi.mock("../src/scripts/controllers/tikzEditorController", () => ({
 	},
 }))
 
+vi.mock("../src/scripts/services/controllerRuntime", () => ({
+	createTemplateControllerRuntime: vi.fn(() => ({
+		applicationService: {
+			bootstrapDefaultFile: serviceMocks.bootstrapDefaultFile,
+			openFile: serviceMocks.openFile,
+			saveWork: serviceMocks.saveWork,
+			deleteWork: serviceMocks.deleteWork,
+			getState: serviceMocks.getState,
+		},
+	})),
+}))
+
 describe("TemplateController", () => {
 	beforeEach(() => {
 		vi.resetModules()

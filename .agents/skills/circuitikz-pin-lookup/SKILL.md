@@ -129,3 +129,30 @@ Outputs:
 | `scripts/lookup_pin_offset.py` | CLI lookup tool for agents |
 | `src/data/pin_offsets_compact.json` | Compact pin data (for prompt embedding) |
 | `src/data/pin_offsets_full.json` | Full pin data (fallback) |
+
+## Advanced Routing & Layout Strategy
+
+When generating complex or fully differential circuits (e.g., integrators, nested feedback loops), agents MUST follow these precise routing rules to avoid visual clutter and logical errors:
+
+### 1. Y-Axis Parallel Spacing & Label Clearance
+- **NEVER** guess Y-coordinates for parallel horizontal paths.
+- Establish a strict Y-axis grid. Parallel feedforward or feedback paths MUST be separated by **at least 1.2 cm to 1.5 cm** vertically.
+- This ensures components (like capacitors/resistors) and their labels (which take up ~0.5 cm) do not overlap with adjacent horizontal wires.
+- **Nesting Rule**: Inner loops must be routed closer to the main horizontal axis. Outer loops must be routed further away.
+
+### 2. X-Axis Vertical Drop Spacing
+- When multiple vertical wires descend or ascend to connect to a single horizontal output/input line, **DO NOT** bundle them at the same X-coordinate.
+- Spread vertical connection points evenly along the X-axis with **at least 0.6 cm to 0.8 cm** spacing between each drop (e.g., $x=12.4, 13.2, 14.0$).
+- **Routing Order**: Inner loops must descend/ascend first (closer to the component), and outer loops must descend/ascend later, avoiding self-intersections.
+
+### 3. Fully Differential Crossover Awareness
+- In fully differential circuits (`fd op amp`), feedback and feedforward paths often **cross over** to the opposite polarity (e.g., from the `+` input side to the `-` output side).
+- **CRITICAL**: Do not assume lines route straight back to their own side. Analyze the source schematic carefully for crossed lines.
+- When lines cross the main signal path or each other, draw a neat jump/bridge using an arc (e.g., `\draw (x, y_start) -- (x, y_mid + 0.1) arc(90:270:0.1) -- (x, y_end);`) to clearly indicate no connection.
+
+### 4. Background Boxes & Layering
+- When a circuit block is enclosed in a shaded/dashed box, draw the box **FIRST** (`\draw[dashed, fill=gray!8]...`) so it sits behind the components.
+- The box dimensions must dynamically expand to fully encompass the widened X and Y routing grids established in rules 1 and 2.
+
+### 5. TikZ Code Comments Language
+- **ALWAYS** write comments inside the generated TikZ code using the exact same language as the user's prompt (e.g., if the user asks in Traditional Chinese, write `% 這裡放置 OP 放大器`; if English, write `% Place OP amp here`).

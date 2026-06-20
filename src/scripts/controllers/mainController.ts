@@ -87,7 +87,7 @@ export class MainController {
 	canvasController: CanvasController
 
 	symbolsSVG: SVG.Svg
-	symbols: ComponentSymbol[]
+	symbols: ComponentSymbol[] = []
 
 	public darkMode = true
 	private darkModeLast = true
@@ -116,6 +116,17 @@ export class MainController {
 	selectionController: SelectionController
 
 	broadcastChannel: BroadcastChannel
+	private readonly appRuntime = getAppRuntime()
+	private readonly indexedDbService = this.appRuntime.createIndexedDbService()
+	private readonly tabApplicationService = this.appRuntime.createTabApplicationService<SaveFileFormat, CanvasSettings>(
+		() => this.db,
+		(data) => data.components.length > 0
+	)
+	private readonly tabBroadcastService = this.appRuntime.createTabBroadcastService()
+	private readonly tabLifecycleService = this.appRuntime.createTabLifecycleService<SaveFileFormat, CanvasSettings>()
+	private readonly customSymbolApplicationService: CustomSymbolApplicationService =
+		this.appRuntime.createCustomSymbolApplicationService(() => this.db)
+	private readonly symbolLibraryService = this.appRuntime.createSymbolLibraryService()
 	private readonly tabManagementController = new TabManagementController()
 	private readonly customSymbolSaveController = new CustomSymbolSaveController()
 	private readonly customSymbolSelectionController = new CustomSymbolSelectionController()
@@ -177,17 +188,6 @@ export class MainController {
 	public pendingLoadData: SaveFileFormat | null = null
 
 	private db: IDBDatabase
-	private readonly appRuntime = getAppRuntime()
-	private readonly indexedDbService = this.appRuntime.createIndexedDbService()
-	private readonly tabApplicationService = this.appRuntime.createTabApplicationService<SaveFileFormat, CanvasSettings>(
-		() => this.db,
-		(data) => data.components.length > 0
-	)
-	private readonly tabBroadcastService = this.appRuntime.createTabBroadcastService()
-	private readonly tabLifecycleService = this.appRuntime.createTabLifecycleService<SaveFileFormat, CanvasSettings>()
-	private readonly customSymbolApplicationService: CustomSymbolApplicationService =
-		this.appRuntime.createCustomSymbolApplicationService(() => this.db)
-	private readonly symbolLibraryService = this.appRuntime.createSymbolLibraryService()
 	private readonly symbolLibraryBootstrapController = new SymbolLibraryBootstrapController({
 		symbolLibraryService: this.symbolLibraryService,
 		customSymbolGraphicsController: this.customSymbolGraphicsController,
@@ -769,7 +769,7 @@ export class MainController {
 	private async initSymbolDB() {
 		const loadedLibrary = await this.symbolLibraryBootstrapController.initializeSymbolLibrary()
 		this.symbolsSVG = loadedLibrary.symbolsSVG
-		this.symbols = loadedLibrary.symbols
+		this.symbols.splice(0, this.symbols.length, ...loadedLibrary.symbols)
 	}
 
 	/**

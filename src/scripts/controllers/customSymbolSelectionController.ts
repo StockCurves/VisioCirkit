@@ -1,4 +1,5 @@
-import { CircuitComponent, GroupComponent } from "../main"
+import type { CircuitComponent } from "../components/circuitComponent"
+import { GroupComponent } from "../components/groupComponent"
 
 type ResolveGroupSelectionOptions = {
 	selectedComponents: CircuitComponent[]

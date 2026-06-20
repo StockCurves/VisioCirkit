@@ -1,16 +1,6 @@
 import * as SVG from "@svgdotjs/svg.js"
-import {
-	ButtonGridProperty,
-	CircuitComponent,
-	ComponentSaveObject,
-	MainController,
-	PropertyCategories,
-	SectionHeaderProperty,
-	SelectionController,
-	SelectionMode,
-	SnappingInfo,
-	Undo,
-} from "../internal"
+import { ButtonGridProperty, ComponentSaveObject, MainController, PropertyCategories, SectionHeaderProperty, SelectionController, SelectionMode, SnappingInfo, Undo } from "../internal"
+import { CircuitComponent } from "./circuitComponent"
 import { rectRectIntersection } from "../utils/selectionHelper"
 
 export type GroupSaveObject = ComponentSaveObject & {

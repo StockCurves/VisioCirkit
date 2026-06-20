@@ -102,8 +102,8 @@
 ### 現況盤點
 
 - UI / controller / service 已經有第一波拆分，但還不是完整分層
-- `TemplateController` 已透過 `TemplateApplicationService` 與 `TemplateFileService` 抽出大部分模板流程
-- `LiveRenderController` 已透過 `LatexRenderService` 吃 runtime render dependency
+- `TemplateController` 已透過 `TemplateApplicationService` 與 `TemplateFileService` 抽出大部分模板流程，runtime 接線已集中到 `controllerRuntime`
+- `LiveRenderController` 已透過 `LatexRenderService` 吃 runtime render dependency，runtime 接線已集中到 `controllerRuntime`
 - custom symbol 目前已拆出：
   - `CustomSymbolRepository`
   - `CustomSymbolService`
@@ -133,12 +133,14 @@
   - symbol library service
 - `server.js` 目前仍同時承擔 static serving 與 template/work filesystem API，但 QuickLaTeX proxy 已抽成共用 handler，並可由 `api/latex.js` 直接接入
 - `latexMode = "serverless-proxy"` 已有命名與 runtime 切換點，`api/latex.js` provider 已接好
+- `TemplateController` 與 `LiveRenderController` 的 runtime 接線已從 controller 內移到 `controllerRuntime`
 
 ### 目前真正的核心問題
 
 - `MainController` 雖然比之前瘦很多，但仍保有過多 custom symbol orchestration
 - `createSubcircuitFromSelection()` 已改走 `CustomSymbolSaveController`，但整條 custom symbol UI flow 還可再持續收斂成更薄的 app shell
 - 方案 B 的 latex provider 切換點已完成，`server.js` 與 `api/latex.js` 共用同一份 proxy 行為
+- `controllerRuntime` 已成為 template / live render 的單一 runtime glue entry
 
 ### 四層目標
 
@@ -220,6 +222,7 @@
 - `SymbolLibraryService`
 - generated `staticTemplateManifest`
 - `server.js`
+- `controllerRuntime`
 
 目標：
 
@@ -292,6 +295,7 @@ custom symbol 這條線目前已完成大半：
 - `SymbolLibraryBootstrapController` 已建立，接手 symbol DB loading 與 custom symbol hydration 的 startup bridge
 - `SymbolLibraryMenuController` 已建立，且已接上 `openAndExecute()` 這種一站式 symbol menu 協調入口
 - `AddComponentOffcanvasController` 已建立，接手 initAddComponentOffcanvas() 的 toolbar / shape / component-library orchestration
+- `controllerRuntime` 已建立，專門收斂 `TemplateController` / `LiveRenderController` 的 runtime wiring
 - `customSymbolDrawerActionsFactory` 已把 drawer 的 placement / runtime callback 組裝從 `MainController` 抽出去
 - `CustomSymbolSubcircuitSaveController` 已建立，接手 selection/group/save/restore/persist 這條 subcircuit save orchestration
 - `MainController.renameCustomGraphicsSymbol()` / `duplicateSymbol()` / `deleteCustomGraphicsSymbol()` 已改走 application service

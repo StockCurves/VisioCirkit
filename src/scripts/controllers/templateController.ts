@@ -1,7 +1,7 @@
 import { Modal } from "bootstrap"
 import { MainController } from "./mainController"
 import { TikzEditorController } from "./tikzEditorController"
-import { getAppRuntime } from "../services/appRuntime"
+import { createTemplateControllerRuntime } from "../services/controllerRuntime"
 import { TemplateDirectory, TemplateListViewModel } from "../services/templateTypes"
 
 export class TemplateController {
@@ -21,7 +21,7 @@ export class TemplateController {
 	private workContextMenu: HTMLDivElement | null = null
 	private deleteWorkButton: HTMLButtonElement | null = null
 	private contextMenuTargetFile: string | null = null
-	private readonly applicationService = getAppRuntime().createTemplateApplicationService(
+	private readonly runtime = createTemplateControllerRuntime(
 		{
 			getCode: () => TikzEditorController.instance.getCode(),
 			setCode: (code) => TikzEditorController.instance.setCode(code),
@@ -52,7 +52,7 @@ export class TemplateController {
 	public async initialize() {
 		if (!this.templateDropdownMenu) return
 		try {
-			const viewModel = await this.applicationService.bootstrapDefaultFile()
+			const viewModel = await this.runtime.applicationService.bootstrapDefaultFile()
 			this.renderDropdown(viewModel)
 		} catch (err) {
 			console.error("Error loading templates:", err)
@@ -60,7 +60,7 @@ export class TemplateController {
 	}
 
 	public openSaveModal() {
-		const baseName = this.applicationService.getState().currentName.replace(/\.tex$/, "")
+		const baseName = this.runtime.applicationService.getState().currentName.replace(/\.tex$/, "")
 		this.saveServerFilenameInput.value = baseName === "rc-lowpass" ? "my-circuit" : baseName
 		this.saveServerModal?.show()
 	}
@@ -143,13 +143,13 @@ export class TemplateController {
 	}
 
 	private async handleFileOpen(dir: TemplateDirectory, name: string) {
-		const viewModel = await this.applicationService.openFile(dir, name)
+		const viewModel = await this.runtime.applicationService.openFile(dir, name)
 		this.renderDropdown(viewModel)
 	}
 
 	private async confirmSaveToServer() {
 		try {
-			const viewModel = await this.applicationService.saveWork(this.saveServerFilenameInput.value)
+			const viewModel = await this.runtime.applicationService.saveWork(this.saveServerFilenameInput.value)
 			this.saveServerModal?.hide()
 			this.renderDropdown(viewModel)
 		} catch (err) {
@@ -184,7 +184,7 @@ export class TemplateController {
 	private async confirmDeleteWorkFile() {
 		if (!this.contextMenuTargetFile) return
 		try {
-			const viewModel = await this.applicationService.deleteWork(this.contextMenuTargetFile)
+			const viewModel = await this.runtime.applicationService.deleteWork(this.contextMenuTargetFile)
 			this.renderDropdown(viewModel)
 		} catch (err) {
 			console.error("Failed to delete file:", err)

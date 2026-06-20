@@ -8,7 +8,6 @@ import {
 	CanvasController,
 	SelectionController,
 	SectionHeaderProperty,
-	GroupComponent,
 	Undo,
 	EditableProperty,
 	SnapDragHandler,
@@ -16,13 +15,8 @@ import {
 	PropertiesCollection,
 	PropertyCategories,
 } from "../internal"
-import {
-	hoverColor,
-	rectRectIntersection,
-	referenceColor,
-	selectedBoxWidth,
-	selectionColor,
-} from "../utils/selectionHelper"
+import type { GroupComponent } from "./groupComponent"
+import { hoverColor, rectRectIntersection, referenceColor, selectedBoxWidth, selectionColor } from "../utils/selectionHelper"
 
 type Constructor<T = {}> = new (...args: any[]) => T
 
