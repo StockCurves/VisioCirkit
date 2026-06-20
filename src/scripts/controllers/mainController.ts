@@ -9,6 +9,7 @@ import { CustomSymbolDrawerController } from "./customSymbolDrawerController"
 import { CustomSymbolSaveController } from "./customSymbolSaveController"
 import { CustomSymbolSelectionController } from "./customSymbolSelectionController"
 import { SymbolLibraryMenuController } from "./symbolLibraryMenuController"
+import { ShapeLibraryController } from "./shapeLibraryController"
 import { CustomSymbolApplicationService } from "../services/customSymbolApplicationService"
 import { CustomSymbolExportService } from "../services/customSymbolExportService"
 import type { CustomSymbolRecord } from "../services/customSymbolService"
@@ -32,10 +33,8 @@ import {
 	ComponentSaveObject,
 	EraseController,
 	RectangleComponent,
-	EllipseComponent,
 	defaultStroke,
 	defaultFill,
-	PolygonComponent,
 	GroupComponent,
 	GroupSaveObject,
 	memorySizeOf,
@@ -44,8 +43,6 @@ import {
 	currentSaveVersion,
 	loadTextConverter,
 	TextProperty,
-	ShortComponent,
-	OpenComponent,
 	TikzEditorController,
 	ContextMenu,
 	SubcircuitComponent,
@@ -127,6 +124,7 @@ export class MainController {
 	private readonly customSymbolSaveController = new CustomSymbolSaveController()
 	private readonly customSymbolSelectionController = new CustomSymbolSelectionController()
 	private readonly symbolLibraryMenuController = new SymbolLibraryMenuController()
+	private readonly shapeLibraryController = new ShapeLibraryController()
 	private readonly modalDialogService = new ModalDialogService()
 	private readonly customSymbolExportService = new CustomSymbolExportService()
 
@@ -716,331 +714,6 @@ export class MainController {
 		})
 	}
 
-	private addShapeComponentsToOffcanvas(leftOffcanvasAccordion: HTMLDivElement, leftOffcanvasOC: Offcanvas) {
-		// Add shapes accordion area
-		let groupName = "Basic"
-		const collapseGroupID = "collapseGroup-" + groupName.replace(/[^\d\w\-\_]+/gi, "-")
-
-		const accordionGroup = leftOffcanvasAccordion.appendChild(document.createElement("div"))
-		accordionGroup.classList.add("accordion-item")
-
-		const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
-		accordionItemHeader.classList.add("accordion-header")
-
-		const accordionItemButton = accordionItemHeader.appendChild(document.createElement("button"))
-		accordionItemButton.classList.add("accordion-button")
-		accordionItemButton.innerText = groupName
-		accordionItemButton.setAttribute("aria-controls", collapseGroupID)
-		accordionItemButton.setAttribute("aria-expanded", "true")
-		accordionItemButton.setAttribute("data-bs-target", "#" + collapseGroupID)
-		accordionItemButton.setAttribute("data-bs-toggle", "collapse")
-		accordionItemButton.type = "button"
-
-		const accordionItemCollapse = accordionGroup.appendChild(document.createElement("div"))
-		accordionItemCollapse.classList.add("accordion-collapse", "collapse", "show")
-		accordionItemCollapse.id = collapseGroupID
-		accordionItemCollapse.setAttribute("data-bs-parent", "#leftOffcanvasAccordion")
-
-		const accordionItemBody = accordionItemCollapse.appendChild(document.createElement("div"))
-		accordionItemBody.classList.add("accordion-body", "iconLibAccordionBody")
-
-		//Add Short
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "short path")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Short"
-
-			const listener = (ev: MouseEvent) => {
-				ev.preventDefault()
-
-				this.switchMode(Modes.DRAG_PAN)
-				let newComponent = new ShortComponent()
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(-1, -14, 30, 15)
-			svgIcon.line(0, -7, 29, -7).stroke({ color: defaultStroke, width: 2 })
-		}
-
-		//Add Open
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "open path")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Open"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-
-				this.switchMode(Modes.DRAG_PAN)
-				let newComponent = new OpenComponent()
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(-1, -14, 30, 15)
-			svgIcon.circle(5).fill("none").stroke({ color: defaultStroke, width: 1 }).center(4, -7)
-			svgIcon.circle(5).fill("none").stroke({ color: defaultStroke, width: 1 }).center(25, -7)
-		}
-
-		//Add Text
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "text node")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Text"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-
-				this.switchMode(Modes.DRAG_PAN)
-				let newComponent = new RectangleComponent(true)
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(-1, -14, 30, 15)
-			svgIcon.text((add) => {
-				add.tspan("Text").fill({ color: defaultStroke })
-			})
-		}
-
-		//Add rectangle
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "rect rectangle node")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Rectangle/Text"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-
-				this.switchMode(Modes.DRAG_PAN)
-				let newComponent = new RectangleComponent(false)
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(0, 0, 17, 12)
-			svgIcon.rect(15, 10).move(1, 1).fill("none").stroke({
-				color: defaultStroke,
-				width: 1,
-			})
-		}
-		//Add Ellipse
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "ellipse circle node")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Ellipse"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-				this.switchMode(Modes.COMPONENT)
-
-				if (ComponentPlacer.instance.component) {
-					ComponentPlacer.instance.placeCancel()
-				}
-
-				let newComponent = new EllipseComponent()
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(0, 0, 17, 12)
-			svgIcon.ellipse(15, 10).move(1, 1).fill("none").stroke({
-				color: defaultStroke,
-				width: 1,
-			})
-		}
-
-		//Add Polygon
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "polygon path")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Polygon"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-				this.switchMode(Modes.COMPONENT)
-
-				if (ComponentPlacer.instance.component) {
-					ComponentPlacer.instance.placeCancel()
-				}
-
-				let newComponent = new PolygonComponent()
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(0, 0, 17, 12)
-			svgIcon
-				.polygon([
-					[1, 1],
-					[16, 1],
-					[15, 11],
-					[11, 9],
-					[5, 11],
-				])
-				.fill("none")
-				.stroke({
-					color: defaultStroke,
-					width: 1,
-				})
-		}
-
-		//Add straight line
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "straight line path")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Straight line"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-
-				this.switchMode(Modes.DRAG_PAN)
-				let newComponent = new WireComponent(true)
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(0, 0, 17, 12)
-			svgIcon.line(2, 10, 15, 2).stroke({ color: defaultStroke, width: 1, opacity: 1 })
-		}
-
-		//Add straight arrow
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "straight arrow path")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Straight arrow"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-
-				this.switchMode(Modes.DRAG_PAN)
-				let newComponent = new WireComponent(true, true)
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(-1, -1, 12, 6)
-			svgIcon
-				.polygon([
-					[6, 0],
-					[10, 2],
-					[6, 4],
-					[6, 2.2],
-					[0, 2.2],
-					[0, 1.8],
-					[6, 1.8],
-				])
-				.rotate(-30, 5, 2)
-				.fill({ color: defaultStroke })
-		}
-
-		//Add arrow
-		{
-			const addButton: HTMLDivElement = accordionItemBody.appendChild(document.createElement("div"))
-			addButton.classList.add("libComponent")
-			addButton.setAttribute("searchData", "arrow path")
-			addButton.ariaRoleDescription = "button"
-			addButton.title = "Arrow"
-
-			const listener = (ev: MouseEvent) => {
-				if (ev.button !== 0) return
-				ev.preventDefault()
-
-				this.switchMode(Modes.DRAG_PAN)
-				let newComponent = new WireComponent(false, true)
-				ComponentPlacer.instance.placeComponent(newComponent)
-
-				leftOffcanvasOC.hide()
-			}
-
-			addButton.addEventListener("mouseup", listener)
-			addButton.addEventListener("touchstart", listener, { passive: false })
-
-			let svgIcon = SVG.SVG().addTo(addButton)
-			svgIcon.viewbox(-1, -2, 12, 8)
-			svgIcon
-				.polyline([
-					[0, 5],
-					[5, 5],
-					[5, 0],
-					[9.1, 0],
-				])
-				.stroke({ color: defaultStroke, width: 0.5 })
-				.fill("none")
-			svgIcon
-				.polygon([
-					[9, -1],
-					[10.5, 0],
-					[9, 1],
-				])
-				.fill({ color: defaultStroke })
-		}
-	}
-
 	/**
 	 * Init the left add offcanvas.
 	 */
@@ -1092,7 +765,17 @@ export class MainController {
 			new Map()
 		)
 
-		this.addShapeComponentsToOffcanvas(leftOffcanvasAccordion, leftOffcanvasOC)
+		this.shapeLibraryController.render(leftOffcanvasAccordion, {
+			hideDrawer: () => leftOffcanvasOC.hide(),
+			switchToPanMode: () => this.switchMode(Modes.DRAG_PAN),
+			switchToComponentMode: () => this.switchMode(Modes.COMPONENT),
+			cancelComponentPlacement: () => {
+				if (ComponentPlacer.instance.component) {
+					ComponentPlacer.instance.placeCancel()
+				}
+			},
+			placeComponent: (component) => ComponentPlacer.instance.placeComponent(component),
+		})
 		await this.loadAndRenderCustomCategories()
 
 		for (const [groupName, symbols] of groupedSymbols.entries()) {
