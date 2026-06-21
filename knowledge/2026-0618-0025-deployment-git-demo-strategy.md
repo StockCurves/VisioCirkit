@@ -100,6 +100,31 @@ The easiest long-term approach is to introduce a small runtime mode, for example
 
 With that in place, switching the demo becomes a configuration change instead of a rewrite.
 
+## Current deploy hook for the demo branch
+
+The runtime preset has now been narrowed to one formal deploy entry:
+
+- `src/pages/index.html` owns `<meta name="circuitikz-runtime" content="...">`
+- `src/scripts/config/runtimeBootstrap.ts` reads only that meta tag
+- `npm run build` keeps the default `server` preset
+- `npm run build:demo` runs the normal build and then rewrites `dist/index.html` to `content="demo"`
+
+That means the demo branch should not rely on query-string switches or hidden window globals anymore. The deploy artifact itself should declare the mode.
+
+Recommended branch/deploy flow:
+
+1. `git switch demo/b-local-storage-vercel`
+2. Sync from `main`
+3. `npm.cmd test -- tests/runtimeBootstrap.test.ts tests/apiServices.test.ts`
+4. `npm.cmd run build:demo`
+5. Deploy `dist/` plus the existing `api/latex.js` serverless entry
+
+Expected demo runtime after that build:
+
+- `storageMode = "indexeddb"`
+- `templateSource = "static-manifest"`
+- `latexMode = "serverless-proxy"`
+
 ## Practical recommendation
 
 - Keep `main` as the full product line.

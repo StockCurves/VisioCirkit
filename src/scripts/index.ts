@@ -6,7 +6,7 @@ import { bootstrapRuntimeConfig } from "./config/runtimeBootstrap"
 
 bootstrapRuntimeConfig()
 
-const { MainController } = await import("./internal")
-
-// @ts-ignore
-window.mainController = MainController.instance
+void import("./internal").then(({ MainController }) => {
+	// @ts-ignore
+	window.mainController = MainController.instance
+})

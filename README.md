@@ -55,6 +55,24 @@ Stop wrestling with code syntax — focus on your circuit design, and let Circui
 4. Run "npm start" in terminal in project directory
 5. Open website at URL provided in command line output
 
+## Demo build and deployment
+
+- The default `npm run build` output keeps the app in `server` runtime mode.
+- For the scheme-B demo branch or a static deployment target such as Vercel, use `npm run build:demo`.
+- `build:demo` runs the normal Parcel build and then rewrites `dist/index.html` so `<meta name="circuitikz-runtime" ...>` is fixed to `demo`.
+- The deployed demo artifact therefore boots with:
+  - `storageMode = "indexeddb"`
+  - `templateSource = "static-manifest"`
+  - `latexMode = "serverless-proxy"`
+
+Recommended demo deployment flow:
+
+1. Switch to `demo/b-local-storage-vercel`
+2. Run `npm install`
+3. Run `npm run test -- tests/runtimeBootstrap.test.ts tests/apiServices.test.ts`
+4. Run `npm run build:demo`
+5. Deploy the generated `dist/` output to the static host, with `api/latex.js` available for the LaTeX proxy path
+
 ## How to use
 
 All controls of the application are explained in the help menu in the top right corner via the circled questionmark in the application itself.

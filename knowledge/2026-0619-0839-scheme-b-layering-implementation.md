@@ -148,7 +148,7 @@
 - custom symbol 的 selection/save/category/graphics/bootstrap/offcanvas orchestration 已往專用 controller 收斂；剩餘工作應是小切片整理，不適合再做大規模重寫。
 - `serverless-proxy` provider 入口已完成，而且 demo runtime preset 也已補上：
   - 新增 `src/scripts/config/runtimeBootstrap.ts`
-  - 支援從 `?runtime=demo`、`meta[name="circuitikz-runtime"]`、`data-runtime`、`window.__CIRCUITIKZ_DESIGNER_RUNTIME_PRESET__` 解析 preset
+  - 正式入口已收斂成 `meta[name="circuitikz-runtime"]`
   - `src/scripts/index.ts` 已在 app import 前先執行 `bootstrapRuntimeConfig()`
 - demo mode 的主要未完項已從「建立 preset 入口」轉成「驗證與收尾」：
   - 確認實際 demo 啟動路徑真的固定走 `indexeddb + static-manifest + serverless-proxy`
@@ -300,9 +300,8 @@
 
 尚未完成：
 
-- 決定哪一種 preset 載入方式會成為正式 demo 部署慣例，目前 code 已同時支援 query / meta / dataset / window preset，但尚未收斂成單一路徑。
+- `build:demo` / deploy 流程是否已在 demo branch 與實際 hosting 設定中被固定採用，仍要持續維護。
 - 補一次實際 build / deploy 角度的驗證，確認 demo 啟動模式確實固定成 `indexeddb + static-manifest + serverless-proxy`。
-- 若未來 demo branch 需要零手動切換，仍要補 deploy-time 或 HTML bootstrap 的明確約定。
 
 ### 第四階段：接上 custom symbol / 方案 B 專用實作
 
@@ -336,7 +335,7 @@ custom symbol / component library 這條線目前已完成大半：
 
 接下來建議順序：
 
-1. 把 demo preset 的啟動約定收斂成單一路徑。
+1. 在 demo branch / hosting 流程固定使用 `npm run build:demo`。
 2. 用 targeted tests + build 驗證 demo runtime 不再依賴 `/api/files`、`/api/file`、`/api/save`、`/api/delete`。
 3. 繼續把 `MainController` 剩下的 façade / custom symbol UI glue 用小切片收斂，避免一次大改。
 4. 依照目前工作樹的新切片方向，評估是否把 component / property / naming 這類 runtime callback 也正式整理成下一輪分層 seam。
@@ -355,7 +354,7 @@ custom symbol / component library 這條線目前已完成大半：
 - 不把已抽出的 runtime/provider 邊界再塞回 `MainController`
 - demo 專用差異優先放在 runtime config injection 或 demo branch bootstrap，不改 service method shape
 - `api/latex.js` / `server/latexProxy.js` 應保持共用 proxy 行為，避免 server 與 serverless 兩套實作漂移
-- 若採用 preset bootstrap，應避免讓 query / meta / dataset / window 四種入口長期並存卻沒有正式優先順序說明
+- runtime preset 的 deploy 入口應維持單一來源，不再恢復 query / dataset / window 這類平行入口
 
 ## 8. 測試策略
 
@@ -436,7 +435,7 @@ custom symbol / component library 這條線目前已完成大半：
 
 接下來真正的成功條件不是「再重寫 UI」，而是：
 
-- demo mode 有明確且固定的 preset 載入方式，能靠 `indexeddb + static manifest + serverless latex` 正常運作
+- demo mode 有明確且固定的 preset 載入方式，並可透過 `npm run build:demo` 產生 `indexeddb + static manifest + serverless latex` 的部署產物
 - demo mode 不再走 server filesystem API
 - `MainController` 繼續從 persistence / runtime 判斷 / custom symbol orchestration 中鬆開，但只做小切片
 - 如果目前工作樹中的 component / property / naming runtime 抽離成熟，就把它視為下一輪 seam；否則不要跟 demo preset 收尾混成同一個大改動
