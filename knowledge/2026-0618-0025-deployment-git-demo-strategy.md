@@ -115,9 +115,18 @@ Recommended branch/deploy flow:
 
 1. `git switch demo/b-local-storage-vercel`
 2. Sync from `main`
-3. `npm.cmd test -- tests/runtimeBootstrap.test.ts tests/apiServices.test.ts`
-4. `npm.cmd run build:demo`
-5. Deploy `dist/` plus the existing `api/latex.js` serverless entry
+3. `npm.cmd run deploy:demo`
+4. Deploy `dist/` plus the existing `api/latex.js` serverless entry
+
+Repo-tracked automation now in place:
+
+- `npm run test:demo` runs the focused runtime/provider checks for the demo path
+- `npm run build:demo` builds the normal artifact and rewrites `dist/index.html` to `content="demo"`
+- `npm run verify:demo-artifact` fails if the built artifact is not pinned to the demo preset
+- `npm run deploy:demo` is the local one-shot verification flow for the demo branch
+- `.github/workflows/demo-deploy.yml` runs on `demo/b-local-storage-vercel`
+- the workflow uploads the verified `dist/` artifact on every push to the demo branch
+- if `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` are configured in GitHub Actions secrets, the same workflow also deploys to Vercel
 
 Expected demo runtime after that build:
 
