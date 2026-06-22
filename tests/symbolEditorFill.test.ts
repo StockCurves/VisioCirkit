@@ -15,4 +15,11 @@ describe("symbolEditorFill", () => {
 		expect(resolveEditorFill("rect", null)).toBe(defaultFill)
 		expect(resolveEditorFill("polygon", null)).toBe(defaultFill)
 	})
+
+	it("maps currentFill value to defaultFill", () => {
+		expect(resolveEditorFill("path", "currentFill")).toBe(defaultFill)
+		expect(resolveEditorFill("path", null, "currentFill")).toBe(defaultFill)
+		expect(resolveEditorPathFill("M0 0 L1 1", "currentFill")).toBe(defaultFill)
+		expect(resolveEditorPathFill("M0 0 L1 1", null, "currentFill")).toBe(defaultFill)
+	})
 })

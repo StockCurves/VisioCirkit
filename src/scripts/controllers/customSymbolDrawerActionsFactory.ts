@@ -24,6 +24,8 @@ export type CustomSymbolDrawerActionDependencies = {
 	placeComponent: (component: CircuitComponent) => void
 	generateSubcircuitPreview: (subcircuitData: any) => Promise<string | null>
 	persistCustomSymbol: (customSymbol: DrawerCustomSymbolRecord) => Promise<void>
+	reorderSymbolsInCategory: (categoryName: string, orderedIds: string[]) => void
+	reorderCategories: (orderedNames: string[]) => void
 }
 
 export function createCustomSymbolDrawerActions(deps: CustomSymbolDrawerActionDependencies): CustomSymbolDrawerActions {
@@ -55,5 +57,7 @@ export function createCustomSymbolDrawerActions(deps: CustomSymbolDrawerActionDe
 		},
 		generateSubcircuitPreview: deps.generateSubcircuitPreview,
 		persistCustomSymbol: deps.persistCustomSymbol,
+		reorderSymbolsInCategory: deps.reorderSymbolsInCategory,
+		reorderCategories: deps.reorderCategories,
 	}
 }

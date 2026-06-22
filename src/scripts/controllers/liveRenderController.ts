@@ -74,6 +74,7 @@ export class LiveRenderController {
 
 			propertiesContainer?.classList.remove("d-none")
 			this.fitVisualEditorDeferred()
+			this.fitViewDeferred()
 		} else {
 			this.visualEditorTab?.classList.remove("active")
 			this.visualEditorTab?.classList.add("d-none")
@@ -93,6 +94,7 @@ export class LiveRenderController {
 			} else {
 				this.fitViewDeferred()
 			}
+			this.fitVisualEditorDeferred()
 		}
 	}
 
@@ -205,13 +207,17 @@ export class LiveRenderController {
 
 		if (!contentRect || contentRect.width <= 0 || contentRect.height <= 0) return
 
+		// Divide by current panScale to recover the 1:1 unscaled dimensions
+		const rawWidth = contentRect.width / this.panScale
+		const rawHeight = contentRect.height / this.panScale
+
 		const padding = 32
-		const scaleX = (viewportRect.width - padding * 2) / contentRect.width
-		const scaleY = (viewportRect.height - padding * 2) / contentRect.height
+		const scaleX = (viewportRect.width - padding * 2) / rawWidth
+		const scaleY = (viewportRect.height - padding * 2) / rawHeight
 		this.panScale = Math.min(scaleX, scaleY)
 		if (!Number.isFinite(this.panScale) || this.panScale <= 0) this.panScale = 1
-		this.panOffsetX = (viewportRect.width - contentRect.width * this.panScale) / 2
-		this.panOffsetY = (viewportRect.height - contentRect.height * this.panScale) / 2
+		this.panOffsetX = (viewportRect.width - rawWidth * this.panScale) / 2
+		this.panOffsetY = (viewportRect.height - rawHeight * this.panScale) / 2
 		this.applyTransform()
 	}
 

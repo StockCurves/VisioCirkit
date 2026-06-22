@@ -161,3 +161,32 @@ div.libComponent:hover {
 	transform: translateY(-1px);
 	box-shadow: var(--shadow-sm);
 }
+
+div.libComponent.dragging {
+	opacity: 0.4;
+	cursor: grabbing;
+}
+
+div.libComponent.drag-over {
+	border-color: var(--primary);
+	background-color: var(--primary-light);
+	box-shadow: 0 0 0 2px var(--primary);
+	transform: scale(1.05);
+}
+
+.custom-category-accordion-item.dragging {
+	opacity: 0.4;
+}
+
+.custom-category-accordion-item.drag-over {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+.accordion-header {
+	cursor: grab;
+}
+
+.accordion-header:active {
+	cursor: grabbing;
+}

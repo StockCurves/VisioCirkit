@@ -205,6 +205,8 @@ export class ComponentLibraryController {
 		addButton.addEventListener("mouseup", listener)
 		addButton.addEventListener("touchstart", listener, { passive: false })
 		addButton.addEventListener("contextmenu", async (ev) => {
+			ev.preventDefault()
+			ev.stopPropagation()
 			await callbacks.openContextMenu(ev, symbol)
 		})
 

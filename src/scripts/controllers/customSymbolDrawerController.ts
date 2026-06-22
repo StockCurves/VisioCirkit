@@ -39,6 +39,8 @@ export type CustomSymbolDrawerActions = {
 	placeSubcircuit: (symbol: DrawerCustomSymbolRecord) => void
 	generateSubcircuitPreview: (subcircuitData: any) => Promise<string | null>
 	persistCustomSymbol: (customSymbol: DrawerCustomSymbolRecord) => Promise<void>
+	reorderSymbolsInCategory: (categoryName: string, orderedIds: string[]) => void
+	reorderCategories: (orderedNames: string[]) => void
 }
 
 export class CustomSymbolDrawerController {
@@ -67,6 +69,67 @@ export class CustomSymbolDrawerController {
 				this.accordion.appendChild(group)
 			}
 		}
+
+		this.bindCategoryDragAndDrop(customCategories, actions)
+	}
+
+	private bindCategoryDragAndDrop(customCategories: CustomCategory[], actions: CustomSymbolDrawerActions) {
+		const items = Array.from(this.accordion.getElementsByClassName("custom-category-accordion-item")) as HTMLElement[]
+		let dragSrc: HTMLElement | null = null
+
+		const getDragHandle = (item: HTMLElement) => item.querySelector(".accordion-header") as HTMLElement | null
+
+		for (const item of items) {
+			const handle = getDragHandle(item)
+			if (!handle) continue
+
+			handle.style.cursor = "grab"
+			item.draggable = true
+
+			item.addEventListener("dragstart", (ev) => {
+				dragSrc = item
+				ev.dataTransfer!.effectAllowed = "move"
+				ev.dataTransfer!.setData("text/plain", item.dataset.categoryName ?? "")
+				item.classList.add("dragging")
+			})
+			item.addEventListener("dragend", () => {
+				item.classList.remove("dragging")
+				for (const i of items) i.classList.remove("drag-over")
+			})
+			item.addEventListener("dragover", (ev) => {
+				if (dragSrc && dragSrc !== item) {
+					ev.preventDefault()
+					ev.dataTransfer!.dropEffect = "move"
+					for (const i of items) i.classList.remove("drag-over")
+					item.classList.add("drag-over")
+				}
+			})
+			item.addEventListener("dragleave", () => {
+				item.classList.remove("drag-over")
+			})
+			item.addEventListener("drop", (ev) => {
+				ev.preventDefault()
+				if (!dragSrc || dragSrc === item) return
+				item.classList.remove("drag-over")
+
+				// Reorder in DOM
+				const parent = item.parentElement!
+				const allItems = Array.from(parent.children) as HTMLElement[]
+				const srcIdx = allItems.indexOf(dragSrc)
+				const dstIdx = allItems.indexOf(item)
+				if (srcIdx < dstIdx) {
+					parent.insertBefore(dragSrc, item.nextSibling)
+				} else {
+					parent.insertBefore(dragSrc, item)
+				}
+
+				// Collect new order from DOM (only custom category items, in DOM order, reversed because they are prepended)
+				const reordered = Array.from(parent.getElementsByClassName("custom-category-accordion-item")) as HTMLElement[]
+				// custom categories are inserted at the TOP (insertBefore firstChild), so DOM order is reversed vs customCategories array
+				const orderedNames = reordered.map((el) => el.dataset.categoryName ?? "").reverse()
+				actions.reorderCategories(orderedNames)
+			})
+		}
 	}
 
 	private buildCategoryGroup(
@@ -79,6 +142,7 @@ export class CustomSymbolDrawerController {
 
 		const accordionGroup = document.createElement("div")
 		accordionGroup.classList.add("accordion-item", "custom-category-accordion-item")
+		accordionGroup.dataset.categoryName = category.name
 
 		const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
 		accordionItemHeader.classList.add("accordion-header")
@@ -118,6 +182,7 @@ export class CustomSymbolDrawerController {
 		const accordionItemBody = accordionItemCollapse.appendChild(document.createElement("div"))
 		accordionItemBody.classList.add("accordion-body", "iconLibAccordionBody")
 
+		const symbolIds: string[] = []
 		for (const symbolId of category.symbolIds) {
 			const standardSymbol = runtimeSymbols.find((symbol) => symbol.tikzName === symbolId)
 			const customSymbol = customSymbols.find((symbol) => symbol.id === symbolId || symbol.id === `custom-${symbolId}`)
@@ -126,6 +191,8 @@ export class CustomSymbolDrawerController {
 			const addButton = accordionItemBody.appendChild(document.createElement("div"))
 			addButton.classList.add("libComponent")
 			addButton.ariaRoleDescription = "button"
+			addButton.dataset.symbolId = symbolId
+			symbolIds.push(symbolId)
 			this.bindSymbolContextMenu(addButton, category.name, symbolId, customSymbol, actions)
 
 			if (standardSymbol) {
@@ -135,7 +202,79 @@ export class CustomSymbolDrawerController {
 			}
 		}
 
+		this.bindSymbolDragAndDrop(accordionItemBody, category.name, actions)
+
 		return accordionGroup
+	}
+
+	private bindSymbolDragAndDrop(body: HTMLDivElement, categoryName: string, actions: CustomSymbolDrawerActions) {
+		const getItems = () => Array.from(body.getElementsByClassName("libComponent")) as HTMLElement[]
+		let dragSrc: HTMLElement | null = null
+
+		const onDragStart = (ev: DragEvent, item: HTMLElement) => {
+			dragSrc = item
+			ev.dataTransfer!.effectAllowed = "move"
+			ev.dataTransfer!.setData("text/plain", item.dataset.symbolId ?? "")
+			item.classList.add("dragging")
+		}
+		const onDragEnd = (item: HTMLElement) => {
+			item.classList.remove("dragging")
+			for (const i of getItems()) i.classList.remove("drag-over")
+		}
+		const onDragOver = (ev: DragEvent, item: HTMLElement) => {
+			if (dragSrc && dragSrc !== item) {
+				ev.preventDefault()
+				ev.dataTransfer!.dropEffect = "move"
+				for (const i of getItems()) i.classList.remove("drag-over")
+				item.classList.add("drag-over")
+			}
+		}
+		const onDrop = (ev: DragEvent, item: HTMLElement) => {
+			ev.preventDefault()
+			if (!dragSrc || dragSrc === item) return
+			item.classList.remove("drag-over")
+
+			const allItems = getItems()
+			const srcIdx = allItems.indexOf(dragSrc)
+			const dstIdx = allItems.indexOf(item)
+			if (srcIdx < dstIdx) {
+				body.insertBefore(dragSrc, item.nextSibling)
+			} else {
+				body.insertBefore(dragSrc, item)
+			}
+
+			const orderedIds = getItems().map((el) => el.dataset.symbolId ?? "")
+			actions.reorderSymbolsInCategory(categoryName, orderedIds)
+		}
+
+		// Attach events using event delegation on the body
+		body.addEventListener("dragstart", (ev) => {
+			const target = (ev.target as HTMLElement).closest(".libComponent") as HTMLElement | null
+			if (target) onDragStart(ev, target)
+		})
+		body.addEventListener("dragend", (ev) => {
+			const target = (ev.target as HTMLElement).closest(".libComponent") as HTMLElement | null
+			if (target) onDragEnd(target)
+		})
+		body.addEventListener("dragover", (ev) => {
+			const target = (ev.target as HTMLElement).closest(".libComponent") as HTMLElement | null
+			if (target) onDragOver(ev, target)
+		})
+		body.addEventListener("dragleave", (ev) => {
+			const related = ev.relatedTarget as HTMLElement | null
+			if (!related || !body.contains(related)) {
+				for (const i of getItems()) i.classList.remove("drag-over")
+			}
+		})
+		body.addEventListener("drop", (ev) => {
+			const target = (ev.target as HTMLElement).closest(".libComponent") as HTMLElement | null
+			if (target) onDrop(ev, target)
+		})
+
+		// Make all libComponent items draggable
+		for (const item of getItems()) {
+			item.draggable = true
+		}
 	}
 
 	private bindSymbolContextMenu(

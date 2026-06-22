@@ -46,6 +46,8 @@ export class SymbolEditorController {
 	private drawStartPoint: SVG.Point | null = null
 	private tempDrawElement: SVG.Element | null = null
 	private scale = 8
+	private panX = 0
+	private panY = 0
 	private panOffset = new SVG.Point(0, 0)
 	private originalViewBox: SVG.Box | null = null
 	private selectionBoxElement: SVG.Rect | null = null
@@ -218,9 +220,9 @@ export class SymbolEditorController {
 			const rect = this.svg.node.getBoundingClientRect()
 			const clientPt = new SVG.Point(e.clientX - rect.left, e.clientY - rect.top)
 			
-			// Transform to viewport coordinates
-			const transformMatrix = this.viewport.transform()
-			return clientPt.transform(new SVG.Matrix(transformMatrix).inverse())
+			// Transform to viewport coordinates using self-managed scale and absolute pan coordinates
+			const m = new SVG.Matrix(this.scale, 0, 0, this.scale, this.panX, this.panY)
+			return clientPt.transform(m.inverse())
 		}
 
 		const snapVal = (val: number) => {
@@ -230,6 +232,33 @@ export class SymbolEditorController {
 
 		const snapPoint = (pt: SVG.Point) => {
 			return new SVG.Point(snapVal(pt.x), snapVal(pt.y))
+		}
+
+		const handlePanMouseMove = (e: MouseEvent) => {
+			if (!this.isPanning || !this.lastMousePos) return
+			e.preventDefault()
+			const dx = e.clientX - this.lastMousePos.x
+			const dy = e.clientY - this.lastMousePos.y
+
+			this.panX += dx
+			this.panY += dy
+
+			this.viewport.transform({
+				scale: this.scale,
+				translateX: this.panX,
+				translateY: this.panY
+			})
+
+			this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
+		}
+
+		const handlePanMouseUp = (e: MouseEvent) => {
+			if (e.button === 2) {
+				this.isPanning = false
+				this.lastMousePos = null
+				window.removeEventListener("mousemove", handlePanMouseMove)
+				window.removeEventListener("mouseup", handlePanMouseUp)
+			}
 		}
 
 		this.svg.node.addEventListener("contextmenu", (e) => {
@@ -242,6 +271,8 @@ export class SymbolEditorController {
 				e.preventDefault()
 				this.isPanning = true
 				this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
+				window.addEventListener("mousemove", handlePanMouseMove)
+				window.addEventListener("mouseup", handlePanMouseUp)
 				return
 			}
 			if (e.button !== 0) return // Only left clicks
@@ -287,21 +318,6 @@ export class SymbolEditorController {
 		})
 
 		this.svg.on("mousemove", (e: MouseEvent) => {
-			if (this.isPanning && this.lastMousePos) {
-				const dx = e.clientX - this.lastMousePos.x
-				const dy = e.clientY - this.lastMousePos.y
-
-				const t = this.viewport.transform()
-				this.viewport.transform({
-					...t,
-					translateX: (t.translateX || 0) + dx / this.scale,
-					translateY: (t.translateY || 0) + dy / this.scale
-				})
-
-				this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
-				return
-			}
-
 			if (!this.isDrawing || !this.drawStartPoint || !this.tempDrawElement) return
 
 			const localPt = getLocalCoords(e)
@@ -325,12 +341,6 @@ export class SymbolEditorController {
 		})
 
 		this.svg.on("mouseup", (e: MouseEvent) => {
-			if (e.button === 2) {
-				this.isPanning = false
-				this.lastMousePos = null
-				return
-			}
-
 			if (!this.isDrawing || !this.tempDrawElement) return
 			this.isDrawing = false
 
@@ -367,18 +377,13 @@ export class SymbolEditorController {
 			const cx = e.clientX - rect.left
 			const cy = e.clientY - rect.top
 			
-			const t = this.viewport.transform()
-			const tx = t.translateX || 0
-			const ty = t.translateY || 0
-			
-			const newTx = tx + cx / newScale - cx / oldScale
-			const newTy = ty + cy / newScale - cy / oldScale
+			this.panX = cx - (newScale / oldScale) * (cx - this.panX)
+			this.panY = cy - (newScale / oldScale) * (cy - this.panY)
 			
 			this.viewport.transform({
-				...t,
 				scale: this.scale,
-				translateX: newTx,
-				translateY: newTy
+				translateX: this.panX,
+				translateY: this.panY
 			})
 		})
 	}
@@ -611,9 +616,13 @@ export class SymbolEditorController {
 		const tx = (cw / 2) - (box.cx * this.scale)
 		const ty = (ch / 2) - (box.cy * this.scale)
 
+		this.panX = tx
+		this.panY = ty
+
 		this.viewport.transform({
 			scale: this.scale,
-			translate: [tx / this.scale, ty / this.scale]
+			translateX: this.panX,
+			translateY: this.panY
 		})
 	}
 

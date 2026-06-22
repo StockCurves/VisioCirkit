@@ -1,4 +1,4 @@
-﻿import * as SVG from "@svgdotjs/svg.js"
+import * as SVG from "@svgdotjs/svg.js"
 import { Button as _bootstrapButton, Collapse as _bootstrapCollapse, Offcanvas, Tooltip } from "bootstrap"
 import "../utils/impSVGNumber"
 import { waitForElementLoaded } from "../utils/domWatcher"
@@ -170,6 +170,12 @@ export class MainController {
 		placeComponent: this.placeSelectedComponent,
 		generateSubcircuitPreview: (subcircuitData: any) => this.generateSubcircuitSvgPreview(subcircuitData),
 		persistCustomSymbol: (customSymbol) => this.customSymbolApplicationService.putCustomSymbol(customSymbol),
+		reorderSymbolsInCategory: (categoryName: string, orderedIds: string[]) => {
+			void this.customSymbolApplicationService.reorderSymbolsInCategory(categoryName, orderedIds)
+		},
+		reorderCategories: (orderedNames: string[]) => {
+			void this.customSymbolApplicationService.reorderCategories(orderedNames)
+		},
 	})
 	private readonly customSymbolCatalogController = new CustomSymbolCatalogController({
 		applicationService: this.customSymbolApplicationService,

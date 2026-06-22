@@ -30,7 +30,13 @@ export class CustomSymbolRepository {
 	public async getCustomCategories(): Promise<CustomCategory[]> {
 		const transaction = this.db.transaction("customCategories", "readonly")
 		const store = transaction.objectStore("customCategories")
-		return (await this.requestToPromise<CustomCategory[]>(store.getAll())) || []
+		const results = (await this.requestToPromise<any[]>(store.getAll())) || []
+		results.sort((a, b) => {
+			const aOrder = typeof a._order === "number" ? a._order : Number.MAX_SAFE_INTEGER
+			const bOrder = typeof b._order === "number" ? b._order : Number.MAX_SAFE_INTEGER
+			return aOrder - bOrder
+		})
+		return results as CustomCategory[]
 	}
 
 	public async putCustomSymbol(symbol: any): Promise<void> {
@@ -134,5 +140,25 @@ export class CustomSymbolRepository {
 			...category,
 			symbolIds: category.symbolIds.filter((id: string) => id !== symbolId),
 		})
+	}
+
+	public async reorderCategories(orderedNames: string[]): Promise<void> {
+		const categories = await this.getCustomCategories()
+		const transaction = this.db.transaction("customCategories", "readwrite")
+		const store = transaction.objectStore("customCategories")
+		for (const category of categories) {
+			const newIndex = orderedNames.indexOf(category.name)
+			if (newIndex >= 0) {
+				store.put({ ...category, _order: newIndex })
+			}
+		}
+		await this.transactionComplete(transaction)
+	}
+
+	public async reorderSymbolsInCategory(categoryName: string, orderedIds: string[]): Promise<void> {
+		const categories = await this.getCustomCategories()
+		const category = categories.find((cat) => cat.name === categoryName)
+		if (!category) return
+		await this.putCustomCategory({ ...category, symbolIds: orderedIds })
 	}
 }

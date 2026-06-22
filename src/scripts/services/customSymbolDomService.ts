@@ -20,13 +20,11 @@ export class CustomSymbolDomService {
 
 			for (const symbolId in symbolRecord.symbols) {
 				const symbolXml = symbolRecord.symbols[symbolId]
-				console.log(`[LoadCustom] Restoring symbol ID: ${symbolId}, XML length: ${symbolXml ? symbolXml.length : 0}`)
 				if (!document.getElementById(symbolId)) {
 					const symbolNode = this.parseFirstElement(symbolXml, "symbol")
 					if (symbolNode) {
 						const node = document.adoptNode(symbolNode)
 						symbolDB.appendChild(node)
-						console.log(`[LoadCustom] Appended symbol ${symbolId} to DOM. Exists?`, !!document.getElementById(symbolId))
 					}
 				}
 			}

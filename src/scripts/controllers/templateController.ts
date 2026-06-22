@@ -3,6 +3,7 @@ import { MainController } from "./mainController"
 import { TikzEditorController } from "./tikzEditorController"
 import { createTemplateControllerRuntime } from "../services/controllerRuntime"
 import { TemplateDirectory, TemplateListViewModel } from "../services/templateTypes"
+import { CanvasController, LiveRenderController } from "../internal"
 
 export class TemplateController {
 	private static _instance: TemplateController
@@ -130,6 +131,8 @@ export class TemplateController {
 		}
 
 		this.updateDropdownButtonText(viewModel.selectedDisplayName)
+		const currentDir = this.runtime.applicationService.getState().currentDir
+		TikzEditorController.instance.setApplyButtonVisible(currentDir !== "template")
 	}
 
 	private updateDropdownButtonText(selectedDisplayName: string) {
@@ -145,6 +148,10 @@ export class TemplateController {
 	private async handleFileOpen(dir: TemplateDirectory, name: string) {
 		const viewModel = await this.runtime.applicationService.openFile(dir, name)
 		this.renderDropdown(viewModel)
+		requestAnimationFrame(() => {
+			CanvasController.instance?.fitView()
+			LiveRenderController.instance?.fitView()
+		})
 	}
 
 	private async confirmSaveToServer() {

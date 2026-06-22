@@ -133,6 +133,14 @@ export class CustomSymbolApplicationService {
 		return this.loadState()
 	}
 
+	public async reorderCategories(orderedNames: string[]): Promise<void> {
+		await this.customSymbolService.reorderCategories(orderedNames)
+	}
+
+	public async reorderSymbolsInCategory(categoryName: string, orderedIds: string[]): Promise<void> {
+		await this.customSymbolService.reorderSymbolsInCategory(categoryName, orderedIds)
+	}
+
 	public putCustomSymbol(customSymbol: CustomSymbolRecord): Promise<void> {
 		return this.customSymbolService.putCustomSymbol(customSymbol)
 	}

@@ -276,7 +276,7 @@ export class CustomSymbolExportService {
 					}
 
 					if (drawCommands.length > 0) {
-						definitions.push(`  ${tikzName}/.style={\n    ${baseSymbol},\n    draw=none,\n    fill=none,\n    append after command={\n      \\begin{scope}[shift={(\\tikzlastnode.center)}]\n        ${drawCommands.join("\n        ")}\n      \\end{scope}\n    }\n  }`)
+						definitions.push(`  ${tikzName}/.style={\n    ${baseSymbol},\n    draw=none,\n    fill=none,\n    append after command={\n      \\pgfextra{\n        \\begin{scope}[shift={(\\tikzlastnode.center)}]\n          ${drawCommands.join("\n          ")}\n        \\end{scope}\n      }\n    }\n  }`)
 						continue
 					}
 				}

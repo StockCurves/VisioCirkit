@@ -4,7 +4,9 @@ const implicitlyFilledTags = new Set(["circle", "ellipse", "polygon", "rect", "t
 const closedPathTolerance = 1e-6
 
 export function resolveEditorFill(tagName: string, explicitFill: string | null, inheritedFill?: string): string {
+	if (explicitFill === "currentFill") return defaultFill
 	if (explicitFill) return explicitFill
+	if (inheritedFill === "currentFill") return defaultFill
 	if (inheritedFill) return inheritedFill
 
 	const normalizedTag = tagName.toLowerCase()
@@ -18,7 +20,9 @@ export function resolveEditorFill(tagName: string, explicitFill: string | null, 
 }
 
 export function resolveEditorPathFill(pathData: string | null, explicitFill: string | null, inheritedFill?: string): string {
+	if (explicitFill === "currentFill") return defaultFill
 	if (explicitFill) return explicitFill
+	if (inheritedFill === "currentFill") return defaultFill
 	if (inheritedFill) return inheritedFill
 	if (pathData && pathHasImplicitFill(pathData)) return defaultFill
 	return "none"

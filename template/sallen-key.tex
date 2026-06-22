@@ -1,9 +1,16 @@
-\begin{circuitikz}[american]
-  \draw (0,0) node[op amp] (opamp) {};
-  \draw (opamp.-) -- (-1.5, 0.5) -- (-1.5, 2) -- (1.5, 2) -- (opamp.out);
-  \draw (opamp.+) -- (-1.5, -0.5) to[C, l=$C_1$] (-1.5, -2) node[ground]{};
-  \draw (-4.5, -0.5) to[R, l=$R_1$] (-3, -0.5) to[R, l=$R_2$] (-1.5, -0.5);
-  \draw (-3, -0.5) to[C, l=$C_2$] (-3, 2) -- (-1.5, 2);
-  \draw (-4.5, -0.5) to[short, -o] (-5, -0.5) node[left] {$V_{in}$};
-  \draw (opamp.out) to[short, -o] (2.5, 0) node[right] {$V_{out}$};
-\end{circuitikz}
+\begin{tikzpicture}[transform shape]
+  % Paths, nodes and wires:
+  \node[op amp](opamp) at (7, 3){};
+  \node[ground] at (5.5, 1){};
+  \node[anchor=east, align=right, text width=0.54cm, inner sep=6pt] at (2, 3){$V_{in}$};
+  \node[anchor=west, align=left, text width=1.077cm, inner sep=6pt] at (9.25, 3.25){$V_{out}$};
+  \draw (5.81, 3.49) -- (5.5, 3.5) -- (5.5, 5) -- (8.5, 5) -| (8.5, 3);
+  \draw (5.81, 2.51) -- (5.5, 2.5);
+  \draw (5.5, 2.5) to[capacitor, l={$C_1$}] (5.5, 1);
+  \draw (2.5, 2.5) to[american resistor, l={$R_1$}] (4, 2.5);
+  \draw (4, 2.5) to[american resistor, l={$R_2$}] (5.5, 2.5);
+  \draw (4, 2.5) to[capacitor, l={$C_2$}] (4, 5);
+  \draw (4, 5) -- (5.5, 5);
+  \draw (2.5, 2.5) to[short] (2, 2.5);
+  \draw (8.19, 3) to[short] (9.5, 3);
+\end{tikzpicture}
