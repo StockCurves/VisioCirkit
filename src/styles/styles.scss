@@ -458,14 +458,36 @@ body {
 	to { transform: rotate(360deg); }
 }
 
-.btn-outline-success.selected {
-	background-color: var(--success) !important;
-	color: white !important;
+.navbar-nav .btn.btn-outline, #addComponentButton, #modeDrawLine {
+	border-color: transparent !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
+	color: var(--text-main) !important;
+
+	&:hover {
+		background-color: var(--primary-light) !important;
+		color: var(--primary) !important;
+		border-color: transparent !important;
+		transform: translateY(-1px);
+		box-shadow: var(--shadow-md) !important;
+	}
+
+	&:focus, &:active {
+		border-color: transparent !important;
+		box-shadow: none !important;
+	}
 }
 
-.btn-outline-warning.selected {
+#modeDrawLine.selected {
 	background-color: var(--warning) !important;
 	color: white !important;
+	border-color: transparent !important;
+	box-shadow: var(--shadow-sm) !important;
+
+	&:hover {
+		background-color: var(--warning) !important;
+		color: white !important;
+	}
 }
 
 

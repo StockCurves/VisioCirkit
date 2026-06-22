@@ -607,6 +607,10 @@ export class MainController {
 		let oldMode = this.mode
 		this.mode = newMode
 
+		this.modeSwitchButtons.modeDragPan?.blur()
+		this.modeSwitchButtons.modeDrawLine?.blur()
+		this.modeSwitchButtons.modeEraser?.blur()
+
 		switch (oldMode) {
 			case Modes.DRAG_PAN:
 				this.modeSwitchButtons.modeDragPan?.classList.remove("selected")
