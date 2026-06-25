@@ -202,7 +202,9 @@ export function PositionLabelable<TBase extends AbstractConstructor<CircuitCompo
 				} else {
 					posStr = reference.toTikzString(true)
 				}
-				let latexStr = this.mathJaxLabel.value ? "$" + this.mathJaxLabel.value + "$" : ""
+				const hasMathDelimiter = this.mathJaxLabel.value ? this.mathJaxLabel.value.includes("$") : false;
+				const hasFontCommand = this.mathJaxLabel.value ? /\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/.test(this.mathJaxLabel.value) : false;
+				let latexStr = this.mathJaxLabel.value ? ((hasMathDelimiter || hasFontCommand) ? this.mathJaxLabel.value : "$" + this.mathJaxLabel.value + "$") : ""
 				latexStr =
 					latexStr && this.labelColor.value ?
 						"\\textcolor" + this.labelColor.value.toTikzString() + "{" + latexStr + "}"

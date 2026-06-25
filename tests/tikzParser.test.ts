@@ -50,6 +50,7 @@ const makeMockSymbol = (tikzName: string) => ({
 	})
 })
 const mockSymbols = [
+	makeMockSymbol("circ"),
 	makeMockSymbol("ground"),
 	makeMockSymbol("op amp"),
 	makeMockSymbol("pmos"),
@@ -88,7 +89,14 @@ describe("parseTikz parser lint relaxation", () => {
 
 	it("should still throw error if coordinate count is less than 2 and there is a connector", () => {
 		const badCode = `\\draw (0,0) --;`;
-		expect(() => parseTikz(badCode)).toThrow("Draw command must contain at least two coordinates");
+		const result = parseTikz(badCode);
+		expect(result).toEqual([
+			expect.objectContaining({
+				type: "parse_error",
+				message: expect.stringContaining("Draw command must contain at least two coordinates"),
+				lines: [1, 1],
+			}),
+		]);
 	});
 
 	it("should parse shorthand notation components like to[L=$L_F$] correctly", () => {
@@ -173,20 +181,15 @@ describe("parseTikz parser lint relaxation", () => {
 		expect(result[0].id).toBe("american resistor");
 	});
 
-	it("should parse standalone fill circle command as ellipse component with black fill and 0px stroke", () => {
+	it("should parse standalone fill circle command as a circ node", () => {
 		const code = `\\fill (3.5, 3) circle (2pt);`;
 		const result = parseTikz(code);
 		expect(result).toHaveLength(1);
-		expect(result[0].type).toBe("ellipse");
-		expect(result[0].fill.color).toBe("#000000");
-		expect(result[0].fill.opacity).toBe(1);
-		expect(result[0].stroke.width).toBe("0px");
+		expect(result[0].type).toBe("node");
+		expect(result[0].id).toBe("circ");
 		// Verify position conversion (3.5, 3) -> (3.5/scale, -3/scale)
 		expect(result[0].position.x).toBeCloseTo(3.5 / scale, 1);
 		expect(result[0].position.y).toBeCloseTo(-3.0 / scale, 1);
-		// Size should be (2pt * 2) = 4pt
-		const expectedPx = (2 * 2.54 / 72) * 2 / scale;
-		expect(result[0].size.x).toBeCloseTo(expectedPx, 1);
 	});
 
 	it("should parse draw rectangle command as a rect component with correct bounding box", () => {
@@ -235,4 +238,3 @@ describe("parseTikz parser lint relaxation", () => {
 		expect(result[0].size.y).toBeCloseTo(expectedPx, 1);
 	});
 });
-

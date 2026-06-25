@@ -56,3 +56,34 @@ CircuiTikZ 的元件圖形高度最佳化，常會把多段彼此不相連的子
 
 **解法：**
 在解析自訂元件 XML 定義時，統一改用 `"text/xml"`。`DOMParser` 對 MIME type 很嚴格，只接受支援清單中的值：`text/html`、`text/xml`、`application/xml`、`application/xhtml+xml`、`image/svg+xml`。
+
+## 5. 自動化測試與外觀一致性驗證方案 (Proposed Testing Strategy)
+為了確保從標準元件複製到自訂分類的元件在編輯與調整屬性時不會出現視覺漂移或功能退化，可以設計一套測試程式，依序對元件進行複製、實例化與比對驗證。
+
+### 測試流程設計
+
+1. **自動化複製與實例化 (Copy & Instantiation)**
+   - 測試程式應自動遍歷所有現有的標準 CircuiTikZ 元件。
+   - 將每個標準元件依序複製到一個專門用於測試的自訂分類中。
+   - 在 Visual Editor 的畫布上，同時實例化（Instantiate）該原始標準元件與對應的複製自訂元件。
+
+2. **自訂編輯與外觀一致性比對 (Symbol Editing & Appearance Comparison)**
+   - 模擬使用者在 Symbol Editor 中編輯複製元件的 `symbol` 外觀。
+   - 提取並比對原始元件與複製元件的 SVG DOM 結構及屬性。
+   - **驗證重點**：
+     - 比對兩者外觀是否完全一致。
+     - 若外觀不一致（例如邊框粗細、填充顏色或定位點偏移），測試程式應回報失敗，以便進行 Fix。
+
+3. **屬性調整同步驗證 (Property & Option Sync Comparison)**
+   - 在 Visual Editor 中，依序對原始元件與複製元件調整相同的 properties / options（例如切換 `arrowmos`、`bulk` 等變體屬性）。
+   - **驗證重點**：
+     - 每次調整後，比較兩者渲染出來的 `symbol` 是否仍然一致。
+     - 驗證「深層葉節點 Diff (Deep Leaf-Node Diffing)」是否正確抽取 decorator，且沒有覆蓋或損毀原本的自訂編輯部分。
+
+4. **已知問題 (Known Issues) 的針對性驗證**
+   - **樣式繼承驗證 (Style Inheritance)**：
+     - 驗證 gate 等圓圈的 `fill` 是否不會錯誤地變成實心黑點，且線條的 `stroke` 屬性在繼承後不會消失。
+   - **複合路徑拆分驗證 (Compound Path Splitting)**：
+     - 針對含有複合路徑（例如 `pmos` 的 gate line）的元件，驗證拆分後是否能正確獨立選取並移動各個線段，而不會造成幾何位置錯亂。
+   - **DOMParser MIME Type 驗證**：
+     - 模擬儲存自訂符號的 XML 解析過程，確保使用 `"text/xml"` 解析時不會觸發 `image/xml+xml` 的 runtime error。

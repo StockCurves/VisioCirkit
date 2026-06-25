@@ -52,8 +52,12 @@ export function convertTextToNativeSVGText(text: Text, textBox: SVG.Box, useHyph
 
 	const explicitLines = text.text.split("\n").map((line) => {
 		let trimmed = line.trim()
-		if (text.isMath && trimmed && !trimmed.startsWith("$")) {
-			trimmed = "$" + trimmed + "$"
+		if (text.isMath && trimmed) {
+			const hasMathDelimiter = trimmed.includes("$");
+			const hasFontCommand = /\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/.test(trimmed);
+			if (!hasMathDelimiter && !hasFontCommand) {
+				trimmed = "$" + trimmed + "$"
+			}
 		}
 		return trimmed
 	})

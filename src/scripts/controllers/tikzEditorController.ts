@@ -112,12 +112,27 @@ export class TikzEditorController {
 	}
 
 	private initEvents() {
-		// Prevent shortcut propagation inside editor, except for Ctrl+B
+		// Prevent shortcut propagation inside editor, except for Ctrl+B and Escape
 		this.editorTextArea.addEventListener("keydown", (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				this.editorTextArea.blur()
+				e.stopPropagation()
+				return
+			}
 			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
 				return
 			}
 			e.stopPropagation()
+		})
+
+		// Release focus when clicking outside the editor container
+		document.addEventListener("mousedown", (e: MouseEvent) => {
+			const target = e.target as HTMLElement
+			if (this.editorContainer && !this.editorContainer.contains(target)) {
+				if (document.activeElement === this.editorTextArea) {
+					this.editorTextArea.blur()
+				}
+			}
 		})
 
 		// Trigger debounced render on user typing in editor
@@ -238,6 +253,7 @@ export class TikzEditorController {
 
 		const lineDivs = Array.from(this.editorTextArea.children) as HTMLDivElement[]
 		
+		let firstHighlightedDiv: HTMLDivElement | null = null
 		for (const comp of selected) {
 			if (comp.tikzLines) {
 				const [startLine, endLine] = comp.tikzLines
@@ -245,9 +261,21 @@ export class TikzEditorController {
 					const div = lineDivs[i - 1]
 					if (div) {
 						div.classList.add("highlight-blue")
+						if (!firstHighlightedDiv) {
+							firstHighlightedDiv = div
+						}
 					}
 				}
 			}
+		}
+
+		if (firstHighlightedDiv) {
+			const container = this.editorTextArea
+			const targetScrollTop = firstHighlightedDiv.offsetTop - (container.clientHeight / 2) + (firstHighlightedDiv.offsetHeight / 2)
+			container.scrollTo({
+				top: targetScrollTop,
+				behavior: "smooth"
+			})
 		}
 	}
 

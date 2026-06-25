@@ -1,12 +1,16 @@
 import * as SVG from "@svgdotjs/svg.js"
-import {
-	CircuitComponent,
-	poleChoices,
-	arrowTips
-} from "../internal"
 import type { ComponentSymbol } from "../components/componentSymbol"
 
 const scale = 127 / 4800;
+const parserArrowTips = [
+	{ key: "stealth", tikz: "stealth" },
+	{ key: "stealthR", tikz: "stealth reversed" },
+	{ key: "latex", tikz: "latex" },
+	{ key: "latexR", tikz: "latex reversed" },
+	{ key: "to", tikz: "to" },
+	{ key: "toR", tikz: "to reversed" },
+	{ key: "line", tikz: "|" },
+];
 
 export type TikzParserRuntime = {
 	getSymbols: () => ComponentSymbol[]
@@ -30,6 +34,7 @@ function getRuntimeSymbols(): ComponentSymbol[] {
 
 export function cleanTikzText(text: string): string {
 	let clean = text.trim();
+	clean = clean.replace(/\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b\s*/g, "");
 	while (true) {
 		let changed = false;
 		if (clean.startsWith("{") && clean.endsWith("}")) {
@@ -599,11 +604,20 @@ export function parseTikz(tikzCode: string): any[] {
 					let isEllipse = standalone.includes("ellipse") || kv["shape"] === "ellipse";
 					let shapeType = (isCircle || isEllipse) ? "ellipse" : "rect";
 
+					let hasTextWidth = kv["text width"] !== undefined;
+					let textWidthVal = hasTextWidth ? parseDimension(kv["text width"], 0) : 0;
+					let innerSepCm = 0.176; // default 5pt (5 * 2.54 / 72 = 0.176cm)
+					if (kv["inner sep"]) {
+						innerSepCm = parseDimension(kv["inner sep"], 0.176);
+					}
+
 					let widthCm = parseDimension(kv["minimum width"] || kv["minimum size"], shapeType === "ellipse" ? 1.0 : 1.5);
+					if (hasTextWidth) {
+						widthCm = textWidthVal + innerSepCm * 2;
+					}
 					let heightCm = parseDimension(kv["minimum height"] || kv["minimum size"], 1.0);
 
-					if (kv["inner sep"]) {
-						const innerSepCm = parseDimension(kv["inner sep"], 0.1);
+					if (kv["inner sep"] && !hasTextWidth) {
 						if (!kv["minimum width"] && !kv["minimum size"]) {
 							widthCm = innerSepCm * 2;
 						}
@@ -686,7 +700,9 @@ export function parseTikz(tikzCode: string): any[] {
 							align: alignVal,
 							justify: justifyVal,
 							showPlaceholderText: content ? true : false,
-							isMath: isMath
+							isMath: isMath,
+							hasTextWidth: hasTextWidth,
+							textWidth: textWidthVal
 						},
 						lines: [startLine, endLine]
 					});
@@ -827,6 +843,25 @@ export function parseTikz(tikzCode: string): any[] {
 					style: strokeStyle
 				};
 				if (strokeColor !== "default") strokeObj.color = strokeColor;
+
+				const connectionDotRadiusCm = (2 * 2.54) / 72;
+				const isConnectionDot =
+					shapeType === "circle" &&
+					isFill &&
+					!isDraw &&
+					fillColor === "#000000" &&
+					rx <= connectionDotRadiusCm + 1e-6 &&
+					ry <= connectionDotRadiusCm + 1e-6;
+
+				if (isConnectionDot) {
+					components.push({
+						type: "node",
+						id: "circ",
+						position: pos.simplifyForJson(),
+						lines: [startLine, endLine]
+					});
+					continue;
+				}
 
 				components.push({
 					type: "ellipse",
@@ -1017,8 +1052,8 @@ export function parseTikz(tikzCode: string): any[] {
 					let endTikz = parts[1];
 					if (startTikz === "<") startTikz = "latex";
 					if (endTikz === ">") endTikz = "latex";
-					const startArrow = arrowTips.find((t) => t.tikz === startTikz);
-					const endArrow = arrowTips.find((t) => t.tikz === endTikz);
+					const startArrow = parserArrowTips.find((t) => t.tikz === startTikz);
+					const endArrow = parserArrowTips.find((t) => t.tikz === endTikz);
 					if (startArrow) globalArrows.start = startArrow.key;
 					if (endArrow) globalArrows.end = endArrow.key;
 				}

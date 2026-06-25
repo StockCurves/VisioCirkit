@@ -71,6 +71,25 @@ Every `.tikz` file must use the following standard LaTeX standalone wrapper:
 \end{circuitikz}
 \end{document}
 ```
+### 8. Proportional Spacing and Text Box Widths
+- Allocate horizontal and vertical coordinates based on component sizes (resistors/capacitors are ~0.8cm, transistors/comparators are ~1.5cm).
+- Maintain a minimum clearing gap of 1.2cm between adjacent logic blocks.
+- Set explicit alignment, text width, and anchors for text label nodes to prevent overlaps, using the `\small` font style by default:
+  ```tikz
+  \node[anchor=north east, align=right, text width=1.077cm, inner sep=6pt] at (3.2, 3.3) {\small $M_L$};
+  ```
+- Leave at least 2.0cm of vertical separation between horizontal rails and separate illustrative waveform sub-drawings.
+
+### 9. Connection Dots Must Use `circ`
+Do not emit filled circles such as:
+```tikz
+\fill (3.5, 3) circle (2pt);
+```
+Emit connection dots as editor-native `circ` nodes instead:
+```tikz
+\node[circ] at (3.5, 3){};
+```
+This keeps `Apply` round-trips stable and avoids the parser converting dots into generic circle shapes.
 
 ---
 
