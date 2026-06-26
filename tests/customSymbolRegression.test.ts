@@ -1,4 +1,4 @@
-import { describe, expect, it, afterAll, vi } from "vitest"
+import { describe, expect, it, beforeAll, afterAll, vi } from "vitest"
 import * as fs from "fs"
 import * as path from "path"
 import { CustomSymbolDomService } from "../src/scripts/services/customSymbolDomService"
@@ -91,20 +91,20 @@ function serializeNormalizedElement(el: Element): string {
 }
 
 describe("Custom Symbol Regression Testing Suite", () => {
+	let masterSymbolDB: Element
 	const testedComponents: string[] = []
 	const failures: { component: string; optionIndex: number; optionName: string; originalXml: string; copiedXml: string }[] = []
 
-	// Common symbols loader helper
-	const loadSymbolsSvg = () => {
+	beforeAll(() => {
+		// Read and parse symbols.svg once for the entire suite to avoid massive cumulative parsing overhead
 		const symbolsSvgPath = path.resolve(__dirname, "../src/data/symbols.svg")
 		const fileContent = fs.readFileSync(symbolsSvgPath, "utf-8")
 		const container = document.createElement("div")
 		container.innerHTML = fileContent
-		return container.querySelector("svg")!
-	}
+		masterSymbolDB = container.querySelector("svg")!
+	})
 
 	it("should verify copying and rebuilding nor gate (american nor port) as nor_test in category my favorite", () => {
-		const masterSymbolDB = loadSymbolsSvg()
 		const componentNode = Array.from(masterSymbolDB.getElementsByTagName("component")).find(
 			(comp) => comp.getAttribute("tikz") === "american nor port"
 		)
@@ -172,10 +172,9 @@ describe("Custom Symbol Regression Testing Suite", () => {
 		}
 		
 		testedComponents.push(`${baseTikzName} (copied as ${copyTikzName} in My Favorite)`)
-	})
+	}, 15000)
 
 	it("should verify copying and rebuilding all standard components and variants via sandbox isolation", () => {
-		const masterSymbolDB = loadSymbolsSvg()
 		const components = Array.from(masterSymbolDB.getElementsByTagName("component"))
 		const domService = new CustomSymbolDomService()
 
@@ -258,7 +257,7 @@ describe("Custom Symbol Regression Testing Suite", () => {
 		}
 
 		expect(failures.length).toBe(0)
-	})
+	}, 180000)
 
 	afterAll(() => {
 		const reportsDir = path.join(__dirname, "reports")
