@@ -1,0 +1,130 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% VIN Power Rail
+\draw (3.0, 9.8) -- (4.0, 9.8);
+\node[above] at (3.5, 9.8) {\small $V_{IN}$};
+\draw (3.5, 9.8) -- (3.5, 8.77);
+
+% High-side Transistor MH (centered at 3.5, 8.0)
+\node[nmos] (MH) at (3.5, 8.0) {};
+\node[anchor=north east, align=right, text width=1.077cm, inner sep=6pt] at (3.2, 8.3) {\small $M_H$};
+
+% MH Body Diode
+\draw (3.5, 8.6) -- (4.3, 8.6);
+\draw (3.5, 7.4) -- (4.3, 7.4);
+\draw (4.3, 7.4) to[D] (4.3, 8.6);
+
+% MH Driver Buffers (Nested Triangles)
+\draw (0.4, 8.0) -- (1.2, 8.0);
+\draw (1.2, 8.2) -- (1.6, 8.0) -- (1.2, 7.8) -- cycle;
+\draw (1.5, 8.2) -- (1.9, 8.0) -- (1.5, 7.8) -- cycle;
+\draw (1.8, 8.2) -- (2.2, 8.0) -- (1.8, 7.8) -- cycle;
+\draw (2.2, 8.0) -- (MH.G);
+
+% Connection between MH Source and ML Drain (Switching Node at 3.5, 6.0)
+\draw (MH.S) -- (ML.D);
+\node[circ] at (3.5, 6.0) {};
+
+% Low-side Transistor ML (centered at 3.5, 4.0)
+\node[nmos] (ML) at (3.5, 4.0) {};
+\node[anchor=north east, align=right, text width=1.077cm, inner sep=6pt] at (3.2, 4.3) {\small $M_L$};
+
+% ML Body Diode
+\draw (3.5, 4.6) -- (4.3, 4.6);
+\draw (3.5, 3.4) -- (4.3, 3.4);
+\draw (4.3, 3.4) to[D] (4.3, 4.6);
+
+% ML Driver Buffers (Nested Triangles)
+\draw (0.8, 4.0) -- (1.2, 4.0);
+\draw (1.2, 4.2) -- (1.6, 4.0) -- (1.2, 3.8) -- cycle;
+\draw (1.5, 4.2) -- (1.9, 4.0) -- (1.5, 3.8) -- cycle;
+\draw (1.8, 4.2) -- (2.2, 4.0) -- (1.8, 3.8) -- cycle;
+\draw (2.2, 4.0) -- (ML.G);
+
+% ML Source to Ground
+\draw (ML.S) -- (3.5, 3.23) -- (3.5, 3.0) node[ground] {};
+
+% Power Inductor L and DCR Resistor
+\draw (3.5, 6.0) to[L, l=$L$] (5.5, 6.0) to[R, l=$R_{DCR}$] (7.5, 6.0);
+\draw (7.5, 6.0) -- (12.0, 6.0);
+
+% Capacitor OUT and ESR Branch (placed at x = 9.0)
+\node[circ] at (9.0, 6.0) {};
+\draw (9.0, 6.0) to[R, l_=$R_{ESR}$] (9.0, 4.5) to[C, l_=$C_{OUT}$] (9.0, 3.0) to (9.0, 2.8) node[ground] {};
+
+% Load Current Source Branch (placed at x = 10.5)
+\node[circ] at (10.5, 6.0) {};
+\draw (10.5, 6.0) to[I, l=$I_L$] (10.5, 3.5) to (10.5, 3.3) node[ground] {};
+
+% Feedback Voltage Divider R1 and R2 (placed at x = 12.0)
+\node[circ] at (12.0, 6.0) {};
+\node[above] at (12.0, 6.0) {\small $V_{OUT}$};
+\draw (12.0, 6.0) to[R, l=$R_1$] (12.0, 4.0) to[R, l=$R_2$] (12.0, 2.0) to (12.0, 1.8) node[ground] {};
+
+% Feedback Connection to Comparator
+\node[circ] at (12.0, 4.0) {};
+\draw (12.0, 4.0) -- (11.2, 4.0) -- (11.2, 1.5) -- (8.0, 1.5);
+\node at (9.6, 1.8) {\small Small Delay};
+\draw (10.6, 1.6) -- (9.0, 1.6);
+\node at (9.6, 0.8) {\small No Compensator};
+
+% Comparator (drawn manually pointing left, centered at 7.25, 2.0)
+\draw (6.5, 2.0) -- (8.0, 2.7) -- (8.0, 1.3) -- cycle;
+\node at (7.8, 2.4) {\small $+$};
+\node at (7.8, 1.6) {\small $-$};
+\draw (7.0, 1.9) -- (7.25, 1.9) -- (7.25, 2.1) -- (7.5, 2.1);
+\draw (7.0, 1.9) -- (7.0, 2.0);
+\draw (7.5, 2.1) -- (7.5, 2.0);
+
+% Comparator Inputs & Reference
+\draw (8.0, 2.5) -- (8.8, 2.5);
+\node[osquarepole] at (8.8, 2.5) {};
+\node[above] at (8.8, 2.6) {\small $V_{ref}$};
+\node[below] at (8.8, 1.5) {\small $V_{FB}$};
+\draw (6.5, 2.0) -- (5.8, 2.0);
+
+% Constant On-Time Block
+\draw (4.2, 1.2) rectangle (5.8, 2.8);
+\draw (4.5, 1.7) -- (5.5, 1.7);
+\draw (4.7, 1.7) -- (4.7, 2.3) -- (5.3, 2.3) -- (5.3, 1.7);
+\node[below] at (5.0, 1.7) {\small $T_{ON}$};
+\node[below] at (5.0, 1.2) {\small Constant On-Time};
+\draw (4.2, 2.0) -- (3.0, 2.0);
+\node[above] at (3.6, 2.0) {\small $V_{ON}$};
+
+% Non-Overlap Logic Block
+\draw (1.5, 1.2) rectangle (3.0, 2.8);
+\node at (2.25, 2.2) {\small Non-};
+\node at (2.25, 1.8) {\small Ovlap};
+\draw (1.5, 2.4) -- (0.4, 2.4) -- (0.4, 8.0) -- (1.2, 8.0);
+\draw (1.5, 1.6) -- (0.8, 1.6) -- (0.8, 4.0) -- (1.2, 4.0);
+
+% Illustrative Waveform on the Top-Right
+\draw (6.0, 9.5) -- (10.0, 9.5);
+\node[left] at (6.0, 9.5) {\small $V_{ref}$};
+\draw (6.0, 8.9) -- (7.0, 10.1) -- (8.0, 8.9) -- (9.0, 10.1) -- (10.0, 9.5);
+\node[above] at (7.0, 10.1) {\small $V_{FB}$};
+
+\draw (6.0, 8.4) -- (7.0, 8.4) -- (7.0, 8.0) -- (8.0, 8.0) -- (8.0, 8.4) -- (9.0, 8.4) -- (9.0, 8.0) -- (10.0, 8.0);
+\node[left] at (6.0, 8.2) {\small $V_{ON}$};
+\node[below] at (6.5, 8.0) {\small $T_{ON}$};
+\node[above] at (7.5, 8.0) {\small $T_{OFF}$};
+
+% Vertical dashed alignment lines
+\draw (6.0, 7.9) -- (6.0, 8.1); \draw (6.0, 8.3) -- (6.0, 8.5); \draw (6.0, 8.7) -- (6.0, 8.9); \draw (6.0, 9.1) -- (6.0, 9.3);
+\draw (7.0, 7.9) -- (7.0, 8.1); \draw (7.0, 8.3) -- (7.0, 8.5); \draw (7.0, 8.7) -- (7.0, 8.9); \draw (7.0, 9.1) -- (7.0, 9.3); \draw (7.0, 9.5) -- (7.0, 9.7); \draw (7.0, 9.9) -- (7.0, 10.1);
+\draw (8.0, 7.9) -- (8.0, 8.1); \draw (8.0, 8.3) -- (8.0, 8.5); \draw (8.0, 8.7) -- (8.0, 8.9); \draw (8.0, 9.1) -- (8.0, 9.3);
+\draw (9.0, 7.9) -- (9.0, 8.1); \draw (9.0, 8.3) -- (9.0, 8.5); \draw (9.0, 8.7) -- (9.0, 8.9); \draw (9.0, 9.1) -- (9.0, 9.3); \draw (9.0, 9.5) -- (9.0, 9.7); \draw (9.0, 9.9) -- (9.0, 10.1);
+
+% Delta T_OFF delay representation
+\draw (9.0, 8.0) rectangle (9.2, 8.4);
+\draw (9.4, 7.7) -- (9.1, 8.2);
+\node[right] at (9.4, 7.7) {\small $\Delta T_{OFF}$};
+
+\end{circuitikz}
+\end{document}

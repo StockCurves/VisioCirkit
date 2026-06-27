@@ -574,17 +574,21 @@ export class WireComponent extends Strokable(PathComponent) {
 
 	public static fromJson(saveObject: WireSaveObject): WireComponent {
 		if (SaveController.instance.currentlyLoadedSaveVersion == "") {
-			//@ts-ignore
-			let points: SVG.Point[] = [saveObject.start]
-			let directions: WireDirection[] = []
-			//@ts-ignore
-			for (const segment of saveObject.segments) {
-				points.push(segment.endPoint || segment.position)
-				directions.push(segment.direction)
-			}
+			if (saveObject.points === undefined) {
+				//@ts-ignore
+				let points: SVG.Point[] = [saveObject.start]
+				let directions: WireDirection[] = []
+				//@ts-ignore
+				if (saveObject.segments) {
+					for (const segment of saveObject.segments) {
+						points.push(segment.endPoint || segment.position)
+						directions.push(segment.direction)
+					}
+				}
 
-			saveObject.points = points
-			saveObject.directions = directions
+				saveObject.points = points
+				saveObject.directions = directions
+			}
 		} else {
 			if (saveObject.points == undefined || saveObject.points.length < 2) {
 				return null
@@ -746,6 +750,10 @@ export class WireComponent extends Strokable(PathComponent) {
 
 	public applyJson(saveObject: WireSaveObject): void {
 		super.applyJson(saveObject)
+		if (!saveObject.stroke?.width) {
+			this.strokeWidthProperty.value = new SVG.Number("0.4pt")
+			this.strokeInfo.width = this.strokeWidthProperty.value
+		}
 		this.wireDirections = (saveObject.directions ?? []).map((dir: any) => {
 			if (dir === "Straight") return WireDirection.Straight
 			if (dir === "HV") return WireDirection.HV

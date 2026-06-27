@@ -55,6 +55,8 @@ export type Text = {
 	showPlaceholderText?: boolean
 	useHyphenation?: boolean
 	isMath?: boolean
+	hasTextWidth?: boolean
+	textWidth?: number
 }
 
 export enum TextAlign {
@@ -97,12 +99,16 @@ export class RectangleComponent extends ShapeComponent {
 	private createAsText: boolean
 	private useHyphenation: boolean
 	private isMath: boolean
+	public hasTextWidth: boolean = true
+	public textWidthVal: number = 0
 
 	public constructor(createAsText: boolean = false) {
 		super()
 		this.createAsText = createAsText
 		this.useHyphenation = false
 		this.isMath = false
+		this.hasTextWidth = true
+		this.textWidthVal = 0
 		this.displayName = "Rectangle"
 
 		this.componentVisualization = CanvasController.instance.canvas.rect(0, 0)
@@ -261,6 +267,9 @@ export class RectangleComponent extends ShapeComponent {
 	}
 
 	public update(): void {
+		if (this.isResizing) {
+			this.hasTextWidth = true
+		}
 		super.update()
 		this.updateText()
 	}
@@ -302,6 +311,10 @@ export class RectangleComponent extends ShapeComponent {
 			textData.showPlaceholderText = this.createAsText || undefined
 			textData.useHyphenation = this.useHyphenation || undefined
 			textData.isMath = this.isMath || undefined
+			textData.hasTextWidth = this.hasTextWidth || undefined
+			if (this.hasTextWidth) {
+				textData.textWidth = this.textWidthVal
+			}
 
 			if (hasText || this.createAsText) {
 				data.text = textData
@@ -357,6 +370,22 @@ export class RectangleComponent extends ShapeComponent {
 			}
 
 			this.textColor.value = saveObject.text.color ? new SVG.Color(saveObject.text.color) : null
+
+			this.hasTextWidth = saveObject.text.hasTextWidth ?? true
+			if (saveObject.text.textWidth !== undefined) {
+				this.textWidthVal = saveObject.text.textWidth
+			} else {
+				const innerSep = this.textInnerSep.value.plus(this.strokeInfo.width)
+				this.textWidthVal = new SVG.Number(this.size.x, "px").minus(innerSep.times(2)).convertToUnit("cm").value
+			}
+
+			if (this.hasTextWidth) {
+				const innerSepPx = this.textInnerSep.value.convertToUnit("px").value
+				const strokeWidthPx = this.strokeInfo.width.convertToUnit("px").value
+				const totalInnerSepPx = innerSepPx + strokeWidthPx
+				const textWidthPx = new SVG.Number(this.textWidthVal, "cm").convertToUnit("px").value
+				this.size.x = textWidthPx + totalInnerSepPx * 2
+			}
 		}
 
 		if (this.createAsText) {
@@ -425,9 +454,13 @@ export class RectangleComponent extends ShapeComponent {
 
 				// text dimensions
 				let innerSep = this.textInnerSep.value.plus(this.strokeInfo.width)
-				let textWidth = new SVG.Number(this.size.x, "px").minus(innerSep.times(2)).convertToUnit("cm")
-
-				options.push(`text width=${roundTikz(textWidth.value)}cm`)
+				if (this.hasTextWidth) {
+					if (this.isResizing) {
+						let textWidth = new SVG.Number(this.size.x, "px").minus(innerSep.times(2)).convertToUnit("cm")
+						this.textWidthVal = textWidth.value
+					}
+					options.push(`text width=${roundTikz(this.textWidthVal)}cm`)
+				}
 				options.push(`inner sep=${innerSep.toString()}`)
 
 				command.options.push(...options)
@@ -435,7 +468,9 @@ export class RectangleComponent extends ShapeComponent {
 
 				let escapedText = ""
 				if (this.isMath) {
-					escapedText = "$" + this.textAreaProperty.value + "$"
+					const hasMathDelimiter = this.textAreaProperty.value.includes("$");
+					const hasFontCommand = /\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/.test(this.textAreaProperty.value);
+					escapedText = (hasMathDelimiter || hasFontCommand) ? this.textAreaProperty.value : "$" + this.textAreaProperty.value + "$"
 				} else {
 					//escape special characters
 					const replaceDict = {
@@ -484,16 +519,14 @@ export class RectangleComponent extends ShapeComponent {
 			command.options.push("shape=rectangle")
 			super.buildTikzCommand(command)
 
-			let strokeWidth = this.strokeInfo.width.convertToUnit("px").value
-
 			command.options.push(
 				"minimum width=" +
-					roundTikz(new SVG.Number(this.size.x - strokeWidth, "px").convertToUnit("cm").value) +
+					roundTikz(new SVG.Number(this.size.x, "px").convertToUnit("cm").value) +
 					"cm"
 			)
 			command.options.push(
 				"minimum height=" +
-					roundTikz(new SVG.Number(this.size.y - strokeWidth, "px").convertToUnit("cm").value) +
+					roundTikz(new SVG.Number(this.size.y, "px").convertToUnit("cm").value) +
 					"cm"
 			)
 
@@ -527,9 +560,13 @@ export class RectangleComponent extends ShapeComponent {
 
 				// text dimensions
 				let innerSep = this.textInnerSep.value.plus(this.strokeInfo.width)
-				let textWidth = new SVG.Number(this.size.x, "px").minus(innerSep.times(2)).convertToUnit("cm")
-
-				options.push(`text width=${roundTikz(textWidth.value)}cm`)
+				if (this.hasTextWidth) {
+					if (this.isResizing) {
+						let textWidth = new SVG.Number(this.size.x, "px").minus(innerSep.times(2)).convertToUnit("cm")
+						this.textWidthVal = textWidth.value
+					}
+					options.push(`text width=${roundTikz(this.textWidthVal)}cm`)
+				}
 				options.push(`inner sep=${innerSep.toString()}`)
 
 				// rectangle rotation
@@ -539,7 +576,9 @@ export class RectangleComponent extends ShapeComponent {
 
 				let escapedText = ""
 				if (this.isMath) {
-					escapedText = "$" + this.textAreaProperty.value + "$"
+					const hasMathDelimiter = this.textAreaProperty.value.includes("$");
+					const hasFontCommand = /\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/.test(this.textAreaProperty.value);
+					escapedText = (hasMathDelimiter || hasFontCommand) ? this.textAreaProperty.value : "$" + this.textAreaProperty.value + "$"
 				} else {
 					//escape special characters
 					const replaceDict = {

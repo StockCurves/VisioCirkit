@@ -200,6 +200,14 @@ export class CustomSymbolService {
 		await this.repository.removeSymbolFromCategory(categoryName, symbolId)
 	}
 
+	public async reorderCategories(orderedNames: string[]): Promise<void> {
+		await this.repository.reorderCategories(orderedNames)
+	}
+
+	public async reorderSymbolsInCategory(categoryName: string, orderedIds: string[]): Promise<void> {
+		await this.repository.reorderSymbolsInCategory(categoryName, orderedIds)
+	}
+
 	public async putCustomSymbol(customSymbol: CustomSymbolRecord): Promise<void> {
 		await this.repository.putCustomSymbol(customSymbol)
 	}

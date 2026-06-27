@@ -42,6 +42,32 @@ vi.mock("../src/scripts/controllers/tikzEditorController", () => ({
 			getCode: vi.fn(),
 			setCode: vi.fn(),
 			applyEditorText: vi.fn(),
+			setApplyButtonVisible: vi.fn(),
+		},
+	},
+}))
+
+vi.mock("../src/scripts/services/controllerRuntime", () => ({
+	createTemplateControllerRuntime: vi.fn(() => ({
+		applicationService: {
+			bootstrapDefaultFile: serviceMocks.bootstrapDefaultFile,
+			openFile: serviceMocks.openFile,
+			saveWork: serviceMocks.saveWork,
+			deleteWork: serviceMocks.deleteWork,
+			getState: serviceMocks.getState,
+		},
+	})),
+}))
+
+vi.mock("../src/scripts/internal", () => ({
+	CanvasController: {
+		instance: {
+			fitView: vi.fn(),
+		},
+	},
+	LiveRenderController: {
+		instance: {
+			fitView: vi.fn(),
 		},
 	},
 }))

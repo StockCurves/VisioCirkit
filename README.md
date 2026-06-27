@@ -1,76 +1,90 @@
-# CircuiTi*k*Z-Designer (Forked Edition)
+# VisioCirkit
 
 > [!IMPORTANT]
 > This repository is a fork of the original [CircuiTi*k*Z-Designer](https://github.com/Circuit2TikZ/CircuiTikZ-Designer). We have introduced a range of powerful new features to enhance custom component editing, TikZ synchronization, and the design workflow.
 
-## Implemented Features
-
-This fork adds the following capabilities and improvements:
-
-1. **TikZ Editor & GUI Sync**: Real-time synchronization between the TikZ code editor and the GUI canvas. Changes in code are instantly reflected in the visual designer.
-2. **Custom Categories & Subcircuits**: Organize your design workspace with custom component categories and custom subcircuits.
-3. **Context Menu Actions**: Rich context menus to rename and delete subcircuits and custom components.
-4. **Visual Subcircuit Thumbnails**: Replaced generic box representations in the symbols panel with actual, accurate graphical previews of your subcircuits.
-5. **Symbol Grouping**: Combine multiple components together into custom, reusable grouped symbols.
-6. **Visio-Style Custom Symbol Editor**: Inspect and modify sub-path attributes (like thickness, coordinates, etc.) of custom components dynamically.
-7. **Premium Academic Brand Refresh**: Redesigned UI styling with a tailored dark mode palette, smooth gradients, and reduced clutter for a premium academic workspace.
-8. **Robust TikZ Export**: Support for exporting custom grouped symbols, modified transistor paths, and custom subcircuits cleanly to compilable TikZ code.
+> [!WARNING]
+>
+> - **Always Backup Your TikZ Code!** 💾 VisioCircuit uses the TikZ code in the editor as the **single source of truth** for your design. To prevent any data loss, please copy and backup your `.tikz` code frequently.
+> - **TikZ Code Alteration & Comments Loss**: Pressing **Apply** in the TikZ editor synchronizes the code to the visual canvas. This process will restructure your TikZ code and completely discard all LaTeX comments (`% ...`). Please keep an external backup of your code if you want to preserve formatting or comments.
+> - **Alternative Preview Option**: As the app is still under active development, rendering bugs may occasionally occur. If you suspect an incorrect render, you can verify your TikZ code in an alternative online previewer such as the [HolaTeX Playground](https://holatex.app/playground.html).
 
 ---
 
-## Original Overview
+## 🎨 About This Project
 
-CircuiTi*k*Z-Designer bridges the gap between visual circuit design and precise LaTeX code, letting you design, customize, and export diagrams without manually writing TikZ commands.
-Whether you’re preparing academic papers, teaching materials, or engineering documentation, CircuiTi*k*Z-Designer provides:
+**CircuiTi*k*Z-Designer** is a visual schematic editor tailored for academic research and engineering development! We aim to eliminate the pain of manually writing LaTeX/TikZ code, letting you design, customize, and export high-quality LaTeX circuit diagrams in the most intuitive way possible! 🎨
 
-- A clean, intuitive interface for fast diagram creation
-- An extensive component library for all your circuit needs
-- Real-time previews and instant export to high-quality LaTeX code
+### ✨ Key Features
 
-Stop wrestling with code syntax — focus on your circuit design, and let CircuiTikZ-Designer handle the Ti*k*Z.
+- **🔌 Visio-like Intuitive Controls**: The interface and operations are designed to be as close as possible to **Microsoft Visio**. With smooth drag-and-drop, alignment, scaling, rotation, and grid snapping, it is extremely easy to get started!
+- **🤖 Smooth AI Agent Collaboration**: You can seamlessly pair this app with **schematic-to-TikZ AI skills / agents**. Just let the AI agent convert your hand-drawn circuit sketch or image into TikZ code first, then copy the code directly into this app to visually refine and customize it!
+- **🔄 Two-Way Sync (TikZ Editor & GUI)**: Real-time synchronization! Modifying the code instantly updates the visual canvas, and manipulating components on the GUI updates the TikZ code simultaneously.
+- **🛠️ Visio-Style Custom Symbol Editor**: Inspect and dynamically modify sub-path attributes (like thickness, coordinates, etc.) of custom components.
+- **🌟 Rich Enhancements**:
+    1. **Custom Categories & Subcircuits**: Organize your design workspace with custom component categories and custom subcircuits.
+    2. **Visual Subcircuit Previews**: The symbols panel displays actual, accurate graphical previews of your subcircuits instead of generic boxes!
+    3. **Symbol Grouping**: Group multiple components together and save them as reusable custom symbols.
+    4. **Premium Academic Theme**: Redesigned UI styling with a tailored dark mode palette and smooth gradients to reduce eye strain during long hours of research.
+- **👁️ Live LaTeX Rendering**:
+    - **Primary Renderer**: Powered by the **QuickLaTeX API** for high-quality cloud LaTeX compilation, supporting all complex CircuiTikZ syntax and fonts!
+    - **Fallback Renderer**: Automatically falls back to the local **TikZJax (WebAssembly)** engine for offline rendering when network connection is down or QuickLaTeX is unavailable.
 
-|         Edit in CircuiTi*k*Z-Designer         |            Export to compilable Ti*k*Z code            |
-| :-------------------------------------------: | :----------------------------------------------------: |
-| ![sallen-key edit](./examples/sallen-key.png) | ![sallen-key export](./examples/sallen-key_export.png) |
+---
 
-|               Use it in your LaTeX project!                |
-| :--------------------------------------------------------: |
-| ![sallen-key overleaf](./examples/sallen-key_overleaf.png) |
+## 🚀 Use Locally
 
-## Key Features
+1. Make sure you have [Node.js](https://nodejs.org/) installed.
+2. Clone the repository to your local machine.
+3. Install the dependencies:
+    ```bash
+    npm install
+    ```
+4. Start the local development server:
+    ```bash
+    npm start
+    ```
+5. Open your browser and navigate to the local URL (default is `http://localhost:1234`) to start designing!
 
-- **Visual Circuit Design:** Intuitive interface with multi-tab support and component grouping
-- **Wide Component Library:** Includes most circuit elements plus some tikz components like rectangles, ellipses and arrows
-- **Export Ready:** Generate clean LaTeX/TikZ code and compatible SVG exports for seamless document integration
-- **Advanced Editing:** Rotate, scale, align, distribute, and snap components with clear visuals and flexible editing capabilities
-- **Component Variants:** Easily switch between different versions of components and adjust their properties via the properties window
-- **Cross-Platform Friendly:** Dark mode and mobile support for comfortable online editing anywhere
-- **MathJax Support:** Write MathJax math expressions directly inside text components with real-time rendering
+---
 
-## Use locally
+## 📦 Demo Build & Deployment
 
-1. Have [Node.js](https://nodejs.org/) installed
-2. Clone the repository
-3. Run "npm install" in terminal in project directory
-4. Run "npm start" in terminal in project directory
-5. Open website at URL provided in command line output
+- The default `npm run build` keeps the app in `server` runtime mode.
+- To deploy to static hosts like Vercel, run `npm run build:demo`. This updates `<meta name="circuitikz-runtime" ...>` to `demo`.
+- The deployed demo artifact boots with:
+    - `storageMode = "indexeddb"`
+    - `templateSource = "static-manifest"`
+    - `latexMode = "serverless-proxy"`
 
-## How to use
+**Recommended Demo Deployment Flow**:
 
-All controls of the application are explained in the help menu in the top right corner via the circled questionmark in the application itself.
+1. Switch to the `demo/b-local-storage-vercel` branch.
+2. Run `npm install`.
+3. Verify the environment by running tests:
+    ```bash
+    npm run test -- tests/runtimeBootstrap.test.ts tests/apiServices.test.ts
+    ```
+4. Build the demo version:
+    ```bash
+    npm run build:demo
+    ```
+5. Deploy the generated `dist/` directory to your static host, and ensure the serverless backend proxy `api/latex.js` is available.
 
-If you need help, please use the [general discussions](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/general) page.
+---
 
-## Contributing
+## 💡 Help & Contributing
 
-### Bug reporting
+- **How to Use**: Click the question mark icon `?` in the top right corner of the application to view the interactive help menu and shortcut keys.
+- **Discussions**: If you have any questions, feel free to start a thread on [General Discussions](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/general).
+- **Bug Reports**: Please use the [Issues Page](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/issues) to report bugs. Please always provide clear steps to reproduce.
+- **Feature Requests**: Share and discuss your ideas on the [Discussions - Ideas](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/ideas) page.
+- **Contribute Code**: Fork the repository, make your changes, and submit a pull request. Please always test your code thoroughly!
 
-Please use the [issues page](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/issues) of the project to report bugs. Please always provide steps on how to reproduce the bug.
+---
 
-### Feature requests
+## ☕ Buy Me a Coffee
 
-You can post feature requests and discuss them on the [discussions](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/ideas) page.
+If this tool or the associated AI Agent Skills have saved you time and made your research easier, please consider supporting the project by buying me a coffee! Your support is the greatest motivation for me to maintain and develop these tools. Thank you so much! ❤️
 
-### Contribute code/component implementations
-
-Fork the repo, and create a pull request. Please always test your code thoroughly!
+[![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=☕&slug=stockcurves&button_colour=FFDD00&font_colour=000000&font_family=Arial&outline_colour=000000&coffee_colour=FF8F00)](https://buymeacoffee.com/stockcurves)

@@ -1,5 +1,5 @@
 import * as SVG from "@svgdotjs/svg.js"
-import { CanvasController } from "../internal"
+import { CanvasController } from "../controllers/canvasController"
 
 export const selectedBoxWidth = 1
 export const selectionColor = "var(--bs-red)"

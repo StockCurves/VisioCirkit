@@ -1,4 +1,5 @@
-import { TikzEditorController } from "../internal"
+import { CanvasController, TikzEditorController } from "../internal"
+import { createLiveRenderControllerRuntime } from "../services/controllerRuntime"
 import { LatexRenderService, prepareLatexSource } from "../services/latexRenderService"
 
 export class LiveRenderController {
@@ -19,6 +20,7 @@ export class LiveRenderController {
 	private renderViewport: HTMLDivElement | null = null
 	private renderSurface: HTMLDivElement | null = null
 	private contentElement: HTMLElement | null = null
+	private fitViewTimeoutId: any = null
 	private panScale = 1
 	private panOffsetX = 0
 	private panOffsetY = 0
@@ -33,7 +35,8 @@ export class LiveRenderController {
 	private renderGeneration = 0
 	private debounceTimer: any = null
 	private lastRenderedCode = ""
-	private readonly latexRenderService = new LatexRenderService()
+	private readonly runtime = createLiveRenderControllerRuntime()
+	private readonly latexRenderService: LatexRenderService = this.runtime.latexRenderService
 
 	private constructor() {}
 
@@ -71,6 +74,7 @@ export class LiveRenderController {
 			this.btnLiveRender?.classList.add("text-muted")
 
 			propertiesContainer?.classList.remove("d-none")
+			this.fitVisualEditorDeferred()
 		} else {
 			this.visualEditorTab?.classList.remove("active")
 			this.visualEditorTab?.classList.add("d-none")
@@ -88,7 +92,7 @@ export class LiveRenderController {
 			if (currentCode !== this.lastRenderedCode) {
 				this.renderTikz()
 			} else {
-				this.centerViewDeferred()
+				this.fitViewDeferred()
 			}
 		}
 	}
@@ -172,8 +176,8 @@ export class LiveRenderController {
 		requestAnimationFrame(() => this.fitView())
 	}
 
-	private centerViewDeferred() {
-		requestAnimationFrame(() => this.centerViewPreserveZoom())
+	private fitVisualEditorDeferred() {
+		requestAnimationFrame(() => CanvasController.instance?.fitView())
 	}
 
 	private clearRenderedContent() {
@@ -186,10 +190,14 @@ export class LiveRenderController {
 			})
 	}
 
-	public fitView() {
+	public fitView(retryCount = 0) {
+		if (this.fitViewTimeoutId) {
+			clearTimeout(this.fitViewTimeoutId)
+			this.fitViewTimeoutId = null
+		}
+
 		if (!this.renderViewport || !this.contentElement) return
 		const viewportRect = this.renderViewport.getBoundingClientRect()
-		if (viewportRect.width <= 0 || viewportRect.height <= 0) return
 
 		let contentRect: DOMRect | null = null
 		if (this.contentElement instanceof HTMLIFrameElement) {
@@ -200,36 +208,26 @@ export class LiveRenderController {
 			contentRect = this.contentElement.getBoundingClientRect()
 		}
 
-		if (!contentRect || contentRect.width <= 0 || contentRect.height <= 0) return
+		const isLayoutReady = contentRect && contentRect.width > 0 && contentRect.height > 0
+
+		if (viewportRect.width <= 0 || viewportRect.height <= 0 || !isLayoutReady) {
+			if (retryCount < 15) {
+				this.fitViewTimeoutId = setTimeout(() => this.fitView(retryCount + 1), 300)
+			}
+			return
+		}
+
+		// Divide by current panScale to recover the 1:1 unscaled dimensions
+		const rawWidth = contentRect.width / this.panScale
+		const rawHeight = contentRect.height / this.panScale
 
 		const padding = 32
-		const scaleX = (viewportRect.width - padding * 2) / contentRect.width
-		const scaleY = (viewportRect.height - padding * 2) / contentRect.height
+		const scaleX = (viewportRect.width - padding * 2) / rawWidth
+		const scaleY = (viewportRect.height - padding * 2) / rawHeight
 		this.panScale = Math.min(scaleX, scaleY)
 		if (!Number.isFinite(this.panScale) || this.panScale <= 0) this.panScale = 1
-		this.panOffsetX = (viewportRect.width - contentRect.width * this.panScale) / 2
-		this.panOffsetY = (viewportRect.height - contentRect.height * this.panScale) / 2
-		this.applyTransform()
-	}
-
-	private centerViewPreserveZoom() {
-		if (!this.renderViewport || !this.contentElement) return
-		const viewportRect = this.renderViewport.getBoundingClientRect()
-		if (viewportRect.width <= 0 || viewportRect.height <= 0) return
-
-		let contentRect: DOMRect | null = null
-		if (this.contentElement instanceof HTMLIFrameElement) {
-			const doc = this.contentElement.contentDocument || this.contentElement.contentWindow?.document
-			const svg = doc?.querySelector("svg") as SVGSVGElement | null
-			if (svg) contentRect = svg.getBoundingClientRect()
-		} else {
-			contentRect = this.contentElement.getBoundingClientRect()
-		}
-
-		if (!contentRect || contentRect.width <= 0 || contentRect.height <= 0) return
-
-		this.panOffsetX = (viewportRect.width - contentRect.width * this.panScale) / 2
-		this.panOffsetY = (viewportRect.height - contentRect.height * this.panScale) / 2
+		this.panOffsetX = (viewportRect.width - rawWidth * this.panScale) / 2
+		this.panOffsetY = (viewportRect.height - rawHeight * this.panScale) / 2
 		this.applyTransform()
 	}
 
@@ -331,7 +329,13 @@ export class LiveRenderController {
 				this.tikzjaxContainer!.style.position = "relative"
 				badge.classList.add("render-badge")
 				this.tikzjaxContainer!.appendChild(badge)
-				this.fitViewDeferred()
+				if (img.complete) {
+					this.fitViewDeferred()
+				} else {
+					img.addEventListener("load", () => {
+						this.fitViewDeferred()
+					})
+				}
 			}
 			return
 		} catch (apiErr: any) {

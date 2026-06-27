@@ -31,6 +31,7 @@
 			name="description"
 			property="og:description"
 			content="A GUI for easily drawing circuits with CircuiTikZ components. Draw your circuit, export it to circuitikz or SVG code and include it in your project." />
+		<meta name="circuitikz-runtime" content="server" />
 		<meta charset="UTF-8" />
 
 		<link rel="stylesheet" href="../styles/styles.scss" />
@@ -78,7 +79,7 @@
 							data-bs-target="#ctNavbar"></button>
 					</div>
 					<div class="offcanvas-body">
-						<ul class="navbar-nav gap-2 align-items-center">
+						<ul class="navbar-nav align-items-center" style="gap: 6px !important;">
 							<li class="nav-item col-12 col-md-auto">
 								<button
 									type="button"
@@ -87,14 +88,37 @@
 									data-bs-toggle="tooltip"
 									data-bs-placement="bottom"
 									data-bs-title="Toggle TikZ Editor (Ctrl+B)">
-									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.15rem; line-height: 1;">📝</span>
+									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.15rem; line-height: 1;">📖</span>
+								</button>
+							</li>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="btn"
+									id="addComponentButton"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Open component drawer (Q)"
+									aria-controls="leftOffcanvas">
+									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.15rem; line-height: 1;">➕</span>
+								</button>
+							</li>
+							<li class="nav-item col-12 col-md-auto">
+								<button
+									type="button"
+									class="btn"
+									id="modeDrawLine"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Draw wires (W)">
+									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.15rem; line-height: 1;">✏️</span>
 								</button>
 							</li>
 							<li class="nav-item col-12 col-md-auto">
 								<button class="nav-link fw-semibold active" id="btn-visual-editor" type="button">🎨 Visual Editor</button>
 							</li>
 							<li class="nav-item col-12 col-md-auto">
-								<button class="nav-link fw-semibold text-muted" id="btn-live-render" type="button">🔬 Live LaTeX Render</button>
+								<button class="nav-link fw-semibold text-muted" id="btn-live-render" type="button">🔬 Live LaTeX</button>
 							</li>
 							<li class="nav-item col-12 col-md-auto d-flex align-items-center gap-2 px-2">
 								<span class="text-nowrap mb-0 fw-semibold" style="color: var(--text-main); font-size: 14px; font-family: var(--font-sans);">📐 Template:</span>
@@ -113,15 +137,25 @@
 									</ul>
 								</div>
 							</li>
-							<li class="nav-item col-12 col-md-auto">
+							<li class="nav-item col-12 col-md-auto d-flex align-items-center gap-1">
 								<button
 									type="button"
-									class="btn btn-outline"
-									id="exportSVGButton"
+									class="btn btn-outline-primary btn-sm fw-semibold d-flex align-items-center gap-1"
+									id="navbarSaveWorkButton"
 									data-bs-toggle="tooltip"
 									data-bs-placement="bottom"
-									data-bs-title="Export the circuit as SVG code (Ctrl/⌘ + Shift + E)">
-									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.15rem; line-height: 1;">🖼️</span>
+									data-bs-title="Save to Work">
+									<span style="font-size: 1.05rem; line-height: 1;">💾</span>
+									<span>Save to Work</span>
+								</button>
+								<button
+									type="button"
+									class="btn btn-outline btn-sm fw-semibold d-flex align-items-center justify-content-center"
+									id="navbarSettingsButton"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Canvas Grid Settings">
+									<span style="font-size: 1.15rem; line-height: 1;">⚙️</span>
 								</button>
 							</li>
 
@@ -191,10 +225,10 @@
 									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.05rem; line-height: 1;">📋</span>
 								</button>
 								<button type="button" class="btn btn-secondary btn-sm icon-button" id="saveTikzCodeButton" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Save TikZ code (.tikz)">
-									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.05rem; line-height: 1;">💾</span>
+									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.05rem; line-height: 1;">📥</span>
 								</button>
-								<button type="button" class="btn btn-secondary btn-sm icon-button" id="saveServerCodeButton" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Save to Server (Cloud)">
-									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.05rem; line-height: 1;">📤</span>
+								<button type="button" class="btn btn-secondary btn-sm icon-button" id="exportSVGButton" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Export the circuit as SVG code (Ctrl/⌘ + Shift + E)">
+									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.05rem; line-height: 1;">🖼️</span>
 								</button>
 								<button type="button" class="btn btn-primary btn-sm icon-button" id="applyTikzButton">
 									<span class="material-symbols-outlined" style="font-size: 18px; width: 18px; height: 18px;">done</span>Apply
@@ -202,7 +236,7 @@
 							</div>
 						</div>
 						<div id="tikzEditorTextArea" class="flex-grow-1 form-control overflow-y-auto" style="font-size: 14px; resize: none; white-space: pre; outline: none;" spellcheck="false" contenteditable="true"></div>
-						<div id="tikzEditorError" class="alert alert-danger mt-2 small py-2 px-3" style="white-space: pre-wrap; display: none;"></div>
+						<div id="tikzEditorError" class="alert alert-danger mt-2 small py-2 px-3 position-relative" style="white-space: pre-wrap; display: none; max-height: 200px; overflow-y: auto; padding-right: 40px;"></div>
 					</div>
 				</div>
 				<!-- Resizer handler -->
@@ -210,75 +244,7 @@
 				<div class="col-12 col-md position-relative ps-md-0 d-flex flex-column" id="canvasContainer">
 					<!-- Tab Contents -->
 					<div class="flex-grow-1 position-relative w-100 h-100" id="canvasTabContent">
-						<!-- Visual Editor Tab -->
 						<div id="visualEditorTab" class="w-100 h-100 position-absolute top-0 start-0 active">
-							<div
-								class="z-1 position-absolute border rounded bg-body d-flex flex-row justify-content-center gap-2 align-items-center shadow-sm"
-								id="controlsContainer" style="top: 0px; left: 50%; transform: translateX(-50%); padding: 4px !important; border-radius: 6px !important; border: 1px solid var(--border-color) !important; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
-								<div class="d-flex gap-1 align-items-center">
-									<a
-										id="addComponentButton"
-										class="toolbarButton material-symbols-outlined"
-										role="button"
-										data-bs-toggle="tooltip"
-										data-bs-placement="bottom"
-										data-bs-title="Open component drawer (Q)"
-										aria-controls="leftOffcanvas"
-										>add</a
-									>
-								</div>
-								<div class="vr" style="height: 14px; align-self: center;"></div>
-								<div class="d-flex gap-1 align-items-center">
-									<a
-										id="modeDragPan"
-										class="toolbarButton material-symbols-outlined selected"
-										role="button"
-										data-bs-toggle="tooltip"
-										data-bs-placement="bottom"
-										data-bs-title="Pan or zoom the canvas (Esc)"
-										>drag_pan</a
-									>
-									<a
-										id="modeDrawLine"
-										class="toolbarButton material-symbols-outlined"
-										role="button"
-										data-bs-toggle="tooltip"
-										data-bs-placement="bottom"
-										data-bs-title="Draw wires (W)"
-										>draw</a
-									>
-									<a
-										id="modeEraser"
-										class="toolbarButton material-symbols-outlined"
-										role="button"
-										data-bs-toggle="tooltip"
-										data-bs-placement="bottom"
-										data-bs-title="Erase components and wires (Del, Backspace)"
-										>ink_eraser</a
-									>
-								</div>
-								<div class="vr" style="height: 14px; align-self: center;"></div>
-								<div class="d-flex gap-1 align-items-center">
-									<a
-										role="button"
-										class="toolbarButton material-symbols-outlined"
-										id="undoButton"
-										data-bs-toggle="tooltip"
-										data-bs-placement="bottom"
-										data-bs-title="Undo (Ctrl/⌘+Z)"
-										>undo</a
-									>
-									<a
-										role="button"
-										class="toolbarButton material-symbols-outlined"
-										id="redoButton"
-										data-bs-toggle="tooltip"
-										data-bs-placement="bottom"
-										data-bs-title="Redo (Ctrl/⌘+Y)"
-										>redo</a
-									>
-								</div>
-							</div>
 							<!-- The actual canvas -->
 							<include src="pages/canvas.svg"></include>
 						</div>
@@ -299,7 +265,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="col-12 col-md-4 col-lg-3 col-xxl-2 m-0 p-0 overflow-y-auto" id="propertiesContainer">
+				<div class="col-12 col-md-4 col-lg-3 col-xxl-2 m-0 p-0 overflow-y-auto d-none" id="propertiesContainer">
 					<div
 						class="w-100 h-100 bg-body-tertiary border border-secondary rounded d-flex flex-column"
 						id="properties">
@@ -378,14 +344,13 @@
 		</div>
 
 		<!-- Left offcanvas (symbol DB) -->
-		<div id="leftOffcanvas" class="offcanvas offcanvas-start" tabindex="-1">
+		<div id="leftOffcanvas" class="offcanvas offcanvas-end" tabindex="-1">
 			<div class="offcanvas-header flex-column gap-3">
 				<div class="d-flex justify-content-between align-items-center w-100">
 					<h5 class="offcanvas-title" id="offcanvasLabel">Symbols</h5>
 					<div class="d-flex gap-2 align-items-center">
-						<button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" id="addCategoryButton" title="Add Category">
+						<button type="button" class="btn btn-primary btn-sm icon-button" id="addCategoryButton" title="Add Category" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Add Category">
 							<span class="material-symbols-outlined" style="font-size: 16px;">create_new_folder</span>
-							<span>Add Category</span>
 						</button>
 						<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
 					</div>
@@ -399,14 +364,14 @@
 						placeholder="Search"
 						aria-label="Search" />
 					<button
-						class="material-symbols-outlined btn px-1 ms-1"
+						class="btn btn-secondary btn-sm icon-button component-filter-toggle"
 						id="filterRegexButton"
 						type="button"
 						data-bs-toggle="button"
 						data-bs-toggle-second="tooltip"
 						aria-pressed="false"
 						data-bs-title="Use regular expression">
-						regular_expression
+						<span class="material-symbols-outlined" style="font-size: 18px;">regular_expression</span>
 					</button>
 				</div>
 				<div id="invalid-feedback-text" class="invalid-feedback d-block d-none">
@@ -532,7 +497,7 @@
 			<div class="modal-dialog">
 				<div class="modal-content">
 					<div class="modal-header">
-						<h1 class="modal-title fs-5" id="saveServerModalLabel">Save Circuit to Server</h1>
+						<h1 class="modal-title fs-5" id="saveServerModalLabel">Save Circuit to Work</h1>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 					</div>
 					<div class="modal-body d-flex flex-column gap-3">
@@ -658,6 +623,9 @@
 						<ul>
 							<li>
 								We use TikZ code as the single source of truth, so we don't use JSON to save circuits.
+							</li>
+							<li class="text-warning">
+								<b>TikZ Code Alteration &amp; Comments Loss</b>: Pressing "Apply" in the TikZ editor synchronizes the code to the visual canvas. This will restructure your TikZ code and completely discard all LaTeX comments (<code>% ...</code>). Please keep an external backup of your code if you want to preserve formatting or comments.
 							</li>
 							<li>
 								Every new browser tab is a new canvas ready for drawing. You can manage the browser tabs
@@ -936,6 +904,11 @@
 								</tr>
 							</tbody>
 						</table>
+						<h1 class="fs-4 mt-5">Known bugs</h1>
+						<ul>
+							<li>LaTeX rendering may differ between the visual editor and live rendering.</li>
+							<li>Copied components in newly created categories may render incorrectly.</li>
+						</ul>
 					</div>
 				</div>
 			</div>

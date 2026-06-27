@@ -8,7 +8,8 @@ import {
 	Undo,
 	TemplateController,
 	SelectionController,
-	LiveRenderController
+	LiveRenderController,
+	CanvasController
 } from "../internal"
 
 function getEditorText(editor: HTMLDivElement): string {
@@ -69,7 +70,7 @@ export class TikzEditorController {
 	private applyButton: HTMLButtonElement
 	private copyCodeButton: HTMLButtonElement
 	private saveCodeButton: HTMLButtonElement
-	private saveServerButton: HTMLButtonElement
+	private saveServerButton: HTMLButtonElement | null
 
 	private isResizing = false
 	private startX = 0
@@ -83,7 +84,7 @@ export class TikzEditorController {
 		this.applyButton = document.getElementById("applyTikzButton") as HTMLButtonElement
 		this.copyCodeButton = document.getElementById("copyTikzCodeButton") as HTMLButtonElement
 		this.saveCodeButton = document.getElementById("saveTikzCodeButton") as HTMLButtonElement
-		this.saveServerButton = document.getElementById("saveServerCodeButton") as HTMLButtonElement
+		this.saveServerButton = document.getElementById("saveServerCodeButton") as HTMLButtonElement | null
 
 		this.initEvents()
 	}
@@ -111,12 +112,27 @@ export class TikzEditorController {
 	}
 
 	private initEvents() {
-		// Prevent shortcut propagation inside editor, except for Ctrl+B
+		// Prevent shortcut propagation inside editor, except for Ctrl+B and Escape
 		this.editorTextArea.addEventListener("keydown", (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				this.editorTextArea.blur()
+				e.stopPropagation()
+				return
+			}
 			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
 				return
 			}
 			e.stopPropagation()
+		})
+
+		// Release focus when clicking outside the editor container
+		document.addEventListener("mousedown", (e: MouseEvent) => {
+			const target = e.target as HTMLElement
+			if (this.editorContainer && !this.editorContainer.contains(target)) {
+				if (document.activeElement === this.editorTextArea) {
+					this.editorTextArea.blur()
+				}
+			}
 		})
 
 		// Trigger debounced render on user typing in editor
@@ -149,6 +165,11 @@ export class TikzEditorController {
 				TemplateController.instance.openSaveModal()
 			})
 		}
+
+		const navbarSaveWork = document.getElementById("navbarSaveWorkButton") as HTMLButtonElement | null
+		navbarSaveWork?.addEventListener("click", () => {
+			TemplateController.instance.openSaveModal()
+		})
 
 		// Mouse drag resizing
 		this.editorResizer.addEventListener("mousedown", (e: MouseEvent) => {
@@ -186,6 +207,11 @@ export class TikzEditorController {
 			this.editorContainer.classList.remove("d-flex")
 			this.editorResizer.classList.add("d-none")
 		}
+
+		requestAnimationFrame(() => {
+			CanvasController.instance?.fitView()
+			LiveRenderController.instance?.fitView()
+		})
 	}
 
 	public isVisible(): boolean {
@@ -202,15 +228,19 @@ export class TikzEditorController {
 	}
 
 	public clearHighlightsAndErrors() {
-		const errorMsgs = this.editorTextArea.querySelectorAll(".error-msg")
+		const errorMsgs = this.editorTextArea.querySelectorAll(".error-msg, .warning-msg")
 		errorMsgs.forEach((el) => el.remove())
 
 		const lines = Array.from(this.editorTextArea.children) as HTMLDivElement[]
 		lines.forEach((line) => {
-			line.classList.remove("highlight-blue", "highlight-red")
+			line.classList.remove("highlight-blue", "highlight-red", "highlight-yellow")
 		})
 		
 		this.editorError.style.display = "none"
+		this.editorError.style.backgroundColor = ""
+		this.editorError.style.color = ""
+		this.editorError.style.border = ""
+		this.editorError.innerText = ""
 	}
 
 	public highlightSelectedComponents() {
@@ -223,6 +253,7 @@ export class TikzEditorController {
 
 		const lineDivs = Array.from(this.editorTextArea.children) as HTMLDivElement[]
 		
+		let firstHighlightedDiv: HTMLDivElement | null = null
 		for (const comp of selected) {
 			if (comp.tikzLines) {
 				const [startLine, endLine] = comp.tikzLines
@@ -230,9 +261,21 @@ export class TikzEditorController {
 					const div = lineDivs[i - 1]
 					if (div) {
 						div.classList.add("highlight-blue")
+						if (!firstHighlightedDiv) {
+							firstHighlightedDiv = div
+						}
 					}
 				}
 			}
+		}
+
+		if (firstHighlightedDiv) {
+			const container = this.editorTextArea
+			const targetScrollTop = firstHighlightedDiv.offsetTop - (container.clientHeight / 2) + (firstHighlightedDiv.offsetHeight / 2)
+			container.scrollTo({
+				top: targetScrollTop,
+				behavior: "smooth"
+			})
 		}
 	}
 
@@ -304,6 +347,22 @@ export class TikzEditorController {
 	}
 
 	/**
+	 * Toggles the visibility of the Apply button.
+	 */
+	public setApplyButtonVisible(visible: boolean) {
+		if (this.applyButton) {
+			if (visible) {
+				this.applyButton.classList.remove("d-none")
+			} else {
+				this.applyButton.classList.add("d-none")
+			}
+		}
+		if (this.editorTextArea) {
+			this.editorTextArea.setAttribute("contenteditable", visible ? "true" : "false")
+		}
+	}
+
+	/**
 	 * Reconstructs the canvas from the parsed TikZ code.
 	 */
 	public applyEditorText() {
@@ -319,8 +378,43 @@ export class TikzEditorController {
 			}
 
 			// Instantiate new ones from the parsed JSON save objects
+			let hasWarnings = false;
 			for (const obj of parsedSaveObjects) {
+				if (obj.type === "parse_error") {
+					hasWarnings = true;
+					const lineDivs = Array.from(this.editorTextArea.children) as HTMLDivElement[]
+					const targetDiv = lineDivs[obj.lines[0] - 1]
+					if (targetDiv) {
+						targetDiv.classList.add("highlight-yellow")
+						
+						const warningBubble = document.createElement("div")
+						warningBubble.className = "warning-msg"
+						warningBubble.setAttribute("contenteditable", "false")
+						warningBubble.innerText = "Warning: " + obj.message
+						
+						warningBubble.style.color = "#856404";
+						warningBubble.style.backgroundColor = "#fff3cd";
+						warningBubble.style.border = "1px solid #ffeeba";
+						warningBubble.style.padding = "2px 5px";
+						warningBubble.style.marginTop = "2px";
+						warningBubble.style.fontSize = "0.9em";
+						warningBubble.style.borderRadius = "3px";
+						
+						targetDiv.appendChild(warningBubble)
+					}
+					continue;
+				}
 				CircuitComponent.fromJson(obj)
+			}
+
+			if (hasWarnings) {
+				this.editorError.innerText = "Some lines could not be parsed and were skipped (highlighted in yellow)."
+				this.editorError.style.display = "block"
+				this.editorError.style.backgroundColor = "#fff3cd"
+				this.editorError.style.color = "#856404"
+				this.editorError.style.border = "1px solid #ffeeba"
+			} else {
+				this.editorError.style.display = "none"
 			}
 
 			// Save state in undo stack
@@ -328,23 +422,27 @@ export class TikzEditorController {
 			
 			this.updateEditorText()
 		} catch (error: any) {
+			let errorMsg = ""
 			if (error.startLine !== undefined) {
-				const lineDivs = Array.from(this.editorTextArea.children) as HTMLDivElement[]
-				const targetDiv = lineDivs[error.startLine - 1]
-				if (targetDiv) {
-					targetDiv.classList.add("highlight-red")
-					
-					const errorBubble = document.createElement("div")
-					errorBubble.className = "error-msg"
-					errorBubble.setAttribute("contenteditable", "false")
-					errorBubble.innerText = "Error: " + error.message
-					
-					targetDiv.appendChild(errorBubble)
-				}
+				errorMsg = `Line ${error.startLine}: ${error.message}\n\nStack:\n${error.stack}`
 			} else {
-				this.editorError.innerText = "Error parsing TikZ:\n" + error.message
-				this.editorError.style.display = "block"
+				errorMsg = "Error parsing TikZ:\n" + error.message + "\n\nStack:\n" + error.stack
 			}
+			
+			this.editorError.innerText = errorMsg
+			this.editorError.style.display = "block"
+			
+			const copyBtn = document.createElement("button")
+			copyBtn.className = "btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-1"
+			copyBtn.style.padding = "2px 6px"
+			copyBtn.style.fontSize = "10px"
+			copyBtn.innerText = "Copy"
+			copyBtn.onclick = () => {
+				navigator.clipboard.writeText(errorMsg)
+				copyBtn.innerText = "Copied!"
+				setTimeout(() => copyBtn.innerText = "Copy", 2000)
+			}
+			this.editorError.appendChild(copyBtn)
 		}
 	}
 }

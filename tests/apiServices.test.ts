@@ -1,14 +1,90 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+
+vi.mock("../src/scripts/services/subcircuitPreviewService", () => ({
+	SubcircuitPreviewService: class {
+		generatePreview = vi.fn().mockResolvedValue(null)
+	},
+}))
+
+vi.mock("../src/scripts/components/componentSymbol", () => ({
+	ComponentSymbol: class {},
+}))
+
+vi.mock("../src/scripts/components/circuitComponent", () => ({
+	CircuitComponent: class {},
+}))
+
+import { createRuntimeConfig } from "../src/scripts/config/runtimeConfig"
 import { getApiBase } from "../src/scripts/services/apiBase"
-import { LocalTemplateFileService } from "../src/scripts/services/localTemplateFileService"
-import { createTemplateDataSource, getRuntimeMode } from "../src/scripts/services/runtimeMode"
+import { getAppRuntime, setAppRuntimeForTests } from "../src/scripts/services/appRuntime"
 import { TemplateFileService } from "../src/scripts/services/templateFileService"
 import { LatexRenderService, prepareLatexSource } from "../src/scripts/services/latexRenderService"
+import { IndexedDbTemplateDataSource } from "../src/scripts/services/indexedDbTemplateDataSource"
+import { StaticTemplateDataSource } from "../src/scripts/services/staticTemplateDataSource"
 
 const mockFetch = (response: Partial<Response>) => {
 	const fetchMock = vi.fn().mockResolvedValue(response)
 	vi.stubGlobal("fetch", fetchMock)
 	return fetchMock
+}
+
+function makeFakeDb(workFiles = new Map<string, any>()) {
+	return {
+		transaction(storeName: string) {
+			if (storeName !== "workFiles") throw new Error(`Unexpected store: ${storeName}`)
+			const tx: any = {
+				oncomplete: null,
+				onerror: null,
+				onabort: null,
+				error: null,
+				objectStore() {
+					return {
+						get(key: string) {
+							const request: any = { result: workFiles.get(key), onsuccess: null, onerror: null, error: null }
+							setTimeout(() => {
+								request.onsuccess?.({ target: { result: workFiles.get(key) } })
+								tx.oncomplete?.()
+							}, 0)
+							return request
+						},
+						getAll() {
+							const request: any = { result: [...workFiles.values()], onsuccess: null, onerror: null, error: null }
+							setTimeout(() => {
+								request.onsuccess?.({ target: { result: [...workFiles.values()] } })
+								tx.oncomplete?.()
+							}, 0)
+							return request
+						},
+						put(value: any) {
+							workFiles.set(value.name, value)
+							const request: any = { result: value, onsuccess: null, onerror: null, error: null }
+							setTimeout(() => {
+								request.onsuccess?.({ target: { result: value } })
+								tx.oncomplete?.()
+							}, 0)
+							return request
+						},
+						delete(key: string) {
+							workFiles.delete(key)
+							const request: any = { result: undefined, onsuccess: null, onerror: null, error: null }
+							setTimeout(() => {
+								request.onsuccess?.({ target: { result: undefined } })
+								tx.oncomplete?.()
+							}, 0)
+							return request
+						},
+					}
+				},
+			}
+			return tx
+		},
+		objectStoreNames: {
+			contains: vi.fn().mockReturnValue(true),
+		},
+		createObjectStore: vi.fn(),
+		close: vi.fn(),
+		onversionchange: null,
+	} as unknown as IDBDatabase
 }
 
 describe("getApiBase", () => {
@@ -22,105 +98,173 @@ describe("getApiBase", () => {
 	})
 })
 
-describe("runtime mode", () => {
+describe("createRuntimeConfig", () => {
 	afterEach(() => {
+		delete (window as any).__CIRCUITIKZ_DESIGNER_RUNTIME__
+		setAppRuntimeForTests(null)
 		vi.unstubAllGlobals()
 	})
 
-	it("uses server mode on localhost and local mode on deployed hosts", () => {
-		expect(getRuntimeMode("localhost")).toBe("server")
-		expect(getRuntimeMode("127.0.0.1")).toBe("server")
-		expect(getRuntimeMode("example.com")).toBe("local")
+	it("defaults to the current server-backed runtime modes", () => {
+		expect(createRuntimeConfig({}, "localhost")).toEqual({
+			storageMode: "server",
+			templateSource: "server",
+			latexMode: "server-proxy",
+			apiBase: "http://localhost:3001",
+		})
 	})
 
-	it("creates a local template data source for local mode", () => {
-		expect(createTemplateDataSource("local")).toBeInstanceOf(LocalTemplateFileService)
-		expect(createTemplateDataSource("server")).toBeInstanceOf(TemplateFileService)
+	it("allows runtime overrides for provider-based modes", () => {
+		;(window as any).__CIRCUITIKZ_DESIGNER_RUNTIME__ = {
+			storageMode: "indexeddb",
+			templateSource: "static-manifest",
+			latexMode: "serverless-proxy",
+			apiBase: "/demo-api",
+		}
+
+		expect(createRuntimeConfig({}, "example.com")).toEqual({
+			storageMode: "indexeddb",
+			templateSource: "static-manifest",
+			latexMode: "serverless-proxy",
+			apiBase: "/demo-api",
+		})
 	})
-})
 
-const makeLocalTemplateDb = () => {
-	const records = new Map<string, any>()
-	const request = <T>(result: T) => ({ result, onsuccess: null, onerror: null } as unknown as IDBRequest<T>)
-	const completeTransaction = (transaction: any) => {
-		setTimeout(() => transaction.oncomplete?.(), 0)
-	}
-
-	return {
-		transaction(_storeNames: string | string[], _mode?: IDBTransactionMode) {
-			const transaction: any = {
-				oncomplete: null,
-				onerror: null,
-				onabort: null,
-				objectStore() {
-					return {
-						getAll() {
-							const req = request(Array.from(records.values()))
-							setTimeout(() => req.onsuccess?.({ target: req } as any), 0)
-							return req
-						},
-						get(name: string) {
-							const req = request(records.get(name))
-							setTimeout(() => req.onsuccess?.({ target: req } as any), 0)
-							return req
-						},
-						put(record: any) {
-							records.set(record.name, record)
-							completeTransaction(transaction)
-							return request(undefined)
-						},
-						delete(name: string) {
-							records.delete(name)
-							completeTransaction(transaction)
-							return request(undefined)
-						},
-					}
+	it("switches template data source to IndexedDB-backed work storage in indexeddb mode", () => {
+		setAppRuntimeForTests(null)
+		;(window as any).__CIRCUITIKZ_DESIGNER_RUNTIME__ = {
+			storageMode: "indexeddb",
+			templateSource: "server",
+			latexMode: "server-proxy",
+			apiBase: "/api",
+		}
+		vi.stubGlobal("indexedDB", {
+			open: vi.fn(() => ({
+				result: {
+					objectStoreNames: { contains: vi.fn().mockReturnValue(true) },
+					onversionchange: null,
+					close: vi.fn(),
 				},
-			}
-			return transaction
-		},
-	}
-}
+				onsuccess: null,
+				onerror: null,
+				onblocked: null,
+				onupgradeneeded: null,
+			})),
+		})
+		setAppRuntimeForTests(null)
 
-describe("LocalTemplateFileService", () => {
-	afterEach(() => {
-		vi.unstubAllGlobals()
+		expect(getAppRuntime().createTemplateDataSource()).toBeInstanceOf(IndexedDbTemplateDataSource)
 	})
 
-	it("lists static templates and IndexedDB work files", async () => {
-		const db = makeLocalTemplateDb() as unknown as IDBDatabase
-		const service = new LocalTemplateFileService(() => Promise.resolve(db))
+	it("switches template data source to static-manifest mode when configured", () => {
+		;(window as any).__CIRCUITIKZ_DESIGNER_RUNTIME__ = {
+			storageMode: "server",
+			templateSource: "static-manifest",
+			latexMode: "server-proxy",
+			apiBase: "/api",
+		}
+		setAppRuntimeForTests(null)
 
-		await service.saveWork("draft.tex", "\\draw (0,0) -- (1,0);")
-
-		const result = await service.listFiles()
-		expect(result.templates).toContain("rc-lowpass.tex")
-		expect(result.works).toEqual(["draft.tex"])
+		expect(getAppRuntime().createTemplateDataSource()).toBeInstanceOf(StaticTemplateDataSource)
 	})
 
-	it("reads templates from static URLs and work files from IndexedDB", async () => {
-		const db = makeLocalTemplateDb() as unknown as IDBDatabase
-		const service = new LocalTemplateFileService(() => Promise.resolve(db))
+	it("creates custom symbol services through the runtime instead of controller-local constructors", () => {
+		const service = getAppRuntime().createCustomSymbolService(() => ({}) as IDBDatabase)
+		expect(service).toMatchObject({
+			loadCustomSymbolsIntoDomAndRuntime: expect.any(Function),
+			duplicateSymbol: expect.any(Function),
+			renameCustomGraphicsSymbol: expect.any(Function),
+		})
+	})
+
+	it("creates custom symbol application services through the runtime for symbol-state orchestration", () => {
+		const service = getAppRuntime().createCustomSymbolApplicationService(() => ({}) as IDBDatabase)
+		expect(service).toMatchObject({
+			loadState: expect.any(Function),
+			loadRuntimeSymbols: expect.any(Function),
+			renameGraphicsSymbol: expect.any(Function),
+		})
+	})
+
+	it("creates symbol library services through the runtime for base symbol boot", () => {
+		const service = getAppRuntime().createSymbolLibraryService()
+		expect(service).toMatchObject({
+			loadIntoDocument: expect.any(Function),
+		})
+	})
+
+	it("creates tab application services through the runtime instead of controller-local session wiring", () => {
+		const service = getAppRuntime().createTabApplicationService(
+			() => ({}) as IDBDatabase,
+			(data: { components?: unknown[] }) => (data.components?.length ?? 0) > 0
+		)
+		expect(service).toMatchObject({
+			initializeTab: expect.any(Function),
+			getTabManagementSummary: expect.any(Function),
+			persistSnapshot: expect.any(Function),
+		})
+	})
+
+	it("creates tab broadcast services through the runtime for cross-tab coordination", () => {
+		const service = getAppRuntime().createTabBroadcastService()
+		expect(service).toMatchObject({
+			createMessage: expect.any(Function),
+			handleIncomingMessage: expect.any(Function),
+		})
+	})
+
+	it("creates tab lifecycle services through the runtime for autosave boot wiring", () => {
+		const service = getAppRuntime().createTabLifecycleService()
+		expect(service).toMatchObject({
+			clearLegacyStorage: expect.any(Function),
+			bindPersistenceHandlers: expect.any(Function),
+			initializeCurrentTab: expect.any(Function),
+		})
+	})
+
+	it("uses the demo runtime providers without touching server filesystem APIs", async () => {
 		const fetchMock = mockFetch({
 			ok: true,
-			text: vi.fn().mockResolvedValue("\\begin{circuitikz}\\end{circuitikz}"),
+			text: vi.fn().mockResolvedValue("\\draw (0,0) -- (1,0);"),
 		})
+		const fakeDb = makeFakeDb()
+		;(window as any).__CIRCUITIKZ_DESIGNER_RUNTIME__ = {
+			storageMode: "indexeddb",
+			templateSource: "static-manifest",
+			latexMode: "serverless-proxy",
+		}
+		vi.stubGlobal("indexedDB", {
+			open: vi.fn(() => {
+				const request: any = {
+					result: fakeDb,
+					onsuccess: null,
+					onerror: null,
+					onblocked: null,
+					onupgradeneeded: null,
+				}
+				setTimeout(() => {
+					request.onsuccess?.({ target: request })
+				}, 0)
+				return request
+			}),
+		})
+		setAppRuntimeForTests(null)
 
-		expect(await service.readFile("template", "rc-lowpass.tex")).toBe("\\begin{circuitikz}\\end{circuitikz}")
-		expect(fetchMock).toHaveBeenCalledTimes(1)
+		const dataSource = getAppRuntime().createTemplateDataSource()
+		const files = await dataSource.listFiles()
+		await dataSource.readFile("template", files.templates[0])
+		await dataSource.saveWork("draft.tex", "content")
+		expect(await dataSource.readFile("work", "draft.tex")).toBe("content")
+		await dataSource.deleteWork("draft.tex")
 
-		await service.saveWork("draft.tex", "\\draw (0,0) -- (2,0);")
-		expect(await service.readFile("work", "draft.tex")).toBe("\\draw (0,0) -- (2,0);")
-	})
-
-	it("deletes IndexedDB work files", async () => {
-		const db = makeLocalTemplateDb() as unknown as IDBDatabase
-		const service = new LocalTemplateFileService(() => Promise.resolve(db))
-
-		await service.saveWork("draft.tex", "\\draw (0,0) -- (1,0);")
-		await service.deleteWork("draft.tex")
-
-		await expect(service.readFile("work", "draft.tex")).rejects.toThrow("Work file not found.")
+		const requestedUrls = fetchMock.mock.calls.map(([url]) => String(url))
+		expect(files.templates.length).toBeGreaterThan(0)
+		expect(requestedUrls.some((url) => url.includes("/api/files"))).toBe(false)
+		expect(requestedUrls.some((url) => url.includes("/api/file"))).toBe(false)
+		expect(requestedUrls.some((url) => url.includes("/api/save"))).toBe(false)
+		expect(requestedUrls.some((url) => url.includes("/api/delete"))).toBe(false)
+		expect(requestedUrls).toHaveLength(1)
+		expect(requestedUrls[0]).not.toContain("/api/")
 	})
 })
 

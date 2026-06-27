@@ -1,4 +1,4 @@
-export interface WorkFileRecord {
+export type WorkFileRecord = {
 	name: string
 	content: string
 	updatedAt: number
@@ -22,25 +22,30 @@ export class WorkFileRepository {
 		})
 	}
 
-	public async list(): Promise<WorkFileRecord[]> {
+	public async listWorkFiles(): Promise<WorkFileRecord[]> {
 		const transaction = this.db.transaction("workFiles", "readonly")
 		const store = transaction.objectStore("workFiles")
-		return (await this.requestToPromise<WorkFileRecord[]>(store.getAll())) || []
+		const result = (await this.requestToPromise<WorkFileRecord[]>(store.getAll())) || []
+		return result.sort((a, b) => a.name.localeCompare(b.name))
 	}
 
-	public async get(name: string): Promise<WorkFileRecord | undefined> {
+	public async getWorkFile(name: string): Promise<WorkFileRecord | undefined> {
 		const transaction = this.db.transaction("workFiles", "readonly")
 		const store = transaction.objectStore("workFiles")
 		return this.requestToPromise<WorkFileRecord | undefined>(store.get(name))
 	}
 
-	public async put(record: WorkFileRecord): Promise<void> {
+	public async putWorkFile(name: string, content: string): Promise<void> {
 		const transaction = this.db.transaction("workFiles", "readwrite")
-		transaction.objectStore("workFiles").put(record)
+		transaction.objectStore("workFiles").put({
+			name,
+			content,
+			updatedAt: Date.now(),
+		} satisfies WorkFileRecord)
 		await this.transactionComplete(transaction)
 	}
 
-	public async delete(name: string): Promise<void> {
+	public async deleteWorkFile(name: string): Promise<void> {
 		const transaction = this.db.transaction("workFiles", "readwrite")
 		transaction.objectStore("workFiles").delete(name)
 		await this.transactionComplete(transaction)

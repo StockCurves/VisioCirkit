@@ -1,9 +1,23 @@
 import * as SVG from "@svgdotjs/svg.js"
 import "@svgdotjs/svg.draggable.js"
 import { Modal } from "bootstrap"
-import { MainController } from "./mainController"
 import { ComponentSymbol, TikZAnchor } from "../components/componentSymbol"
 import { defaultStroke, defaultFill } from "../utils/utils"
+import { buildSymbolVariantDiff, inheritedPresentationAttributes } from "../utils/symbolVariantDiff"
+import { resolveEditorFill, resolveEditorPathFill } from "../utils/symbolEditorFill"
+import type { CircuitComponent } from "../components/circuitComponent"
+import type { CustomSymbolRecord } from "../services/customSymbolService"
+
+export type SymbolEditorRuntime = {
+	openPrompt: (title: string, message: string, defaultValue?: string) => Promise<string | null>
+	openAlert: (title: string, message: string) => Promise<void>
+	findCustomSymbol: (symbolId: string) => CustomSymbolRecord | undefined
+	findRuntimeSymbol: (tikzName: string) => ComponentSymbol | undefined
+	getCircuitComponents: () => CircuitComponent[]
+	persistCustomSymbol: (customSymbol: CustomSymbolRecord) => Promise<void>
+	refreshCustomCategories: () => Promise<void>
+	preprocessSymbolColors: (node: Element) => void
+}
 
 export class SymbolEditorController {
 	private static _instance: SymbolEditorController
@@ -32,6 +46,8 @@ export class SymbolEditorController {
 	private drawStartPoint: SVG.Point | null = null
 	private tempDrawElement: SVG.Element | null = null
 	private scale = 8
+	private panX = 0
+	private panY = 0
 	private panOffset = new SVG.Point(0, 0)
 	private originalViewBox: SVG.Box | null = null
 	private selectionBoxElement: SVG.Rect | null = null
@@ -40,9 +56,21 @@ export class SymbolEditorController {
 
 	private isPanning = false
 	private lastMousePos: SVG.Point | null = null
+	private runtime: SymbolEditorRuntime | null = null
 
 	private constructor() {
 		// Initialization deferred until DOM is ready or open is called
+	}
+
+	public configure(runtime: SymbolEditorRuntime) {
+		this.runtime = runtime
+	}
+
+	private getRuntime(): SymbolEditorRuntime {
+		if (!this.runtime) {
+			throw new Error("SymbolEditorController runtime has not been configured.")
+		}
+		return this.runtime
 	}
 
 	private initDOM() {
@@ -192,9 +220,9 @@ export class SymbolEditorController {
 			const rect = this.svg.node.getBoundingClientRect()
 			const clientPt = new SVG.Point(e.clientX - rect.left, e.clientY - rect.top)
 			
-			// Transform to viewport coordinates
-			const transformMatrix = this.viewport.transform()
-			return clientPt.transform(new SVG.Matrix(transformMatrix).inverse())
+			// Transform to viewport coordinates using self-managed scale and absolute pan coordinates
+			const m = new SVG.Matrix(this.scale, 0, 0, this.scale, this.panX, this.panY)
+			return clientPt.transform(m.inverse())
 		}
 
 		const snapVal = (val: number) => {
@@ -204,6 +232,33 @@ export class SymbolEditorController {
 
 		const snapPoint = (pt: SVG.Point) => {
 			return new SVG.Point(snapVal(pt.x), snapVal(pt.y))
+		}
+
+		const handlePanMouseMove = (e: MouseEvent) => {
+			if (!this.isPanning || !this.lastMousePos) return
+			e.preventDefault()
+			const dx = e.clientX - this.lastMousePos.x
+			const dy = e.clientY - this.lastMousePos.y
+
+			this.panX += dx
+			this.panY += dy
+
+			this.viewport.transform({
+				scale: this.scale,
+				translateX: this.panX,
+				translateY: this.panY
+			})
+
+			this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
+		}
+
+		const handlePanMouseUp = (e: MouseEvent) => {
+			if (e.button === 2) {
+				this.isPanning = false
+				this.lastMousePos = null
+				window.removeEventListener("mousemove", handlePanMouseMove)
+				window.removeEventListener("mouseup", handlePanMouseUp)
+			}
 		}
 
 		this.svg.node.addEventListener("contextmenu", (e) => {
@@ -216,6 +271,8 @@ export class SymbolEditorController {
 				e.preventDefault()
 				this.isPanning = true
 				this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
+				window.addEventListener("mousemove", handlePanMouseMove)
+				window.addEventListener("mouseup", handlePanMouseUp)
 				return
 			}
 			if (e.button !== 0) return // Only left clicks
@@ -244,7 +301,7 @@ export class SymbolEditorController {
 						.stroke({ color: defaultStroke, width: 1 })
 				} else if (this.currentTool === "pin") {
 					this.isDrawing = false
-					const pinName = await MainController.instance.openPrompt(
+					const pinName = await this.getRuntime().openPrompt(
 						"New Connection Point",
 						"Please enter a name for the new connection point (e.g., g, s, d, in, out):"
 					)
@@ -261,21 +318,6 @@ export class SymbolEditorController {
 		})
 
 		this.svg.on("mousemove", (e: MouseEvent) => {
-			if (this.isPanning && this.lastMousePos) {
-				const dx = e.clientX - this.lastMousePos.x
-				const dy = e.clientY - this.lastMousePos.y
-
-				const t = this.viewport.transform()
-				this.viewport.transform({
-					...t,
-					translateX: (t.translateX || 0) + dx / this.scale,
-					translateY: (t.translateY || 0) + dy / this.scale
-				})
-
-				this.lastMousePos = new SVG.Point(e.clientX, e.clientY)
-				return
-			}
-
 			if (!this.isDrawing || !this.drawStartPoint || !this.tempDrawElement) return
 
 			const localPt = getLocalCoords(e)
@@ -299,12 +341,6 @@ export class SymbolEditorController {
 		})
 
 		this.svg.on("mouseup", (e: MouseEvent) => {
-			if (e.button === 2) {
-				this.isPanning = false
-				this.lastMousePos = null
-				return
-			}
-
 			if (!this.isDrawing || !this.tempDrawElement) return
 			this.isDrawing = false
 
@@ -341,18 +377,13 @@ export class SymbolEditorController {
 			const cx = e.clientX - rect.left
 			const cy = e.clientY - rect.top
 			
-			const t = this.viewport.transform()
-			const tx = t.translateX || 0
-			const ty = t.translateY || 0
-			
-			const newTx = tx + cx / newScale - cx / oldScale
-			const newTy = ty + cy / newScale - cy / oldScale
+			this.panX = cx - (newScale / oldScale) * (cx - this.panX)
+			this.panY = cy - (newScale / oldScale) * (cy - this.panY)
 			
 			this.viewport.transform({
-				...t,
 				scale: this.scale,
-				translateX: newTx,
-				translateY: newTy
+				translateX: this.panX,
+				translateY: this.panY
 			})
 		})
 	}
@@ -420,8 +451,9 @@ export class SymbolEditorController {
 	public async open(symbolId: string) {
 		try {
 			this.initDOM()
+			const runtime = this.getRuntime()
 
-			const customSymbol = MainController.instance.customSymbols.find(s => s.id === symbolId)
+			const customSymbol = runtime.findCustomSymbol(symbolId)
 			if (!customSymbol) {
 				console.error("Custom symbol not found in DB list:", symbolId)
 				return
@@ -439,7 +471,7 @@ export class SymbolEditorController {
 			this.deselect()
 
 			// Locate standard/custom ComponentSymbol
-			const compSymbol = MainController.instance.symbols.find(s => s.tikzName === this.tikzName)
+			const compSymbol = runtime.findRuntimeSymbol(this.tikzName)
 			if (!compSymbol) {
 				console.error("ComponentSymbol not initialized in symbols pool for edit:", this.tikzName)
 				return
@@ -457,13 +489,14 @@ export class SymbolEditorController {
 			const flatElements: SVG.Element[] = []
 			let rawLeafIndex = 0
 
-			const collectFlatElements = (el: SVG.Element, inheritedStyles: { stroke?: string; strokeWidth?: string; fill?: string; className?: string }) => {
+			const collectFlatElements = (el: SVG.Element, inheritedStyles: Map<string, string>) => {
 				if (el.node.tagName.toLowerCase() === "g") {
-					const currentStyles = {
-						stroke: el.node.hasAttribute("stroke") ? el.attr("stroke") : inheritedStyles.stroke,
-						strokeWidth: el.node.hasAttribute("stroke-width") ? el.attr("stroke-width") : inheritedStyles.strokeWidth,
-						fill: el.node.hasAttribute("fill") ? el.attr("fill") : inheritedStyles.fill,
-						className: el.node.hasAttribute("class") ? el.attr("class") : inheritedStyles.className
+					const currentStyles = new Map(inheritedStyles)
+					for (const attrName of inheritedPresentationAttributes) {
+						if (el.node.hasAttribute(attrName)) {
+							const value = el.node.getAttribute(attrName)
+							if (value !== null) currentStyles.set(attrName, value)
+						}
 					}
 					const children = el.children()
 					for (const child of children) {
@@ -471,15 +504,21 @@ export class SymbolEditorController {
 					}
 				} else {
 					// Inherit styles if not set on the leaf node
-					if (inheritedStyles.stroke && !el.node.hasAttribute("stroke")) el.attr("stroke", inheritedStyles.stroke)
-					if (inheritedStyles.strokeWidth && !el.node.hasAttribute("stroke-width")) el.attr("stroke-width", inheritedStyles.strokeWidth)
+					for (const [attrName, value] of inheritedStyles) {
+						if (!el.node.hasAttribute(attrName)) el.attr(attrName, value)
+					}
 					
-					const finalFill = el.node.hasAttribute("fill") ? el.attr("fill") : (inheritedStyles.fill || "none")
+					const explicitFill = el.node.getAttribute("fill")
+					const inheritedFill = inheritedStyles.get("fill")
+					const finalFill = el.node.tagName.toLowerCase() === "path"
+						? resolveEditorPathFill(el.attr("d"), explicitFill, inheritedFill)
+						: resolveEditorFill(el.node.tagName.toLowerCase(), explicitFill, inheritedFill)
 					el.attr("fill", finalFill)
 
-					if (inheritedStyles.className) {
+					const inheritedClassName = inheritedStyles.get("class")
+					if (inheritedClassName) {
 						const childClass = el.attr("class")
-						el.attr("class", childClass ? `${childClass} ${inheritedStyles.className}` : inheritedStyles.className)
+						el.attr("class", childClass ? `${childClass} ${inheritedClassName}` : inheritedClassName)
 					}
 					if (el.node.tagName.toLowerCase() === "path" && finalFill === "none") {
 						const pathStr = el.attr("d")
@@ -533,7 +572,7 @@ export class SymbolEditorController {
 					if (tag === "rect" && node.classList.contains("clickBackground")) continue
 					
 					const adopted = SVG.adopt(node.cloneNode(true) as HTMLElement)
-					collectFlatElements(adopted, {})
+					collectFlatElements(adopted, new Map())
 				}
 			}
 
@@ -556,7 +595,9 @@ export class SymbolEditorController {
 			this.modal.show()
 		} catch (err) {
 			console.error("Error opening symbol editor modal:", err)
-			await MainController.instance.openAlert("Error Opening Editor", err.stack || String(err))
+			if (this.runtime) {
+				await this.runtime.openAlert("Error Opening Editor", (err as any)?.stack || String(err))
+			}
 		}
 	}
 
@@ -575,9 +616,13 @@ export class SymbolEditorController {
 		const tx = (cw / 2) - (box.cx * this.scale)
 		const ty = (ch / 2) - (box.cy * this.scale)
 
+		this.panX = tx
+		this.panY = ty
+
 		this.viewport.transform({
 			scale: this.scale,
-			translate: [tx / this.scale, ty / this.scale]
+			translateX: this.panX,
+			translateY: this.panY
 		})
 	}
 
@@ -808,6 +853,8 @@ export class SymbolEditorController {
 	}
 
 	private async save() {
+		const runtime = this.getRuntime()
+
 		// Assemble child nodes representing shape elements
 		const elementsXmlArr: string[] = []
 		this.elementsGroup.each((index, members) => {
@@ -848,25 +895,46 @@ export class SymbolEditorController {
 
 		const symbolDB = document.getElementById("symbolDB")
 		const baseSymbolName = this.customSymbol.baseSymbol || "nmos"
-		
-		console.log("[HVNMOS_DEBUG] save() initiated. baseSymbol:", baseSymbolName, "symbolDB exists:", !!symbolDB);
 
 		// Locate original base component to perform SVG/pins diffing
 		const baseComponentNode = symbolDB ? 
 			Array.from(symbolDB.getElementsByTagName("component")).find(c => c.getAttribute("tikz") === baseSymbolName) : 
 			null
-		console.log("[HVNMOS_DEBUG] baseComponentNode found:", !!baseComponentNode);
 		
 		const baseVariants = baseComponentNode ? Array.from(baseComponentNode.getElementsByTagName("variant")) : []
-		console.log("[HVNMOS_DEBUG] baseVariants count:", baseVariants.length);
 
 		const compVariants = compNode.getElementsByTagName("variant")
 		const newSymbolsMap: { [key: string]: string } = {}
+		const optionKeyForVariant = (variant: Element | undefined | null) => {
+			if (!variant) return ""
+			return Array.from(variant.getElementsByTagName("option"))
+				.map((option) => option.getAttribute("name") || "")
+				.filter(Boolean)
+				.sort()
+				.join("\u0000")
+		}
+		const baseVariantByOptions = new Map<string, Element>()
+		baseVariants.forEach((variant) => baseVariantByOptions.set(optionKeyForVariant(variant), variant))
+		const findBaseVariantForCustomVariant = (variant: Element | undefined | null, index: number): Element | null => {
+			if (!variant) return null
+			const baseFor = variant.getAttribute("data-base-for")
+			if (baseFor) {
+				const matched = baseVariants.find((baseVariant) => baseVariant.getAttribute("for") === baseFor)
+				if (matched) return matched
+			}
+
+			const matchedByOptions = baseVariantByOptions.get(optionKeyForVariant(variant))
+			if (matchedByOptions) return matchedByOptions
+
+			return baseVariants[index] ?? null
+		}
+		const origBaseVariant = findBaseVariantForCustomVariant(compVariants[0], 0) || baseVariants[0]
 
 		// Rebuild all variant symbol definitions
 		for (let i = 0; i < compVariants.length; i++) {
 			const variantNode = compVariants[i]
 			const newSymbolId = variantNode.getAttribute("for")!
+			const origVarVariant = findBaseVariantForCustomVariant(variantNode, i)
 
 			// 1. Rebuild pins list for this variant (keep edited base pins, merge variant-specific original pins)
 			const existingPinNodes = variantNode.querySelectorAll("pin")
@@ -877,8 +945,6 @@ export class SymbolEditorController {
 				variantPins = pins
 			} else {
 				variantPins = [...pins]
-				const origBaseVariant = baseVariants[0]
-				const origVarVariant = baseVariants[i]
 				const basePinNames = new Set(
 					origBaseVariant ? 
 					Array.from(origBaseVariant.getElementsByTagName("pin")).map(p => p.getAttribute("name")) : 
@@ -924,8 +990,8 @@ export class SymbolEditorController {
 			if (i === 0) {
 				newSymbolXml = `<symbol id="${newSymbolId}">\n<g fill="none" stroke="${defaultStroke}" stroke-miterlimit="10" stroke-width=".4">\n${elementsXmlArr.join("\n")}\n</g>\n${clickRectHtml}\n</symbol>`
 			} else {
-				const origBaseSymId = baseVariants[0]?.getAttribute("for")
-				const origVarSymId = baseVariants[i]?.getAttribute("for")
+				const origBaseSymId = origBaseVariant?.getAttribute("for")
+				const origVarSymId = origVarVariant?.getAttribute("for")
 				const origBaseSymNode = origBaseSymId ? document.getElementById(origBaseSymId) : null
 				const origVarSymNode = origVarSymId ? document.getElementById(origVarSymId) : null
 
@@ -933,38 +999,9 @@ export class SymbolEditorController {
 				const deletedBaseIndices = new Set<number>()
 
 				if (origBaseSymNode && origVarSymNode) {
-					const getLeafElements = (symNode: Element) => {
-						const els: string[] = []
-						const traverse = (node: Element) => {
-							if (node.tagName.toLowerCase() === "pin" || node.classList.contains("clickBackground")) return
-							if (node.tagName.toLowerCase() === "g" || node.tagName.toLowerCase() === "symbol") {
-								Array.from(node.children).forEach(traverse)
-							} else {
-								els.push(node.outerHTML.trim())
-							}
-						}
-						traverse(symNode)
-						return els
-					}
-
-					const baseLeafs = getLeafElements(origBaseSymNode)
-					const varLeafs = getLeafElements(origVarSymNode)
-					const varLeafsSet = new Set(varLeafs)
-
-					// Subtractive diff: identify original leaves removed by this option
-					baseLeafs.forEach((leaf, idx) => {
-						if (!varLeafsSet.has(leaf)) {
-							deletedBaseIndices.add(idx)
-						}
-					})
-					
-					// Additive diff: identify new leaves added by this option
-					const baseLeafsSet = new Set(baseLeafs)
-					varLeafs.forEach(leaf => {
-						if (!baseLeafsSet.has(leaf)) {
-							decoratorElements.push(leaf)
-						}
-					})
+					const diff = buildSymbolVariantDiff(origBaseSymNode, origVarSymNode)
+					diff.deletedBaseIndices.forEach((idx) => deletedBaseIndices.add(idx))
+					decoratorElements.push(...diff.decoratorElements)
 				}
 
 				// Filter edited elements array to remove deleted base leaves
@@ -983,13 +1020,11 @@ export class SymbolEditorController {
 			newSymbolsMap[newSymbolId] = newSymbolXml
 		}
 
-		console.log("[HVNMOS_DEBUG] rebuilt symbols keys:", Object.keys(newSymbolsMap));
-
 		// Update database record
 		this.customSymbol.componentXml = compNode.outerHTML
 		this.customSymbol.symbols = newSymbolsMap
 
-		MainController.instance.putCustomSymbolRecord(this.customSymbol).then(() => {
+		runtime.persistCustomSymbol(this.customSymbol).then(() => {
 			console.log("Custom symbol successfully saved in IndexedDB:", this.tikzName)
 			
 			// Hot-reload DOM `#symbolDB` content
@@ -1009,7 +1044,7 @@ export class SymbolEditorController {
 			}
 
 			// Update runtime memory `ComponentSymbol` instance mapping
-			const compSymbol = MainController.instance.symbols.find(s => s.tikzName === this.tikzName)
+			const compSymbol = runtime.findRuntimeSymbol(this.tikzName)
 			if (compSymbol) {
 				const variantNodes = compNode.getElementsByTagName("variant")
 				for (let i = 0; i < variantNodes.length; i++) {
@@ -1031,7 +1066,7 @@ export class SymbolEditorController {
 							// Re-preprocess symbol colors on the newly appended DOM element
 							const g = symElement.querySelector("g")
 							if (g) {
-								(MainController.instance as any).preprocessSymbolColors(g)
+								runtime.preprocessSymbolColors(g)
 							}
 						}
 
@@ -1055,7 +1090,7 @@ export class SymbolEditorController {
 			}
 
 			// Hot-reload all placed instances of this custom symbol on canvas
-			for (const comp of MainController.instance.circuitComponents) {
+			for (const comp of runtime.getCircuitComponents()) {
 				if ((comp as any).referenceSymbol === compSymbol || (comp as any).referenceSymbol?.tikzName === this.tikzName) {
 					// Trigger update options to fetch newly updated SVG layout and snaps
 					if (typeof (comp as any).updateOptions === "function") {
@@ -1070,7 +1105,7 @@ export class SymbolEditorController {
 			this.modal.hide()
 			
 			// Refresh Symbols offcanvas view list
-			MainController.instance.loadAndRenderCustomCategories()
+			void runtime.refreshCustomCategories()
 		})
 	}
 }

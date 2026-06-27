@@ -1,25 +1,22 @@
 import * as SVG from "@svgdotjs/svg.js"
 import {
-	AbstractConstructor,
-	basicDirections,
-	BooleanProperty,
-	CanvasController,
-	ChoiceEntry,
-	ChoiceProperty,
+	type ComponentSaveObject,
 	CircuitComponent,
-	CircuitikzTo,
-	ColorProperty,
-	ComponentSaveObject,
-	defaultBasicDirection,
-	DirectionInfo,
-	MathJaxProperty,
-	PropertyCategories,
-	renderMathJax,
-	SaveController,
-	SectionHeaderProperty,
-	SliderProperty,
-	TikzNodeCommand,
-} from "../internal"
+} from "../components/circuitComponent"
+import { CanvasController } from "../controllers/canvasController"
+import { SaveController } from "../controllers/saveController"
+import { BooleanProperty } from "../properties/booleanProperty"
+import type { ChoiceEntry } from "../properties/choiceProperty"
+import { ChoiceProperty } from "../properties/choiceProperty"
+import { ColorProperty } from "../properties/colorProperty"
+import { MathJaxProperty } from "../properties/mathjaxProperty"
+import { PropertyCategories } from "../properties/propertiesCollection"
+import { SectionHeaderProperty } from "../properties/sectionHeaderProperty"
+import { SliderProperty } from "../properties/sliderProperty"
+import { renderMathJax } from "../utils/textHelper"
+import type { CircuitikzTo, TikzNodeCommand } from "../utils/tikzBuilder"
+import type { AbstractConstructor } from "../utils/utils"
+import { basicDirections, defaultBasicDirection, type DirectionInfo } from "../utils/directions"
 import { roundTikz } from "../utils/selectionHelper"
 
 /**
@@ -205,7 +202,9 @@ export function PositionLabelable<TBase extends AbstractConstructor<CircuitCompo
 				} else {
 					posStr = reference.toTikzString(true)
 				}
-				let latexStr = this.mathJaxLabel.value ? "$" + this.mathJaxLabel.value + "$" : ""
+				const hasMathDelimiter = this.mathJaxLabel.value ? this.mathJaxLabel.value.includes("$") : false;
+				const hasFontCommand = this.mathJaxLabel.value ? /\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/.test(this.mathJaxLabel.value) : false;
+				let latexStr = this.mathJaxLabel.value ? ((hasMathDelimiter || hasFontCommand) ? this.mathJaxLabel.value : "$" + this.mathJaxLabel.value + "$") : ""
 				latexStr =
 					latexStr && this.labelColor.value ?
 						"\\textcolor" + this.labelColor.value.toTikzString() + "{" + latexStr + "}"

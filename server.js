@@ -8,10 +8,10 @@
  */
 
 const http  = require('http');
-const https = require('https');
 const fs    = require('fs');
 const path  = require('path');
 const url   = require('url');
+const { handleLatexProxyRequest } = require('./server/latexProxy');
 
 const PORT = process.env.PORT || 3001;
 const ROOT = __dirname;
@@ -213,46 +213,6 @@ function serveStatic(req, res) {
   });
 }
 
-// ---------- QuickLaTeX proxy ----------
-function proxyLatex(req, res) {
-  let body = '';
-  req.on('data', chunk => { body += chunk; });
-  req.on('end', () => {
-    const options = {
-      hostname: 'quicklatex.com',
-      path:     '/latex3.f',
-      method:   'POST',
-      headers: {
-        'Content-Type':   'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(body),
-        'User-Agent':     'VisioCirkit-Proxy/1.0',
-        'Referer':        'https://quicklatex.com/',
-      },
-    };
-
-    const proxyReq = https.request(options, proxyRes => {
-      let data = '';
-      proxyRes.on('data', chunk => { data += chunk; });
-      proxyRes.on('end', () => {
-        res.writeHead(proxyRes.statusCode, {
-          'Content-Type':                'text/plain; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-        });
-        res.end(data);
-      });
-    });
-
-    proxyReq.on('error', err => {
-      console.error('[proxy] QuickLaTeX error:', err.message);
-      res.writeHead(502, { 'Content-Type': 'text/plain' });
-      res.end('Proxy error: ' + err.message);
-    });
-
-    proxyReq.write(body);
-    proxyReq.end();
-  });
-}
-
 // ---------- Main server ----------
 const server = http.createServer((req, res) => {
   const { pathname } = url.parse(req.url);
@@ -268,8 +228,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (pathname === '/api/latex' && req.method === 'POST') {
-    proxyLatex(req, res);
+  if (pathname === '/api/latex') {
+    handleLatexProxyRequest(req, res);
   } else if (pathname === '/api/files' && req.method === 'GET') {
     try {
       const templates = fs.readdirSync(TEMPLATES_DIR).filter(f => f.endsWith('.tex'));

@@ -1,0 +1,26 @@
+\tikzset{
+  hvnmos/.style={
+    nmos,
+    draw=none,
+    fill=none,
+    append after command={
+      \begin{scope}[shift={(\tikzlastnode.center)}]
+        \draw [line width=.53134pt] (0.000, 0.777) -- (0.000, 0.270) -- (-0.490, 0.270);
+        \draw [line width=.53134pt] (-0.490, -0.270) -- (0.000, -0.270) -- (0.000, -0.777);
+        \draw [line width=1.06267pt] (-0.490, 0.385) -- (-0.490, -0.385);
+        \draw [line width=2.6pt] (-0.608, 0.270) -- (-0.608, -0.270);
+        \draw [line width=.53134pt] (-0.608, 0.000) -- (-0.987, 0.000);
+        \draw [line width=1.5pt] (-0.478, 0.109) -- (-0.015, 0.268);
+      \end{scope}
+    }
+  }
+}
+\begin{tikzpicture}[transform shape]
+  % Paths, nodes and wires:
+  \node[hvnmos] at (-1.5, 3){};
+  \node[hvnmos] at (-1.5, 0.98){};
+  \draw (0, 0) to[sinusoidal voltage source, l={$V_s$}] (0, 3);
+  \draw (0, 3) to[american resistor, l={$R_1$}] (4, 3);
+  \draw (4, 3) to[capacitor, l={$C_1$}] (4, 0);
+  \draw (4, 0) -- (0, 0);
+\end{tikzpicture}

@@ -1,16 +1,6 @@
 import * as SVG from "@svgdotjs/svg.js"
-import {
-	ButtonGridProperty,
-	CircuitComponent,
-	ComponentSaveObject,
-	MainController,
-	PropertyCategories,
-	SectionHeaderProperty,
-	SelectionController,
-	SelectionMode,
-	SnappingInfo,
-	Undo,
-} from "../internal"
+import { ButtonGridProperty, ComponentSaveObject, MainController, PropertyCategories, SectionHeaderProperty, SelectionController, SelectionMode, SnappingInfo, Undo } from "../internal"
+import { CircuitComponent } from "./circuitComponent"
 import { rectRectIntersection } from "../utils/selectionHelper"
 
 export type GroupSaveObject = ComponentSaveObject & {
@@ -19,8 +9,13 @@ export type GroupSaveObject = ComponentSaveObject & {
 
 export class GroupComponent extends CircuitComponent {
 	private static jsonID = "group"
+	private static createSubcircuitHandler: () => void = () => {}
 	static {
 		CircuitComponent.jsonSaveMap.set(GroupComponent.jsonID, GroupComponent)
+	}
+
+	public static setCreateSubcircuitHandler(handler: () => void) {
+		GroupComponent.createSubcircuitHandler = handler
 	}
 
 	public groupedComponents: CircuitComponent[] = []
@@ -49,7 +44,7 @@ export class GroupComponent extends CircuitComponent {
 		let grouping = new ButtonGridProperty(
 			2,
 			[["Ungroup", ""], ["Save to Symbols", ""]],
-			[(ev) => this.ungroup(), (ev) => MainController.instance.createSubcircuitFromSelection()],
+			[(ev) => this.ungroup(), () => GroupComponent.createSubcircuitHandler()],
 			undefined,
 			undefined,
 			"ordering:ungroup"

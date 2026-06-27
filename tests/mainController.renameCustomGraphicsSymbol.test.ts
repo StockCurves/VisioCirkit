@@ -83,9 +83,25 @@ vi.mock("../src/scripts/internal", () => ({
 	SymbolEditorController: { instance: {} },
 	TemplateController: { instance: { initialize: vi.fn().mockResolvedValue(undefined) } },
 	LiveRenderController: { instance: { init: vi.fn() } },
+	EditableProperty: class {},
+}))
+vi.mock("../src/scripts/components/groupComponent", () => ({
+	GroupComponent: class {
+		public static group = vi.fn()
+	},
+}))
+vi.mock("../src/scripts/components/subcircuitComponent", () => ({
+	SubcircuitComponent: class {
+		public constructor() {}
+
+		public toJson() {
+			return { type: "subcircuit" }
+		}
+	},
 }))
 
 import { MainController } from "../src/scripts/controllers/mainController"
+import { CustomSymbolApplicationService } from "../src/scripts/services/customSymbolApplicationService"
 import { CustomSymbolService } from "../src/scripts/services/customSymbolService"
 import { CustomSymbolDomService } from "../src/scripts/services/customSymbolDomService"
 
@@ -126,6 +142,17 @@ function makeTransaction(
 						const request: { onsuccess: null | ((ev: any) => void) } = { onsuccess: null }
 						setTimeout(() => {
 							request.onsuccess?.({ target: { result: stores.customSymbols.get(key) } })
+						}, 0)
+						return request
+					},
+					getAll() {
+						const request: { onsuccess: null | ((ev: any) => void) } = { onsuccess: null }
+						setTimeout(() => {
+							request.onsuccess?.({
+								target: {
+									result: [...stores.customSymbols.values()],
+								},
+							})
 						}, 0)
 						return request
 					},
@@ -213,7 +240,7 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 			transaction: vi.fn((storeNames: string | string[]) => makeTransaction(stores, storeNames)),
 		}
 
-		const context = {
+		const context: any = {
 			db,
 			customSymbolDomService: new CustomSymbolDomService(),
 			customSymbolService: new CustomSymbolService(
@@ -221,10 +248,33 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 				new CustomSymbolDomService(),
 				vi.fn().mockResolvedValue(null)
 			),
+			customSymbolApplicationService: new CustomSymbolApplicationService(
+				new CustomSymbolService(() => db as any, new CustomSymbolDomService(), vi.fn().mockResolvedValue(null))
+			),
 			symbols: [oldRuntimeSymbol],
 			customSymbols: [{ id: oldSymbolRecord.id, tikzName: "old mos" }],
 			circuitComponents: [renamedComponent],
-			loadAndRenderCustomCategories: vi.fn(),
+			customCategories: [{ name: "My Favorite", symbolIds: ["old mos"] }],
+			customSymbolWorkspaceController: {
+				applyAndRender: vi.fn((state: { customCategories: FakeCategory[]; customSymbols: any[] }) => {
+					context.customCategories = state.customCategories
+					context.customSymbols = state.customSymbols
+				}),
+			},
+		}
+		context.customSymbolGraphicsController = {
+			renameCustomGraphicsSymbol: async (oldTikzName: string, newTikzName: string) => {
+				const state = await context.customSymbolApplicationService.renameGraphicsSymbol(
+					oldTikzName,
+					newTikzName,
+					document.getElementById("symbolDB"),
+					context.symbols,
+					context.customSymbols,
+					context.circuitComponents
+				)
+				if (state === "no-op" || state === "missing-dom") return
+				context.customSymbolWorkspaceController.applyAndRender(state, context.symbols)
+			},
 		}
 
 		await MainController.prototype.renameCustomGraphicsSymbol.call(context, "old mos", "new mos")
@@ -247,6 +297,6 @@ describe("MainController.renameCustomGraphicsSymbol", () => {
 		expect(document.querySelector(`component[tikz="old mos"]`)).toBeNull()
 		expect(document.getElementById("node_new mos")).not.toBeNull()
 		expect(document.querySelector(`component[tikz="new mos"]`)).not.toBeNull()
-		expect(context.loadAndRenderCustomCategories).toHaveBeenCalledTimes(1)
+		expect(context.customSymbolWorkspaceController.applyAndRender).toHaveBeenCalledTimes(1)
 	})
 })
