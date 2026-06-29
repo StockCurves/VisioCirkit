@@ -24,7 +24,15 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    ```bash
    python .agents/skills/sch2tikz/scripts/verify_tikz.py sch2tikz-out/YYYY-MMDD-HHMM.tikz
    ```
-6. **Iterate**: Inspect the compiled SVG. If there are misalignment or layout bugs, update the coordinates and compile again until perfect.
+6. **Editor Compatibility Lint**: Run the local lint script before handing off generated code:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/lint_editor_compat.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --report sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md
+   ```
+7. **Visual Overlay QA**: When the original image and rendered output are both available, create an overlay report:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/overlay_diff.py sch2tikz-out/YYYY-MMDD-HHMM-upload.png sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg
+   ```
+8. **Iterate**: Inspect the compiled SVG and overlay report. Treat label size, font metrics, and hand-drawn wobble as low-priority visual differences; prioritize topology, pin alignment, missing symbols, wire routing, and connection dots.
 
 ## Output Formatting & Storage
 
@@ -32,6 +40,10 @@ Save the resulting files in the following format:
 - `sch2tikz-out/YYYY-MMDD-HHMM-upload.png` (the original uploaded schematic image)
 - `sch2tikz-out/YYYY-MMDD-HHMM.tikz` (the CircuiTikZ LaTeX source file)
 - `sch2tikz-out/YYYY-MMDD-HHMM.png` or `_rendered.svg` (the compiled output image)
+- `sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md` (optional editor compatibility lint report)
+- `sch2tikz-out/YYYY-MMDD-HHMM_rendered_overlay.html` (optional visual overlay QA report)
+
+These scripts are manual agent/developer QA tools. Do not wire them into the production frontend bundle, Vercel build command, or `build:demo` unless a separate deployment decision is made.
 
 ---
 
