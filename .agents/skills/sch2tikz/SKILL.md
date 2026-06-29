@@ -60,12 +60,12 @@ All wire and drawing coordinates must use absolute numerical values (e.g. `(2.5,
 ### 2. Node Pin References
 For wires connecting to multi-pin components (like op amps or logic gates), use `(NODE_NAME.PIN_NAME)` references *after* the node is defined (e.g. `\draw (0.2, 6.01) -- (OP4.+);`).
 
-### 3. No Custom Styles (Draw Terminals Manually)
-Do not use custom node styles (such as `[terminal]`) for input/output terminals. The editor parser cannot resolve custom styles and will render them as huge default rectangles.
-Instead, draw terminal boxes manually using `\draw rectangle` and place the text label nearby:
+### 3. Use osquarepole for Terminals
+Do not use custom node styles (such as `[terminal]`) or manually draw rectangles for input/output terminals.
+Instead, use standard CircuiTikZ `osquarepole` nodes for terminal boxes and place the text label nearby:
 ```tikz
 % V_A Terminal
-\draw (0.1, 5.935) rectangle (0.3, 6.085);
+\node[osquarepole] at (0.1, 6.01) {};
 \draw (0.05, 6.01) node[left] {$V_A$};
 ```
 
