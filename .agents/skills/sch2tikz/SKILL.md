@@ -118,6 +118,22 @@ Emit connection dots as editor-native `circ` nodes instead:
 ```
 This keeps `Apply` round-trips stable and avoids the parser converting dots into generic circle shapes.
 
+### 8. Proportional Spacing and Bounding Box Budgets
+To prevent overlaps, text truncation, and crowded components, you MUST calculate and allocate coordinates using the following virtual Bounding Box (including clearance envelop) budgets (in cm):
+- `op amp` / `comparator`: Width 2.4cm, Height 1.2cm
+- Multi-pin logic ports (`nand`, `and`, `or`): Width 1.6cm, Height 1.0cm
+- Single-pin logic ports (`not`): Width 1.4cm, Height 0.6cm
+- Passive component / switch (`R`, `C`, `L`, `opening switch`): Width 1.0cm, Height 0.6cm
+- Text Label: Width 1.5cm, Height 0.5cm (with explicit anchors e.g., [anchor=east])
+- Timing Waveform Sketch: Width 4.5cm, Height 2.5cm
+
+### 9. Clearance and Routing Rules
+1. **Orthogonal Routing**: Unless the source schematic explicitly contains diagonal connections (e.g. cross-coupled latch feedback paths, bridge rectifiers, wheatstone bridges), all wiring MUST be strictly orthogonal (horizontal or vertical only) and aligned precisely with component pins.
+2. **Intentional Diagonals**: If the source diagram intentionally uses diagonal paths, render them faithfully as diagonal lines using absolute coordinates. Do not attempt to force them into straight orthogonal lines.
+3. **Wire Clearance**: Maintain at least 0.6cm clearance between any wire and adjacent parallel component bounding box edges.
+4. **Block Isolation**: Maintain a minimum clearance gap of 1.5cm between independent logical stages (e.g., buffer block to comparator block).
+5. **Connection Dots**: Use `\node[circ] at (x, y) {};` for T-junctions or cross connections. Do not use filled circles `\fill`.
+
 ---
 
 ## Pin Offset Table (Reference)
