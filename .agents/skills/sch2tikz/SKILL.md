@@ -1,15 +1,15 @@
 ---
 name: sch2tikz
-description: Convert schematic circuit images into editor-compatible CircuiTikZ code, lookup pin coordinates, and compile/verify rendered output via QuickLaTeX SVG API.
+description: Convert schematic circuit images into editor-compatible CircuiTikZ code, lookup pin coordinates, and compile/verify rendered output locally or via QuickLaTeX fallback.
 ---
 
 # Schematic to TikZ (sch2tikz) Skill
 
-This skill converts schematic circuit diagrams into clean, editor-compatible CircuiTikZ LaTeX code and verifies the output iteratively using the QuickLaTeX API.
+This skill converts schematic circuit diagrams into clean, editor-compatible CircuiTikZ LaTeX code and verifies the output iteratively. Prefer local LaTeX rendering when available; if local `pdflatex` is unavailable, use the QuickLaTeX API fallback.
 
 ## Process
 
-1. **Save Uploaded Image**: Save the user's uploaded circuit image to the output directory:
+1. **Save Uploaded Image (Blocking First Step)**: Before analysis, drafting, linting, or verification, save the user's uploaded circuit image to the output directory. Do not move on until the original upload is preserved:
    ```bash
    # Copy the uploaded image from temp media storage
    cp <temp_media_path> sch2tikz-out/YYYY-MMDD-HHMM-upload.png
@@ -20,10 +20,13 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    python .agents/skills/sch2tikz/scripts/lookup_pin_offset.py "op amp"
    ```
 4. **Draft TikZ Code**: Write clean TikZ code using the **Editor Compatibility Rules** below.
-5. **Compile and Verify**: Save to a `.tikz` file and compile to a vector SVG using the verification script:
+5. **Compile and Verify**: Save to a `.tikz` file and compile/render it before handoff.
+   - First check for local LaTeX tooling (`pdflatex`, `lualatex`, or `tectonic`) and use the local renderer if available.
+   - If local `pdflatex`/LaTeX rendering is not available, use the QuickLaTeX verification script as the fallback:
    ```bash
    python .agents/skills/sch2tikz/scripts/verify_tikz.py sch2tikz-out/YYYY-MMDD-HHMM.tikz
    ```
+   - QuickLaTeX sends the generated TikZ content to an external service; this is the expected fallback path for this skill when local rendering is unavailable.
 6. **Editor Compatibility Lint**: Run the local lint script before handing off generated code:
    ```bash
    python .agents/skills/sch2tikz/scripts/lint_editor_compat.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --report sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md
@@ -32,7 +35,7 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    ```bash
    python .agents/skills/sch2tikz/scripts/overlay_diff.py sch2tikz-out/YYYY-MMDD-HHMM-upload.png sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg
    ```
-8. **Iterate**: Inspect the compiled SVG and overlay report. Treat label size, font metrics, and hand-drawn wobble as low-priority visual differences; prioritize topology, pin alignment, missing symbols, wire routing, and connection dots.
+8. **Iterate**: Inspect the compiled SVG and overlay report. Treat label size, font metrics, and hand-drawn wobble as low-priority visual differences; prioritize topology, pin alignment, missing symbols, wire routing, and connection dots. Do not present the result as visually verified unless render verification and overlay QA were actually run.
 
 ## Output Formatting & Storage
 

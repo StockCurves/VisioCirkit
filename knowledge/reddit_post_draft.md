@@ -20,14 +20,16 @@ Show r/LaTeX: VisioCirkit – A WYSIWYG CircuiTikZ Editor with Two-Way Editing
 
 **Body:**
 
+![Agent Skills Showcase](https://raw.githubusercontent.com/StockCurves/VisioCirkit/main/examples/2026-agent-skills.png)
+
 Hi everyone,
 
-We've built **VisioCirkit** (an enhanced fork of _CircuiTikZ-Designer_). It's an open-source, Visio-style WYSIWYG editor designed to take the pain out of creating LaTeX circuit diagrams.
+We've built **VisioCirkit** (a fork of _CircuiTikZ-Designer_), an open-source, WYSIWYG editor designed to take the pain out of creating LaTeX circuit diagrams.
 
 - 🌐 **Live Demo (Vercel):** https://visio-cirkit.vercel.app/
 - 💻 **GitHub Repo:** https://github.com/StockCurves/VisioCirkit
 
-### Key Improvements Over the Original Fork
+### Key Features
 
 - **Custom Symbol Editor:** Duplicate and tweak built-in CircuiTikZ components to perfectly meet your design needs.
 - **Visual Subcircuit Previews & Grouping:** Group multiple components into custom subcircuits, and see actual visual previews in the symbols panel.
