@@ -153,11 +153,28 @@ To achieve extremely fast rendering verification (under 1 second compared to 8+ 
 - `dvisvgm` is required to convert Compiled PDF outputs into vector SVG format. It is bundled by default in most MiKTeX and TeX Live installations.
 - Ensure `pdflatex` and `dvisvgm` are discoverable by running `pdflatex --version` and `dvisvgm --version` in your terminal.
 
-### 3. Recommended Packages
-Ensure the following LaTeX packages are installed in your TeX manager:
-- `standalone`
-- `circuitikz` (v1.8.0+)
-- `amsmath`, `amsfonts`, `amssymb`
-- `siunitx`
+### 3. Required MiKTeX/LaTeX Packages
+Ensure the following LaTeX packages and their dependencies are installed in your TeX manager (e.g. MiKTeX Console):
+- **Core packages**:
+  - `standalone` (Document class/package for cropping figures)
+  - `circuitikz` (v1.8.0+ for circuit design symbols)
+  - `pgf` (TikZ backend drawing engine)
+- **Math & Units**:
+  - `amsmath`, `amsfonts`, `amssymb` (For mathematical labeling)
+  - `siunitx` (For SI unit formatting in circuit components)
+- **Dependencies & Helpers** (highly recommended to prevent compilation failures):
+  - `l3kernel`, `l3backend` (LaTeX3 programming layer, required by `siunitx` and `standalone`)
+  - `xkeyval` (Key-value option processing)
+  - `xstring` (String processing, required by `circuitikz`)
+  - `graphics`, `graphicx`, `trig` (Graphics processing)
+  - `epstopdf-pkg` (EPS graphic conversion)
 
-If package auto-installation is not globally enabled, install them manually using the MiKTeX Console or running `mpm --install=<package_name>`. The verification script automatically runs `pdflatex` with `-disable-installer` to avoid background execution hangs, falling back cleanly to the remote QuickLaTeX API if packages are missing.
+If package auto-installation is not globally enabled in your MiKTeX settings, you can install them manually using the MiKTeX Console or via CLI:
+```bash
+mpm --install=standalone
+mpm --install=circuitikz
+mpm --install=siunitx
+mpm --install=xstring
+mpm --install=l3kernel
+```
+The verification script automatically runs `pdflatex` with `-disable-installer` to avoid background execution hangs due to interactive package installer prompts, falling back cleanly to the remote QuickLaTeX API if any package is missing.
