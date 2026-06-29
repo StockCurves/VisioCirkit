@@ -134,6 +134,11 @@ To prevent overlaps, text truncation, and crowded components, you MUST calculate
 4. **Block Isolation**: Maintain a minimum clearance gap of 1.5cm between independent logical stages (e.g., buffer block to comparator block).
 5. **Connection Dots**: Use `\node[circ] at (x, y) {};` for T-junctions or cross connections. Do not use filled circles `\fill`.
 
+### 10. Horizontal Transistor Flipping
+To flip a MOS transistor horizontally (gate pointing to the right instead of the left):
+- Use `xscale=-1` on the node option (e.g. `\node[pmos, xscale=-1] (M2) at (x, y) {};`).
+- Remember that when `xscale=-1` is applied, the gate pin (e.g. `M2.G`) flips coordinates to the right side: `dx = +0.98` instead of `-0.98` (i.e. x-coordinate is at `x + 0.98`). All wiring connecting to the gate must align horizontally to this flipped position.
+
 ---
 
 ## Pin Offset Table (Reference)
