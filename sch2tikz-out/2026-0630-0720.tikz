@@ -8,19 +8,19 @@
 % --- Component Definitions ---
 
 % Stage 1: Stacked Transistors (Top: M1, M2, M3; Bottom: M4, M5, M6)
-\node[pmos] (M1) at (2.5, 5.5) {};
+\node[pmos, emptycircle] (M1) at (2.5, 5.5) {};
 \node at (2.0, 5.7) {\small M1};
 
-\node[pmos, xscale=-1] (M2) at (2.5, 4.0) {};
+\node[nmos, xscale=-1] (M2) at (2.5, 4.0) {};
 \node at (2.0, 4.2) {\small M2};
 
 \node[nmos] (M3) at (2.5, 2.0) {};
 \node at (2.0, 1.8) {\small M3};
 
-\node[pmos] (M4) at (2.5, -2.0) {};
+\node[pmos, emptycircle] (M4) at (2.5, -2.0) {};
 \node at (2.0, -1.8) {\small M4};
 
-\node[nmos, xscale=-1] (M5) at (2.5, -4.0) {};
+\node[pmos, emptycircle, xscale=-1] (M5) at (2.5, -4.0) {};
 \node at (2.0, -3.8) {\small M5};
 
 \node[nmos] (M6) at (2.5, -5.8) {};
@@ -33,13 +33,13 @@
 \node[american not port] (INVB2) at (4.8, -3.6) {};
 
 % Stage 3: Split-Gate Output Driver Transistors
-\node[pmos] (M_OUT1) at (10.0, 4.0) {};
+\node[pmos, emptycircle] (M_OUT1) at (10.0, 4.0) {};
 \node at (10.5, 4.2) {\small M7};
 
 \node[nmos] (M_OUT2) at (10.0, 2.0) {};
 \node at (10.5, 1.8) {\small M8};
 
-\node[pmos] (M_OUT3) at (10.0, -2.0) {};
+\node[pmos, emptycircle] (M_OUT3) at (10.0, -2.0) {};
 \node at (10.5, -1.8) {\small M9};
 
 \node[nmos] (M_OUT4) at (10.0, -4.0) {};
