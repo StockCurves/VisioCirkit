@@ -1,0 +1,155 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% --- Component Definitions ---
+
+% Stage 1: INT1
+% OP1 Node (fd op amp)
+\node[fd op amp] (OP1) at (4.9, 0.0) {};
+\node at (4.9, 0.0) {OP1};
+
+% Supply lines for OP1
+\draw (4.817, 0.539) -- (4.817, 0.9);
+\draw (4.667, 0.9) -- (4.967, 0.9);
+\node[anchor=south] at (4.817, 0.9) {\small $V_{\mathrm{HV}}$};
+
+\draw (4.817, -0.539) -- (4.817, -0.9);
+\draw (4.667, -0.9) -- (4.967, -0.9);
+\node[anchor=north] at (4.817, -0.9) {\small $V_{\mathrm{LV}}$};
+
+% Input terminals
+\node[osquarepole] at (0.5, 0.49) {};
+\node[anchor=east] at (0.35, 0.49) {\small $V_{\mathrm{IN}}$};
+
+\node[osquarepole] at (0.5, -0.49) {};
+\node[anchor=east] at (0.35, -0.49) {\small $V_{\mathrm{IP}}$};
+
+% R1 resistors
+\draw (0.5, 0.49) to[R=$R_1$] (2.7, 0.49);
+\draw (0.5, -0.49) to[R=$R_1$] (2.7, -0.49);
+
+% C1 capacitors in feedback
+\draw (3.1, 0.49) -- (3.1, 1.4) to[C=$C_1$] (5.9, 1.4) -- (5.9, 0.49);
+\draw (3.1, -0.49) -- (3.1, -1.4) to[C=$C_1$] (5.9, -1.4) -- (5.9, -0.49);
+
+\node[circ] at (3.1, 0.49) {};
+\node[circ] at (5.9, 0.49) {};
+\node[circ] at (3.1, -0.49) {};
+\node[circ] at (5.9, -0.49) {};
+
+% OP1 Inputs connection
+\draw (2.7, 0.49) -- (OP1.-);
+\draw (2.7, -0.49) -- (OP1.+);
+\node[anchor=south east] at (OP1.-) {\small $V_{\mathrm{IN1}}$};
+\node[anchor=north east] at (OP1.+) {\small $V_{\mathrm{IP1}}$};
+
+
+% Stage 2: INT2
+% OP2 Node (fd op amp)
+\node[fd op amp] (OP2) at (11.5, 0.0) {};
+\node at (11.5, 0.0) {OP2};
+
+% Supply lines for OP2
+\draw (11.417, 0.539) -- (11.417, 0.9);
+\draw (11.267, 0.9) -- (11.567, 0.9);
+\node[anchor=south] at (11.417, 0.9) {\small $V_{\mathrm{LV}}$};
+
+% Direct input resistors R2 and capacitors C5 in parallel
+\draw (7.4, 0.49) -- (7.8, 0.49) to[R=$R_2$] (9.0, 0.49);
+\draw (7.8, 0.49) -- (7.8, 1.6) to[C=$C_5$] (9.0, 1.6) -- (9.0, 0.49);
+\node[circ] at (7.8, 0.49) {};
+\node[circ] at (9.0, 0.49) {};
+
+\draw (7.4, -0.49) -- (7.8, -0.49) to[R=$R_2$] (9.0, -0.49);
+\draw (7.8, -0.49) -- (7.8, -1.6) to[C=$C_5$] (9.0, -1.6) -- (9.0, -0.49);
+\node[circ] at (7.8, -0.49) {};
+\node[circ] at (9.0, -0.49) {};
+
+% OP2 Inputs connection (with single vertical tap wire at x = 9.7)
+\draw (9.0, 0.49) -- (OP2.-);
+\draw (9.0, -0.49) -- (OP2.+);
+\node[anchor=south east] at (OP2.-) {\small $V_{\mathrm{IN2}}$};
+\node[anchor=north east] at (OP2.+) {\small $V_{\mathrm{IP2}}$};
+
+\node[circ] at (9.7, 0.49) {};
+\node[circ] at (9.7, -0.49) {};
+
+% Direct feedback capacitors C2 (tapped from the single vertical wire at x = 9.7)
+\draw (9.7, 2.6) to[C=$C_2$] (12.6, 2.6) -- (12.6, 0.49);
+\node[circ] at (12.6, 0.49) {};
+\draw (9.7, 0.49) -- (9.7, 2.6);
+
+\draw (9.7, -2.6) to[C=$C_2$] (12.6, -2.6) -- (12.6, -0.49);
+\node[circ] at (12.6, -0.49) {};
+\draw (9.7, -0.49) -- (9.7, -2.6);
+
+% Cross-coupled inputs R4 - C4 (connecting to the vertical wire at x = 9.7)
+\draw (7.6, -0.49) -- (7.6, -1.0) -- (7.6, 3.6) -- (8.0, 3.6) to[R=$R_4$] (9.0, 3.6) to[C=$C_4$] (9.7, 3.6);
+\node[circ] at (7.6, -0.49) {};
+\draw (9.7, 2.6) -- (9.7, 3.6);
+
+\draw (7.6, 0.49) -- (7.6, 1.0) -- (7.6, -3.6) -- (8.0, -3.6) to[R=$R_4$] (9.0, -3.6) to[C=$C_4$] (9.7, -3.6);
+\node[circ] at (7.6, 0.49) {};
+\draw (9.7, -2.6) -- (9.7, -3.6);
+
+% Cross-coupled feedback C3 - R3 (tapped from the vertical wire at x = 9.7)
+\draw (9.7, 3.6) -- (9.7, 4.6) -- (10.2, 4.6) to[C=$C_3$] (11.2, 4.6) to[R=$R_3$] (12.2, 4.6) -- (12.8, 4.6) -- (12.8, -0.49);
+\node[circ] at (12.8, -0.49) {};
+
+\draw (9.7, -3.6) -- (9.7, -4.6) -- (10.2, -4.6) to[C=$C_3$] (11.2, -4.6) to[R=$R_3$] (12.2, -4.6) -- (12.8, -4.6) -- (12.8, 0.49);
+\node[circ] at (12.8, 0.49) {};
+
+
+% Crossover network
+\draw (OP1.out +) -- (6.2, 0.49) -- (7.0, -0.49) -- (7.4, -0.49);
+\draw (OP1.out -) -- (6.2, -0.49) -- (7.0, 0.49) -- (7.4, 0.49);
+
+% Middle labels
+\node[anchor=south] at (5.95, 0.49) {\small $V_{\mathrm{OP1}}$};
+\node[anchor=north] at (5.95, -0.49) {\small $V_{\mathrm{ON1}}$};
+\node[anchor=south] at (7.25, 0.49) {\small $V_{\mathrm{OP1}}$};
+\node[anchor=north] at (7.25, -0.49) {\small $V_{\mathrm{ON1}}$};
+
+
+% Output summation stage & terminals
+\draw (OP2.out +) -- (14.5, 0.49) to[R=$R_7$] (15.5, 0.49) -- (17.5, 0.49);
+\draw (OP2.out -) -- (14.5, -0.49) to[R=$R_7$] (15.5, -0.49) -- (17.5, -0.49);
+
+\node[osquarepole] at (17.5, 0.49) {};
+\node[anchor=south] at (17.5, 0.49) {\small $V_{\mathrm{SUM,P}}$};
+
+\node[osquarepole] at (17.5, -0.49) {};
+\node[anchor=north] at (17.5, -0.49) {\small $V_{\mathrm{SUM,N}}$};
+
+\node[anchor=south] at (13.7, 0.49) {\small $V_{\mathrm{OP2}}$};
+\node[anchor=north] at (13.7, -0.49) {\small $V_{\mathrm{ON2}}$};
+
+% Output vertical resistors R8
+\draw (15.5, 0.49) to[R=$R_8$, *-] (15.5, 2.5);
+\node[anchor=west] at (15.5, 2.5) {\small $V_{\mathrm{IP}}$};
+
+\draw (15.5, -0.49) to[R=$R_8$, *-] (15.5, -2.5);
+\node[anchor=west] at (15.5, -2.5) {\small $V_{\mathrm{IN}}$};
+
+
+% Outer feedback loops
+\draw (15.5, 2.5) -- (15.5, 5.4) -- (1.4, 5.4) -- (1.4, -0.49);
+\node[circ] at (1.4, -0.49) {};
+
+\draw (15.5, -2.5) -- (15.5, -5.4) -- (1.0, -5.4) -- (1.0, 0.49);
+\node[circ] at (1.0, 0.49) {};
+
+
+% Dashed boxes for INT1 and INT2
+\draw[dashed, thin] (1.5, -2.2) rectangle (6.2, 2.2);
+\node[anchor=south] at (3.85, 2.2) {\textbf{INT1}};
+
+\draw[dashed, thin] (7.2, -5.0) rectangle (13.8, 5.0);
+\node[anchor=south] at (10.5, 5.0) {\textbf{INT2}};
+
+\end{circuitikz}
+\end{document}

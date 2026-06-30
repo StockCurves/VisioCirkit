@@ -600,9 +600,26 @@ export function parseTikz(tikzCode: string): any[] {
 				}
 			} else {
 				if (content || optionsStr) {
-					let isCircle = standalone.includes("circle") || kv["shape"] === "circle";
-					let isEllipse = standalone.includes("ellipse") || kv["shape"] === "ellipse";
-					let shapeType = (isCircle || isEllipse) ? "ellipse" : "rect";
+					const declaredShape = kv["shape"] || "";
+					let isCircle = standalone.includes("circle") || declaredShape === "circle";
+					let isEllipse = standalone.includes("ellipse") || declaredShape === "ellipse";
+					const isRoundedRectangle =
+						standalone.includes("rounded rectangle") ||
+						declaredShape === "rounded rectangle" ||
+						kv["rounded corners"] !== undefined;
+					const isSubprocess = declaredShape === "rectangle" && standalone.includes("double");
+					const isOffPageConnector =
+						declaredShape === "regular polygon" && kv["regular polygon sides"] === "5";
+					let shapeType =
+						isCircle || isEllipse ? "ellipse"
+						: declaredShape === "diamond" ? "flowDecision"
+						: declaredShape === "trapezium" ? "flowInputOutput"
+						: declaredShape === "document" ? "flowDocument"
+						: declaredShape === "cylinder" ? "flowDatabase"
+						: isSubprocess ? "flowSubprocess"
+						: isOffPageConnector ? "flowOffPageConnector"
+						: isRoundedRectangle ? "flowTerminator"
+						: "rect";
 
 					let hasTextWidth = kv["text width"] !== undefined;
 					let textWidthVal = hasTextWidth ? parseDimension(kv["text width"], 0) : 0;
@@ -689,6 +706,16 @@ export function parseTikz(tikzCode: string): any[] {
 					let justifyVal = -1; // START (Top)
 					if (dir.y === 0) justifyVal = 0; // CENTER (Middle)
 					else if (dir.y === 1) justifyVal = 1; // END (Bottom)
+					const isTextOnlyNode =
+						shapeType === "rect" &&
+						!declaredShape &&
+						!kv["minimum width"] &&
+						!kv["minimum height"] &&
+						!kv["minimum size"] &&
+						kv["draw"] === undefined &&
+						kv["fill"] === undefined &&
+						!standalone.includes("draw") &&
+						!standalone.includes("fill");
 
 					components.push({
 						type: shapeType,
@@ -699,7 +726,7 @@ export function parseTikz(tikzCode: string): any[] {
 							text: textClean,
 							align: alignVal,
 							justify: justifyVal,
-							showPlaceholderText: content ? true : false,
+							showPlaceholderText: isTextOnlyNode,
 							isMath: isMath,
 							hasTextWidth: hasTextWidth,
 							textWidth: textWidthVal

@@ -6,7 +6,9 @@ class MockSvgNode {
 	line() { return this }
 	circle() { return this }
 	rect() { return this }
+	radius() { return this }
 	ellipse() { return this }
+	path() { return this }
 	polygon() { return this }
 	polyline() { return this }
 	text() { return this }
@@ -28,6 +30,14 @@ vi.mock("@svgdotjs/svg.js", () => ({
 vi.mock("../src/scripts/internal", () => ({
 	CircuitComponent: class {},
 	EllipseComponent: class {},
+	FlowchartConnectorComponent: class {},
+	FlowchartDatabaseComponent: class {},
+	FlowchartDecisionComponent: class {},
+	FlowchartDocumentComponent: class {},
+	FlowchartInputOutputComponent: class {},
+	FlowchartOffPageConnectorComponent: class {},
+	FlowchartSubprocessComponent: class {},
+	FlowchartTerminatorComponent: class {},
 	OpenComponent: class {},
 	PolygonComponent: class {},
 	RectangleComponent: class {},
@@ -39,12 +49,24 @@ vi.mock("../src/scripts/internal", () => ({
 vi.mock("../src/scripts/internal.ts", () => ({
 	CircuitComponent: class {},
 	EllipseComponent: class {},
+	FlowchartConnectorComponent: class {},
+	FlowchartDatabaseComponent: class {},
+	FlowchartDecisionComponent: class {},
+	FlowchartDocumentComponent: class {},
+	FlowchartInputOutputComponent: class {},
+	FlowchartOffPageConnectorComponent: class {},
+	FlowchartSubprocessComponent: class {},
+	FlowchartTerminatorComponent: class {},
 	OpenComponent: class {},
 	PolygonComponent: class {},
 	RectangleComponent: class {},
 	ShortComponent: class {},
 	WireComponent: class {},
 	defaultStroke: "#000000",
+}))
+
+vi.mock("../src/scripts/components/flowchartComponentFactory", () => ({
+	createFlowchartComponent: vi.fn((kind: string) => ({ kind })),
 }))
 
 vi.mock("../src/scripts/utils/impSVGNumber", () => ({}))
@@ -66,9 +88,14 @@ describe("ShapeLibraryController", () => {
 		})
 
 		const buttons = root.querySelectorAll(".libComponent")
-		expect(buttons.length).toBe(9)
+		expect(root.querySelectorAll(".accordion-item")).toHaveLength(2)
+		expect(buttons.length).toBe(19)
 		expect((buttons[0] as HTMLDivElement).title).toBe("Short")
 		expect((buttons[4] as HTMLDivElement).title).toBe("Ellipse")
+		expect((buttons[9] as HTMLDivElement).title).toBe("Start / End")
+		expect((buttons[13] as HTMLDivElement).title).toBe("Flow Arrow")
+		expect((buttons[14] as HTMLDivElement).title).toBe("Document")
+		expect((buttons[18] as HTMLDivElement).title).toBe("Off-page Connector")
 	})
 
 	it("places the expected component type when a shape is clicked", () => {
@@ -101,5 +128,10 @@ describe("ShapeLibraryController", () => {
 		expect(switchToComponentMode).toHaveBeenCalled()
 		expect(cancelComponentPlacement).toHaveBeenCalled()
 		expect(placeComponent.mock.calls[1][0]).toBeInstanceOf(EllipseComponent)
+
+		;(root.querySelectorAll(".libComponent")[11] as HTMLDivElement).dispatchEvent(
+			new MouseEvent("mouseup", { bubbles: true, cancelable: true, button: 0 })
+		)
+		expect(placeComponent.mock.calls[2][0]).toEqual({ kind: "decision" })
 	})
 })
