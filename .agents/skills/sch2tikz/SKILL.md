@@ -139,6 +139,14 @@ To flip a MOS transistor horizontally (gate pointing to the right instead of the
 - Use `xscale=-1` on the node option (e.g. `\node[pmos, xscale=-1] (M2) at (x, y) {};`).
 - Remember that when `xscale=-1` is applied, the gate pin (e.g. `M2.G`) flips coordinates to the right side: `dx = +0.98` instead of `-0.98` (i.e. x-coordinate is at `x + 0.98`). All wiring connecting to the gate must align horizontally to this flipped position.
 
+### 11. PMOS Bubble Style
+Emit PMOS nodes with the CircuiTikZ `emptycircle` option by default:
+```tikz
+\node[pmos, emptycircle] (M1) at (3, 5.5) {};
+\node[pmos, emptycircle, xscale=-1] (M2) at (3, 4.0) {};
+```
+Use `nocircle` only when the source schematic explicitly shows a PMOS without the gate bubble.
+
 ---
 
 ## Pin Offset Table (Reference)

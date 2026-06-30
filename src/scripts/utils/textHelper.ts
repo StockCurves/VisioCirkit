@@ -28,11 +28,12 @@ type ElementInfo = {
 const syllableRegex = /([^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?)|[^aeiouy]+$/gi
 
 export let textToSVG: TextToSVG
+export const nativeTextFontFamily = "Computer Modern Sans"
 
 export function loadTextConverter() {
 	return new Promise<void>((resolve) => {
 		TextToSVG.load(
-			"https://cdn.jsdelivr.net/gh/dreampulse/computer-modern-web-font@master/font/Serif/cmunrm.woff",
+			"https://cdn.jsdelivr.net/gh/dreampulse/computer-modern-web-font@master/font/Sans/cmunss.woff",
 			(err, tTSVG) => {
 				textToSVG = tTSVG
 				resolve()
@@ -154,7 +155,7 @@ function layoutText(lines: LineInfo[], text: Text, textBox: SVG.Box): SVG.G {
 	svgText.transform({ translateX: textPos.x, translateY: textPos.y })
 	svgText.fill(text.color == "default" ? "black" : text.color)
 	svgText.node.innerHTML = tspans.join("\n")
-	svgText.attr("font-family", "Computer Modern Serif")
+	svgText.attr("font-family", nativeTextFontFamily)
 	svgText.stroke("none")
 	svgText.attr("font-size", fontSize)
 	group.add(svgText)
@@ -343,7 +344,7 @@ function fitWord(syllables: string[], currentLineWidth: number, maxWidth: number
 function getTextMetrics(text: string, fontSize: string): TextMetrics {
 	const canvas = document.createElement("canvas")
 	const context = canvas.getContext("2d")
-	context.font = `${fontSize} "Computer Modern Serif"`
+	context.font = `${fontSize} "${nativeTextFontFamily}"`
 	return context.measureText(text)
 }
 export type MathJaxRenderInfo = {

@@ -2,11 +2,10 @@ This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.
-tikz
+**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/test_simple.tik
+z
 
-(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.t
-ikz
+(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/test_simple.tikz
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
 
@@ -500,100 +499,44 @@ ltage.tex
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcirccu
 rrent.tex)
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircfl
-ow.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/xstring\xstring.sty
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/xstring\xstring.tex
-\xs_counta=\count312
-\xs_countb=\count313
-)
-Package: xstring 2023/08/22 v1.86 String manipulations (CT)
-) (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/siunitx\siunitx.sty
-Package: siunitx 2026-05-15 v3.5.5 A comprehensive (SI) units package
-\l__siunitx_number_uncert_offset_int=\count314
-\l__siunitx_number_exponent_fixed_int=\count315
-\l__siunitx_number_min_decimal_int=\count316
-\l__siunitx_number_min_integer_int=\count317
-\l__siunitx_number_round_precision_int=\count318
-\l__siunitx_number_lower_threshold_int=\count319
-\l__siunitx_number_upper_threshold_int=\count320
-\l__siunitx_number_group_first_int=\count321
-\l__siunitx_number_group_size_int=\count322
-\l__siunitx_number_group_min_int=\count323
-\l__siunitx_number_group_minimum_int=\count324
-\l__siunitx_compound_count_int=\count325
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
-Package: amstext 2024/11/17 v2.01 AMS text
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty
-File: amsgen.sty 1999/11/30 v2.0 generic functions
-\@emptytoks=\toks31
-\ex@=\dimen280
-))
-\l__siunitx_table_tmp_box=\box66
-\l__siunitx_table_tmp_dim=\dimen281
-\l__siunitx_table_column_width_dim=\dimen282
-\l__siunitx_table_integer_box=\box67
-\l__siunitx_table_decimal_box=\box68
-\l__siunitx_table_uncert_box=\box69
-\l__siunitx_table_before_box=\box70
-\l__siunitx_table_after_box=\box71
-\l__siunitx_table_before_dim=\dimen283
-\l__siunitx_table_carry_dim=\dimen284
-\l__siunitx_unit_tmp_int=\count326
-\l__siunitx_unit_position_int=\count327
-\l__siunitx_unit_total_int=\count328
-\l__siunitx_sexagesimal_tmp_dim=\dimen285
-\l__siunitx_sexagesimal_marker_box=\box72
-\l__siunitx_sexagesimal_unit_box=\box73
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty
-Package: array 2025/09/25 v2.6n Tabular extension package (FMi)
-\col@sep=\dimen286
-\ar@mcellbox=\box74
-\extrarowheight=\dimen287
-\NC@list=\toks32
-\extratabsurround=\skip51
-\backup@length=\skip52
-\ar@cellbox=\box75
-)))
+ow.tex))
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-pd
 ftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count329
+\l__color_backend_stack_int=\count312
 )
-No file 2026-0629-2058.aux.
-\openout1 = `2026-0629-2058.aux'.
+No file test_simple.aux.
+\openout1 = `test_simple.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
 
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.m
 kii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count330
-\scratchdimen=\dimen288
-\scratchbox=\box76
-\nofMPsegments=\count331
-\nofMParguments=\count332
-\everyMPshowfont=\toks33
-\MPscratchCnt=\count333
-\MPscratchDim=\dimen289
-\MPnumerator=\count334
-\makeMPintoPDFobject=\count335
-\everyMPtoPDFconversion=\toks34
+\scratchcounter=\count313
+\scratchdimen=\dimen280
+\scratchbox=\box66
+\nofMPsegments=\count314
+\nofMParguments=\count315
+\everyMPshowfont=\toks31
+\MPscratchCnt=\count316
+\MPscratchDim=\dimen281
+\MPnumerator=\count317
+\makeMPintoPDFobject=\count318
+\everyMPtoPDFconversion=\toks32
 )
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/epstopdf-pkg\epstopdf-
 base.sty
@@ -606,42 +549,37 @@ cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 10.
+(Font)              <7> on input line 5.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 10.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 10.
+(Font)              <5> on input line 5.
  [1
 
 
 Non-PDF special ignored!
-<special> papersize=449.68527pt,241.39476pt
+<special> papersize=57.30548pt,26.19142pt
 {C:/Users/iMonet/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
-(C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out\local-render\202
-6-0629-2058.aux)
+(C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out\local-render\tes
+t_simple.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 34881 strings out of 467871
- 937108 string characters out of 5417892
- 1584275 words of memory out of 5000000
- 63474 multiletter control sequences out of 15000+600000
- 629544 words of font info for 46 fonts, out of 8000000 for 9000
+ 31398 strings out of 467871
+ 834701 string characters out of 5417892
+ 1469044 words of memory out of 5000000
+ 60017 multiletter control sequences out of 15000+600000
+ 627721 words of font info for 40 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 117i,8n,121p,497b,754s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 117i,7n,121p,493b,710s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm
-/cmmi6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/am
-sfonts/cm/cmmi9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/amsfonts/cm/cmr6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/font
-s/type1/public/amsfonts/cm/cmr9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiK
-TeX/fonts/type1/public/amsfonts/cm/cmsy9.pfb>
+/cmmi10.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/a
+msfonts/cm/cmr7.pfb>
 Output written on C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out
-\local-render\2026-0629-2058.pdf (1 page, 52390 bytes).
+\local-render\test_simple.pdf (1 page, 18231 bytes).
 PDF statistics:
- 34 PDF objects out of 1000 (max. 8388607)
+ 19 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  13 words of extra memory for PDF output out of 10000 (max. 10000000)
 

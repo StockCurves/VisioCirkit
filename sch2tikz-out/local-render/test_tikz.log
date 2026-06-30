@@ -2,11 +2,8 @@ This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.
-tikz
-
-(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.t
-ikz
+**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/test_tikz.tikz
+(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/test_tikz.tikz
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
 
@@ -61,11 +58,6 @@ File: size10.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
 )
 \sa@box=\box53
 )
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/circuitikz\circuitikz.
-sty
-Package: circuitikz 2026/05/24{} The CircuiTikz circuit drawing package version
- 1.8.6
-
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/pgf/frontendlayer\tikz
 .sty
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/pgf/basiclayer\pgf.sty
@@ -412,188 +404,43 @@ File: pgfmodulematrix.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 kz/libraries\tikzlibrarytopaths.code.tex
 File: tikzlibrarytopaths.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 )))
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/frontendlayer/ti
-kz/libraries\tikzlibrarycalc.code.tex
-File: tikzlibrarycalc.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/libraries\pgflib
-raryarrows.meta.code.tex
-File: pgflibraryarrows.meta.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgfarrowinset=\dimen257
-\pgfarrowlength=\dimen258
-\pgfarrowwidth=\dimen259
-\pgfarrowlinewidth=\dimen260
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/frontendlayer/ti
-kz/libraries\tikzlibrarybending.code.tex
-File: tikzlibrarybending.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/modules\pgfmodul
-ebending.code.tex
-File: pgfmodulebending.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/modules\pgfmodul
-enonlineartransformations.code.tex
-File: pgfmodulenonlineartransformations.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgftransformnonlinearflatness=\dimen261
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/libraries\pgflib
-rarycurvilinear.code.tex
-File: pgflibrarycurvilinear.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@curvilinear@time@a=\dimen262
-\pgf@curvilinear@length@a=\dimen263
-\pgf@curvilinear@length@b=\dimen264
-\pgf@curvilinear@length@c=\dimen265
-\pgf@curvilinear@length@d=\dimen266
-)
-\pgf@arrows@the@rigidity=\dimen267
-))
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/frontendlayer/ti
-kz/libraries\tikzlibraryfpu.code.tex
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/libraries\pgflib
-raryfpu.code.tex))
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcirc.d
-efines.tex
-\pgf@circ@count@a=\count307
-\pgf@circ@count@b=\count308
-\pgf@circ@count@c=\count309
-\pgf@circ@res@up=\dimen268
-\pgf@circ@res@down=\dimen269
-\pgf@circ@res@zero=\dimen270
-\pgf@circ@res@left=\dimen271
-\pgf@circ@res@right=\dimen272
-\pgf@circ@res@other=\dimen273
-\pgf@circ@res@step=\dimen274
-\pgf@circ@res@temp=\dimen275
-\pgf@circ@Rlen=\dimen276
-\pgf@circ@scaled@Rlen=\dimen277
-\pgfstartlinewidth=\dimen278
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircut
-ils.tex
-\ctikz@scratchbox=\box65
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircpa
-th.tex
-\ctikz@vif@count=\count310
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircsh
-apes.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircmo
-nopoles.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircbi
-poles.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcirctr
-ipoles.tex
-\pgf@circ@res@count=\count311
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircqu
-adpoles.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircmu
-ltipoles.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircla
-bel.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircvo
-ltage.tex
-\pgfcirc@labelshift=\dimen279
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcirccu
-rrent.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/circuitikz\pgfcircfl
-ow.tex)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/xstring\xstring.sty
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/xstring\xstring.tex
-\xs_counta=\count312
-\xs_countb=\count313
-)
-Package: xstring 2023/08/22 v1.86 String manipulations (CT)
-) (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/siunitx\siunitx.sty
-Package: siunitx 2026-05-15 v3.5.5 A comprehensive (SI) units package
-\l__siunitx_number_uncert_offset_int=\count314
-\l__siunitx_number_exponent_fixed_int=\count315
-\l__siunitx_number_min_decimal_int=\count316
-\l__siunitx_number_min_integer_int=\count317
-\l__siunitx_number_round_precision_int=\count318
-\l__siunitx_number_lower_threshold_int=\count319
-\l__siunitx_number_upper_threshold_int=\count320
-\l__siunitx_number_group_first_int=\count321
-\l__siunitx_number_group_size_int=\count322
-\l__siunitx_number_group_min_int=\count323
-\l__siunitx_number_group_minimum_int=\count324
-\l__siunitx_compound_count_int=\count325
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
-Package: amstext 2024/11/17 v2.01 AMS text
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty
-File: amsgen.sty 1999/11/30 v2.0 generic functions
-\@emptytoks=\toks31
-\ex@=\dimen280
-))
-\l__siunitx_table_tmp_box=\box66
-\l__siunitx_table_tmp_dim=\dimen281
-\l__siunitx_table_column_width_dim=\dimen282
-\l__siunitx_table_integer_box=\box67
-\l__siunitx_table_decimal_box=\box68
-\l__siunitx_table_uncert_box=\box69
-\l__siunitx_table_before_box=\box70
-\l__siunitx_table_after_box=\box71
-\l__siunitx_table_before_dim=\dimen283
-\l__siunitx_table_carry_dim=\dimen284
-\l__siunitx_unit_tmp_int=\count326
-\l__siunitx_unit_position_int=\count327
-\l__siunitx_unit_total_int=\count328
-\l__siunitx_sexagesimal_tmp_dim=\dimen285
-\l__siunitx_sexagesimal_marker_box=\box72
-\l__siunitx_sexagesimal_unit_box=\box73
-
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty
-Package: array 2025/09/25 v2.6n Tabular extension package (FMi)
-\col@sep=\dimen286
-\ar@mcellbox=\box74
-\extrarowheight=\dimen287
-\NC@list=\toks32
-\extratabsurround=\skip51
-\backup@length=\skip52
-\ar@cellbox=\box75
-)))
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-pd
 ftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count329
+\l__color_backend_stack_int=\count307
 )
-No file 2026-0629-2058.aux.
-\openout1 = `2026-0629-2058.aux'.
+No file test_tikz.aux.
+\openout1 = `test_tikz.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
 
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.m
 kii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count330
-\scratchdimen=\dimen288
-\scratchbox=\box76
-\nofMPsegments=\count331
-\nofMParguments=\count332
-\everyMPshowfont=\toks33
-\MPscratchCnt=\count333
-\MPscratchDim=\dimen289
-\MPnumerator=\count334
-\makeMPintoPDFobject=\count335
-\everyMPtoPDFconversion=\toks34
+\scratchcounter=\count308
+\scratchdimen=\dimen257
+\scratchbox=\box65
+\nofMPsegments=\count309
+\nofMParguments=\count310
+\everyMPshowfont=\toks31
+\MPscratchCnt=\count311
+\MPscratchDim=\dimen258
+\MPnumerator=\count312
+\makeMPintoPDFobject=\count313
+\everyMPtoPDFconversion=\toks32
 )
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/epstopdf-pkg\epstopdf-
 base.sty
@@ -604,44 +451,32 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/00miktex\epstopdf-sys.
 cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
-))
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 10.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 10.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 10.
- [1
+)) [1
 
 
 Non-PDF special ignored!
-<special> papersize=449.68527pt,241.39476pt
-{C:/Users/iMonet/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
-(C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out\local-render\202
-6-0629-2058.aux)
+<special> papersize=57.30548pt,57.30548pt
+]
+(C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out\local-render\tes
+t_tikz.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 34881 strings out of 467871
- 937108 string characters out of 5417892
- 1584275 words of memory out of 5000000
- 63474 multiletter control sequences out of 15000+600000
- 629544 words of font info for 46 fonts, out of 8000000 for 9000
+ 12330 strings out of 467871
+ 260977 string characters out of 5417892
+ 630814 words of memory out of 5000000
+ 41019 multiletter control sequences out of 15000+600000
+ 627721 words of font info for 40 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 117i,8n,121p,497b,754s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm
-/cmmi6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/am
-sfonts/cm/cmmi9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/amsfonts/cm/cmr6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/font
-s/type1/public/amsfonts/cm/cmr9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiK
-TeX/fonts/type1/public/amsfonts/cm/cmsy9.pfb>
+ 102i,5n,107p,469b,372s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
 Output written on C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out
-\local-render\2026-0629-2058.pdf (1 page, 52390 bytes).
+\local-render\test_tikz.pdf (1 page, 1152 bytes).
 PDF statistics:
- 34 PDF objects out of 1000 (max. 8388607)
+ 9 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  13 words of extra memory for PDF output out of 10000 (max. 10000000)
 

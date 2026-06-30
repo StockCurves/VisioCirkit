@@ -1,11 +1,11 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.29)  30 JUN 2026 07:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.29)  30 JUN 2026 07:08
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.
+**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0623-2332.
 tikz
 
-(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.t
+(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0623-2332.t
 ikz
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
@@ -59,13 +59,6 @@ File: size10.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
 \belowcaptionskip=\skip50
 \bibindent=\dimen148
 )
-\sa@box=\box53
-)
-(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/circuitikz\circuitikz.
-sty
-Package: circuitikz 2026/05/24{} The CircuiTikz circuit drawing package version
- 1.8.6
-
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/pgf/frontendlayer\tikz
 .sty
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/pgf/basiclayer\pgf.sty
@@ -80,7 +73,7 @@ l-common.tex
 )
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/utilities\pgfuti
 l-latex.def
-\pgfutil@abb=\box54
+\pgfutil@abb=\box53
 )
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/utilities\pgfrcs
 .code.tex
@@ -206,7 +199,7 @@ e.tex
 er.code.tex
 \pgfmath@dimen=\dimen163
 \pgfmath@count=\count293
-\pgfmath@box=\box55
+\pgfmath@box=\box54
 \pgfmath@toks=\toks26
 \pgfmath@stack@operand=\toks27
 \pgfmath@stack@operation=\toks28
@@ -270,9 +263,9 @@ File: pgfcorepathusage.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/basiclayer\pgfco
 rescopes.code.tex
 File: pgfcorescopes.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgfpic=\box56
-\pgf@hbox=\box57
-\pgf@layerbox@main=\box58
+\pgfpic=\box55
+\pgf@hbox=\box56
+\pgf@layerbox@main=\box57
 \pgf@picture@serial@count=\count295
 )
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/basiclayer\pgfco
@@ -318,7 +311,7 @@ File: pgfcoreimage.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/basiclayer\pgfco
 reexternal.code.tex
 File: pgfcoreexternal.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgfexternal@startupbox=\box59
+\pgfexternal@startupbox=\box58
 )
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/basiclayer\pgfco
 relayers.code.tex
@@ -339,7 +332,7 @@ File: pgfcorerdf.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/modules\pgfmodul
 eshapes.code.tex
 File: pgfmoduleshapes.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgfnodeparttextbox=\box60
+\pgfnodeparttextbox=\box59
 )
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/modules\pgfmodul
 eplot.code.tex
@@ -390,10 +383,10 @@ File: pgflibraryplothandlers.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 \tikz@lastmovetoy=\dimen198
 \tikzleveldistance=\dimen199
 \tikzsiblingdistance=\dimen256
-\tikz@figbox=\box61
-\tikz@figbox@bg=\box62
-\tikz@tempbox=\box63
-\tikz@tempbox@bg=\box64
+\tikz@figbox=\box60
+\tikz@figbox@bg=\box61
+\tikz@tempbox=\box62
+\tikz@tempbox@bg=\box63
 \tikztreelevel=\count299
 \tikznumberofchildren=\count300
 \tikznumberofcurrentchild=\count301
@@ -412,6 +405,13 @@ File: pgfmodulematrix.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 kz/libraries\tikzlibrarytopaths.code.tex
 File: tikzlibrarytopaths.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 )))
+\sa@box=\box64
+)
+(C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/latex/circuitikz\circuitikz.
+sty
+Package: circuitikz 2026/05/24{} The CircuiTikz circuit drawing package version
+ 1.8.6
+
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/generic/pgf/frontendlayer/ti
 kz/libraries\tikzlibrarycalc.code.tex
 File: tikzlibrarycalc.code.tex 2025-08-29 v3.1.11a (3.1.11a)
@@ -562,23 +562,23 @@ ftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count329
 )
-No file 2026-0629-2058.aux.
-\openout1 = `2026-0629-2058.aux'.
+No file 2026-0623-2332.aux.
+\openout1 = `2026-0623-2332.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 5.
-LaTeX Font Info:    ... okay on input line 5.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 4.
+LaTeX Font Info:    ... okay on input line 4.
 
 (C:\Users\iMonet\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.m
 kii
@@ -606,42 +606,40 @@ cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 10.
+(Font)              <7> on input line 13.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 10.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 10.
- [1
+(Font)              <5> on input line 13.
 
+Overfull \hbox (226.41606pt too wide) in paragraph at lines 136--137
+[][] 
+ []
 
-Non-PDF special ignored!
-<special> papersize=449.68527pt,241.39476pt
+[1
+
 {C:/Users/iMonet/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
 (C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out\local-render\202
-6-0629-2058.aux)
+6-0623-2332.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 34881 strings out of 467871
- 937108 string characters out of 5417892
- 1584275 words of memory out of 5000000
- 63474 multiletter control sequences out of 15000+600000
- 629544 words of font info for 46 fonts, out of 8000000 for 9000
+ 35116 strings out of 467871
+ 946298 string characters out of 5417892
+ 1576241 words of memory out of 5000000
+ 63712 multiletter control sequences out of 15000+600000
+ 628648 words of font info for 43 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 117i,8n,121p,497b,754s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 117i,6n,121p,503b,915s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm
-/cmmi6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/am
-sfonts/cm/cmmi9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/amsfonts/cm/cmr6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/font
-s/type1/public/amsfonts/cm/cmr9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiK
-TeX/fonts/type1/public/amsfonts/cm/cmsy9.pfb>
+/cmbx10.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/a
+msfonts/cm/cmbx7.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1
+/public/amsfonts/cm/cmr10.pfb>
 Output written on C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out
-\local-render\2026-0629-2058.pdf (1 page, 52390 bytes).
+\local-render\2026-0623-2332.pdf (1 page, 35551 bytes).
 PDF statistics:
- 34 PDF objects out of 1000 (max. 8388607)
+ 24 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  13 words of extra memory for PDF output out of 10000 (max. 10000000)
 

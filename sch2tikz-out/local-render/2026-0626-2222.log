@@ -2,10 +2,10 @@ This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.
+**C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0626-2222.
 tikz
 
-(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0629-2058.t
+(C:/Users/iMonet/Projects/antigravity/VisioCirkit/sch2tikz-out/2026-0626-2222.t
 ikz
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
@@ -562,8 +562,8 @@ ftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count329
 )
-No file 2026-0629-2058.aux.
-\openout1 = `2026-0629-2058.aux'.
+No file 2026-0626-2222.aux.
+\openout1 = `2026-0626-2222.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 5.
 LaTeX Font Info:    ... okay on input line 5.
@@ -606,42 +606,41 @@ cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 10.
+(Font)              <7> on input line 22.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 10.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 10.
+(Font)              <5> on input line 22.
  [1
 
 
 Non-PDF special ignored!
-<special> papersize=449.68527pt,241.39476pt
+<special> papersize=740.79826pt,256.47469pt
 {C:/Users/iMonet/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
 (C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out\local-render\202
-6-0629-2058.aux)
+6-0626-2222.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 34881 strings out of 467871
- 937108 string characters out of 5417892
- 1584275 words of memory out of 5000000
- 63474 multiletter control sequences out of 15000+600000
- 629544 words of font info for 46 fonts, out of 8000000 for 9000
+ 35484 strings out of 467871
+ 959382 string characters out of 5417892
+ 1641904 words of memory out of 5000000
+ 64074 multiletter control sequences out of 15000+600000
+ 630478 words of font info for 49 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 117i,8n,121p,497b,754s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 117i,10n,121p,497b,845s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm
-/cmmi6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/am
-sfonts/cm/cmmi9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/amsfonts/cm/cmr6.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/font
-s/type1/public/amsfonts/cm/cmr9.pfb><C:/Users/iMonet/AppData/Local/Programs/MiK
-TeX/fonts/type1/public/amsfonts/cm/cmsy9.pfb>
+/cmbsy10.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/type1/public/
+amsfonts/cm/cmbx10.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX/fonts/typ
+e1/public/amsfonts/cm/cmmi10.pfb><C:/Users/iMonet/AppData/Local/Programs/MiKTeX
+/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/iMonet/AppData/Local/Progra
+ms/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/iMonet/AppData/Loc
+al/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb>
 Output written on C:\Users\iMonet\Projects\antigravity\VisioCirkit\sch2tikz-out
-\local-render\2026-0629-2058.pdf (1 page, 52390 bytes).
+\local-render\2026-0626-2222.pdf (1 page, 65135 bytes).
 PDF statistics:
- 34 PDF objects out of 1000 (max. 8388607)
+ 39 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  13 words of extra memory for PDF output out of 10000 (max. 10000000)
 

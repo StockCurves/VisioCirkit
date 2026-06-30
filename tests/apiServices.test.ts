@@ -346,7 +346,8 @@ describe("LatexRenderService", () => {
 		expect(prepared.bodyCode).not.toContain("\\usepackage")
 		expect(prepared.bodyCode).not.toContain("\\usetikzlibrary")
 		expect(prepared.bodyCode).not.toContain("電")
-		expect(prepared.bodyCode).toContain("\\draw (0,0) node[] {};")
+		expect(prepared.bodyCode).toContain("\\small\\sffamily")
+		expect(prepared.bodyCode).toContain("\\draw (0,0) node[font=\\small] {};")
 	})
 
 	it("posts QuickLaTeX form data and converts png URLs to svg URLs", async () => {

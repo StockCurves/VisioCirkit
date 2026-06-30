@@ -121,6 +121,7 @@ export class NodeSymbolComponent extends NodeComponent {
 			}
 		}
 
+		this.setOptionPropertyValues(this.resolveDefaultOptions([]))
 		this.componentVariant = symbol.getVariant(this.optionsFromProperties())
 		this.size = new SVG.Point(this.componentVariant.viewBox.w, this.componentVariant.viewBox.h)
 		this.defaultTextPosition = this.componentVariant.textPosition.point.add(this.componentVariant.mid)
@@ -167,7 +168,19 @@ export class NodeSymbolComponent extends NodeComponent {
 		this.properties.add(PropertyCategories.info, new InfoProperty("ID", this.referenceSymbol.tikzName))
 	}
 
-	protected setPropertiesFromOptions(options: SymbolOption[]) {
+	private resolveDefaultOptions(options: SymbolOption[]): SymbolOption[] {
+		if (this.referenceSymbol.tikzName !== "pmos") {
+			return options
+		}
+		const selectedNames = options.map((option) => option.displayName ?? option.name)
+		const hasCircleOption = selectedNames.some((name) => name === "emptycircle" || name === "nocircle")
+		if (hasCircleOption) {
+			return options
+		}
+		return [...options, ...this.referenceSymbol.getOptionsFromOptionNames(["emptycircle"])]
+	}
+
+	private setOptionPropertyValues(options: SymbolOption[]) {
 		this.optionProperties.forEach((value, property) => {
 			if (options.find((op) => op.name == value.name)) {
 				property.value = true
@@ -188,6 +201,10 @@ export class NodeSymbolComponent extends NodeComponent {
 				property.value = property.entries[0]
 			}
 		})
+	}
+
+	protected setPropertiesFromOptions(options: SymbolOption[]) {
+		this.setOptionPropertyValues(this.resolveDefaultOptions(options))
 		this.updateOptions()
 	}
 
