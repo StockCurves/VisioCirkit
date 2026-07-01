@@ -237,4 +237,60 @@ describe("parseTikz parser lint relaxation", () => {
 		expect(result[0].size.x).toBeCloseTo(expectedPx, 1);
 		expect(result[0].size.y).toBeCloseTo(expectedPx, 1);
 	});
+
+	it("parses diamond flowchart nodes as flow decisions", () => {
+		const code = `\\node[shape=diamond, minimum width=3cm, minimum height=2cm] at (1, 2) {Approved?};`
+		const result = parseTikz(code)
+		expect(result).toHaveLength(1)
+		expect(result[0].type).toBe("flowDecision")
+		expect(result[0].text.text).toBe("Approved?")
+	})
+
+	it("parses trapezium flowchart nodes as input output blocks", () => {
+		const code = `\\node[shape=trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1.5cm] at (1, 2) {Input};`
+		const result = parseTikz(code)
+		expect(result).toHaveLength(1)
+		expect(result[0].type).toBe("flowInputOutput")
+		expect(result[0].text.text).toBe("Input")
+	})
+
+	it("parses rounded rectangle flowchart nodes as terminators", () => {
+		const code = `\\node[shape=rectangle, rounded corners=8pt, minimum width=3cm, minimum height=1.5cm] at (1, 2) {Start};`
+		const result = parseTikz(code)
+		expect(result).toHaveLength(1)
+		expect(result[0].type).toBe("flowTerminator")
+		expect(result[0].text.text).toBe("Start")
+	})
+
+	it("parses document flowchart nodes", () => {
+		const code = `\\node[shape=document, minimum width=3cm, minimum height=1.8cm] at (1, 2) {Report};`
+		const result = parseTikz(code)
+		expect(result).toHaveLength(1)
+		expect(result[0].type).toBe("flowDocument")
+		expect(result[0].text.text).toBe("Report")
+	})
+
+	it("parses database flowchart nodes", () => {
+		const code = `\\node[shape=cylinder, minimum width=2.4cm, minimum height=2cm] at (1, 2) {DB};`
+		const result = parseTikz(code)
+		expect(result).toHaveLength(1)
+		expect(result[0].type).toBe("flowDatabase")
+		expect(result[0].text.text).toBe("DB")
+	})
+
+	it("parses double rectangle flowchart nodes as subprocesses", () => {
+		const code = `\\node[shape=rectangle, double, double distance=1.6mm, minimum width=3cm, minimum height=1.5cm] at (1, 2) {Call};`
+		const result = parseTikz(code)
+		expect(result).toHaveLength(1)
+		expect(result[0].type).toBe("flowSubprocess")
+		expect(result[0].text.text).toBe("Call")
+	})
+
+	it("parses five-sided regular polygon flowchart nodes as off-page connectors", () => {
+		const code = `\\node[shape=regular polygon, regular polygon sides=5, shape border rotate=270, minimum width=2cm, minimum height=2cm] at (1, 2) {A};`
+		const result = parseTikz(code)
+		expect(result).toHaveLength(1)
+		expect(result[0].type).toBe("flowOffPageConnector")
+		expect(result[0].text.text).toBe("A")
+	})
 });

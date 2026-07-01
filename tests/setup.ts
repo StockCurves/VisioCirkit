@@ -256,6 +256,7 @@ export const fakeCanvas = {
 	circle: vi.fn().mockImplementation(() => fakeElement()),
 	ellipse: vi.fn().mockImplementation(() => fakeElement()),
 	polygon: vi.fn().mockImplementation(() => fakeElement()),
+	path: vi.fn().mockImplementation(() => fakeElement()),
 	use: vi.fn().mockImplementation(() => fakeElement()),
 	symbol: vi.fn().mockImplementation(() => fakeElement()),
 	find: vi.fn().mockReturnValue([]),

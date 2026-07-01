@@ -43,7 +43,7 @@ export const fontSizes: FontSize[] = [
 	{ key: "huge", name: "huge", size: 20.74 },
 	{ key: "Huge", name: "Huge", size: 24.88 },
 ]
-export const defaultFontSize = fontSizes[4]
+export const defaultFontSize = fontSizes[3]
 
 export type Text = {
 	text: string

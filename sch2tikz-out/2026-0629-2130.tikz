@@ -1,0 +1,142 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% --- Upper Section: Buffer and Integrator ---
+
+% Input terminals
+\node[osquarepole] at (0.7, 6.56) {};
+\node[anchor=east] at (0.5, 6.56) {\small $V_A$};
+
+\node[osquarepole] at (0.7, 5.74) {};
+\node[anchor=east] at (0.5, 5.74) {\small $V_B$};
+
+% Buffer op amps OP4 and OP5 (OP5 is y-scaled by -1)
+\node[op amp] (OP4) at (2.2, 7.05) {};
+\node at (2.08, 7.05) {\small OP4};
+
+\node[op amp, yscale=-1] (OP5) at (2.2, 5.25) {};
+\node at (2.08, 5.25) {\small OP5};
+
+% Connect inputs VA and VB to OP4.+ and OP5.+
+\draw (0.7, 6.56) -- (OP4.+);
+\draw (0.7, 5.74) -- (OP5.+);
+
+% Negative feedback loops for buffer amplifiers
+\draw (OP4.out) -- (3.39, 8.1) -- (1.01, 8.1) -- (OP4.-);
+\draw (OP5.out) -- (3.39, 4.2) -- (1.01, 4.2) -- (OP5.-);
+
+% Selection switches (using standard opening switch)
+\draw (OP4.out) to[opening switch, l=seln] (4.5, 7.05);
+\draw (OP5.out) to[opening switch, l=selp] (4.5, 5.25);
+
+% Merge switch outputs at x = 4.8 and go to R_SAW
+\draw (4.5, 7.05) -- (4.8, 7.05) -- (4.8, 6.64);
+\draw (4.5, 5.25) -- (4.8, 5.25) -- (4.8, 6.64);
+\draw (4.8, 6.64) to[R=$R_{\mathrm{SAW}}$] (6.0, 6.64);
+
+% Integrator op amp OP6 with feedback capacitor C_SAW
+\node[op amp] (OP6) at (7.6, 6.15) {};
+\node at (7.48, 6.15) {\small OP6};
+
+% Connect R_SAW to OP6.-
+\draw (6.0, 6.64) -- (OP6.-);
+
+% C_SAW feedback loop
+\node[circ] at (6.25, 6.64) {};
+\draw (6.25, 6.64) -- (6.25, 7.70) to[C=$C_{\mathrm{SAW}}$] (8.79, 7.70) -- (8.79, 6.15);
+
+% Connect OP6.+ to average reference terminal
+\draw (OP6.+) -- (6.41, 4.675);
+\node[osquarepole] at (6.41, 4.675) {};
+\node[anchor=north] at (6.41, 4.45) {\small $(V_B+V_A)/2$};
+
+% Output terminal V_SAW
+\draw (OP6.out) -- (10.4, 6.15);
+\node[osquarepole] at (10.4, 6.15) {};
+\node[anchor=west] at (10.55, 6.15) {\small $V_{\mathrm{SAW}}$};
+
+
+% --- Lower Section: Comparators and Control Logic ---
+
+% Comparators CMPT and CMPB (CMPB is y-scaled by -1)
+\node[op amp] (CMPT) at (3.0, 2.1) {};
+\node[op amp, yscale=-1] (CMPB) at (3.0, 0.45) {};
+
+% Hysteresis loops inside comparators
+\draw (2.85, 2.02) -- (2.98, 2.02) -- (2.98, 2.18) -- (3.15, 2.18);
+\draw (3.15, 2.18) -- (3.02, 2.18) -- (3.02, 2.02) -- (2.85, 2.02);
+
+\draw (2.85, 0.37) -- (2.98, 0.37) -- (2.98, 0.53) -- (3.15, 0.53);
+\draw (3.15, 0.53) -- (3.02, 0.53) -- (3.02, 0.37) -- (2.85, 0.37);
+
+% Feedback junction point on V_SAW rail and path down to comparators
+\node[circ] at (9.5, 6.15) {};
+\draw (9.5, 6.15) -- (9.5, 1.275) -- (1.5, 1.275);
+
+% Split feedback path to comparator positive inputs
+\node[circ] at (1.5, 1.275) {};
+\draw (1.5, 1.275) -- (1.5, 1.61) -- (CMPT.+);
+\draw (1.5, 1.275) -- (1.5, 0.94) -- (CMPB.+);
+
+% Reference input terminals V_TOP and V_BOT
+\node[osquarepole] at (1.2, 2.59) {};
+\node[anchor=east] at (1.0, 2.59) {\small $V_{\mathrm{TOP}}$};
+\draw (1.2, 2.59) -- (CMPT.-);
+
+\node[osquarepole] at (1.2, -0.04) {};
+\node[anchor=east] at (1.0, -0.04) {\small $V_{\mathrm{BOT}}$};
+\draw (1.2, -0.04) -- (CMPB.-);
+
+% Inverters INVT and INVB
+\node[american not port] (INVT) at (5.0, 2.1) {};
+\node[american not port] (INVB) at (5.0, 0.45) {};
+
+\draw (CMPT.out) -- (INVT.in 1);
+\draw (CMPB.out) -- (INVB.in 1);
+
+% NAND Latch gates NANDT and NANDB
+\node[american nand port] (NANDT) at (7.8, 2.1) {};
+\node[american nand port] (NANDB) at (7.8, 0.45) {};
+
+% Connect inverters to NAND inputs
+\draw (INVT.out) -- (5.9, 2.1) -- (5.9, 2.38) -- (NANDT.in 1);
+\draw (INVB.out) -- (5.9, 0.45) -- (5.9, 0.17) -- (NANDB.in 2);
+
+% Cross-coupling connections
+\draw (NANDT.out) -- (8.2, 2.1);
+\node[circ] at (8.2, 2.1) {};
+\draw (8.2, 2.1) -- (8.8, 2.1);
+\draw (8.2, 2.1) -- (6.2, 0.73) -- (NANDB.in 1);
+
+\draw (NANDB.out) -- (8.2, 0.45);
+\node[circ] at (8.2, 0.45) {};
+\draw (8.2, 0.45) -- (8.8, 0.45);
+\draw (8.2, 0.45) -- (6.2, 1.82) -- (NANDT.in 2);
+
+% Latch outputs
+\node[anchor=west] at (8.8, 2.1) {\small seln};
+\node[anchor=west] at (8.8, 0.45) {\small selp};
+
+
+% --- Timing Waveform Illustration (Right Side) ---
+
+\node[anchor=east] at (11.85, 4.85) {\small $V_{\mathrm{TOP}}$};
+\node[anchor=east] at (11.85, 3.45) {\small $V_{\mathrm{BOT}}$};
+
+\draw (11.95, 4.85) -- (15.1, 4.85);
+\draw (11.95, 3.45) -- (15.1, 3.45);
+
+\draw (12.05, 3.45) -- (12.85, 4.85) -- (13.65, 3.45) -- (14.45, 4.85);
+
+% Vertical P2P measurement indicators (avoiding arrow styles)
+\draw (14.9, 4.85) -- (14.9, 3.45);
+\draw (14.75, 4.85) -- (15.05, 4.85);
+\draw (14.75, 3.45) -- (15.05, 3.45);
+\node[anchor=west] at (15.1, 4.15) {\small $V_{\mathrm{SAW},P2P}$};
+
+\end{circuitikz}
+\end{document}

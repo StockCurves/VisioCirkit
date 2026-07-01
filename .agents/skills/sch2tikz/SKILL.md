@@ -1,15 +1,15 @@
 ---
 name: sch2tikz
-description: Convert schematic circuit images into editor-compatible CircuiTikZ code, lookup pin coordinates, and compile/verify rendered output via QuickLaTeX SVG API.
+description: Convert schematic circuit images into editor-compatible CircuiTikZ code, lookup pin coordinates, and compile/verify rendered output locally or via QuickLaTeX fallback.
 ---
 
 # Schematic to TikZ (sch2tikz) Skill
 
-This skill converts schematic circuit diagrams into clean, editor-compatible CircuiTikZ LaTeX code and verifies the output iteratively using the QuickLaTeX API.
+This skill converts schematic circuit diagrams into clean, editor-compatible CircuiTikZ LaTeX code and verifies the output iteratively. Prefer local LaTeX rendering when available; if local `pdflatex` is unavailable, use the QuickLaTeX API fallback.
 
 ## Process
 
-1. **Save Uploaded Image**: Save the user's uploaded circuit image to the output directory:
+1. **Save Uploaded Image (Blocking First Step)**: Before analysis, drafting, linting, or verification, save the user's uploaded circuit image to the output directory. Do not move on until the original upload is preserved:
    ```bash
    # Copy the uploaded image from temp media storage
    cp <temp_media_path> sch2tikz-out/YYYY-MMDD-HHMM-upload.png
@@ -20,11 +20,22 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    python .agents/skills/sch2tikz/scripts/lookup_pin_offset.py "op amp"
    ```
 4. **Draft TikZ Code**: Write clean TikZ code using the **Editor Compatibility Rules** below.
-5. **Compile and Verify**: Save to a `.tikz` file and compile to a vector SVG using the verification script:
+5. **Compile and Verify**: Save to a `.tikz` file and compile/render it before handoff.
+   - First check for local LaTeX tooling (`pdflatex`, `lualatex`, or `tectonic`) and use the local renderer if available.
+   - If local `pdflatex`/LaTeX rendering is not available, use the QuickLaTeX verification script as the fallback:
    ```bash
    python .agents/skills/sch2tikz/scripts/verify_tikz.py sch2tikz-out/YYYY-MMDD-HHMM.tikz
    ```
-6. **Iterate**: Inspect the compiled SVG. If there are misalignment or layout bugs, update the coordinates and compile again until perfect.
+   - QuickLaTeX sends the generated TikZ content to an external service; this is the expected fallback path for this skill when local rendering is unavailable.
+6. **Editor Compatibility Lint**: Run the local lint script before handing off generated code:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/lint_editor_compat.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --report sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md
+   ```
+7. **Visual Overlay QA**: When the original image and rendered output are both available, create an overlay report:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/overlay_diff.py sch2tikz-out/YYYY-MMDD-HHMM-upload.png sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg
+   ```
+8. **Iterate**: Inspect the compiled SVG and overlay report. Treat label size, font metrics, and hand-drawn wobble as low-priority visual differences; prioritize topology, pin alignment, missing symbols, wire routing, and connection dots. Do not present the result as visually verified unless render verification and overlay QA were actually run.
 
 ## Output Formatting & Storage
 
@@ -32,6 +43,10 @@ Save the resulting files in the following format:
 - `sch2tikz-out/YYYY-MMDD-HHMM-upload.png` (the original uploaded schematic image)
 - `sch2tikz-out/YYYY-MMDD-HHMM.tikz` (the CircuiTikZ LaTeX source file)
 - `sch2tikz-out/YYYY-MMDD-HHMM.png` or `_rendered.svg` (the compiled output image)
+- `sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md` (optional editor compatibility lint report)
+- `sch2tikz-out/YYYY-MMDD-HHMM_rendered_overlay.html` (optional visual overlay QA report)
+
+These scripts are manual agent/developer QA tools. Do not wire them into the production frontend bundle, Vercel build command, or `build:demo` unless a separate deployment decision is made.
 
 ---
 
@@ -45,12 +60,12 @@ All wire and drawing coordinates must use absolute numerical values (e.g. `(2.5,
 ### 2. Node Pin References
 For wires connecting to multi-pin components (like op amps or logic gates), use `(NODE_NAME.PIN_NAME)` references *after* the node is defined (e.g. `\draw (0.2, 6.01) -- (OP4.+);`).
 
-### 3. No Custom Styles (Draw Terminals Manually)
-Do not use custom node styles (such as `[terminal]`) for input/output terminals. The editor parser cannot resolve custom styles and will render them as huge default rectangles.
-Instead, draw terminal boxes manually using `\draw rectangle` and place the text label nearby:
+### 3. Use osquarepole for Terminals
+Do not use custom node styles (such as `[terminal]`) or manually draw rectangles for input/output terminals.
+Instead, use standard CircuiTikZ `osquarepole` nodes for terminal boxes and place the text label nearby:
 ```tikz
 % V_A Terminal
-\draw (0.1, 5.935) rectangle (0.3, 6.085);
+\node[osquarepole] at (0.1, 6.01) {};
 \draw (0.05, 6.01) node[left] {$V_A$};
 ```
 
@@ -103,6 +118,58 @@ Emit connection dots as editor-native `circ` nodes instead:
 ```
 This keeps `Apply` round-trips stable and avoids the parser converting dots into generic circle shapes.
 
+### 8. Proportional Spacing and Bounding Box Budgets
+To prevent overlaps, text truncation, and crowded components, you MUST calculate and allocate coordinates using the following virtual Bounding Box (including clearance envelop) budgets (in cm):
+- `op amp` / `comparator`: Width 2.4cm, Height 1.2cm
+- Multi-pin logic ports (`nand`, `and`, `or`): Width 1.6cm, Height 1.0cm
+- Single-pin logic ports (`not`): Width 1.4cm, Height 0.6cm
+- Passive component / switch (`R`, `C`, `L`, `opening switch`): Width 1.0cm, Height 0.6cm
+- Text Label: Width 1.5cm, Height 0.5cm (with explicit anchors e.g., [anchor=east])
+- Timing Waveform Sketch: Width 4.5cm, Height 2.5cm
+
+**Label-to-Body Clearance Rule**:
+When components are placed in parallel, a component's label (offset by $\approx 0.3$cm to $0.4$cm from the wire) must not overlap with the physical body or wire of neighboring components. To guarantee this, the minimum center-to-center vertical/horizontal spacing between any parallel components must be at least **1.0cm** (derived as: Component A label top limit $y_A + 0.55$cm vs. Component B body bottom limit $y_B - 0.3$cm + safety margin of $0.15$cm $\implies y_B - y_A \ge 1.0$cm).
+
+### 9. Clearance and Routing Rules
+1. **Orthogonal Routing**: Unless the source schematic explicitly contains diagonal connections (e.g. cross-coupled latch feedback paths, bridge rectifiers, wheatstone bridges), all wiring MUST be strictly orthogonal (horizontal or vertical only) and aligned precisely with component pins.
+2. **Intentional Diagonals**: If the source diagram intentionally uses diagonal paths, render them faithfully as diagonal lines using absolute coordinates. Do not attempt to force them into straight orthogonal lines.
+3. **Wire Clearance**: Maintain at least 0.6cm clearance between any wire and adjacent parallel component bounding box edges.
+4. **Block Isolation**: Maintain a minimum clearance gap of 1.5cm between independent logical stages (e.g., buffer block to comparator block).
+5. **Connection Dots**: Use `\node[circ] at (x, y) {};` for T-junctions or cross connections. Do not use filled circles `\fill`.
+
+### 10. Horizontal Transistor Flipping
+To flip a MOS transistor horizontally (gate pointing to the right instead of the left):
+- Use `xscale=-1` on the node option (e.g. `\node[pmos, xscale=-1] (M2) at (x, y) {};`).
+- Remember that when `xscale=-1` is applied, the gate pin (e.g. `M2.G`) flips coordinates to the right side: `dx = +0.98` instead of `-0.98` (i.e. x-coordinate is at `x + 0.98`). All wiring connecting to the gate must align horizontally to this flipped position.
+
+### 11. PMOS Bubble Style
+Emit PMOS nodes with the CircuiTikZ `emptycircle` option by default:
+```tikz
+\node[pmos, emptycircle] (M1) at (3, 5.5) {};
+\node[pmos, emptycircle, xscale=-1] (M2) at (3, 4.0) {};
+```
+### 12. Netlist Connectivity Self-Check
+To systematically avoid and correct wire routing errors, you MUST perform a virtual Netlist Connectivity Self-Check before delivering final TikZ code:
+1. **Trace Inputs to Outputs**: For every node/junction, list which components and pins are electrically connected.
+2. **Verify Loop Polarity**: For every feedback loop (direct or cross-coupled), verify the sign (positive vs. negative). Specifically, check whether a feedback wire connects to the inverting input (`-`) or non-inverting input (`+`), and matching it against the schematic output polarity.
+3. **Check Crossings**: Verify that intersecting lines that are NOT electrically connected do not have `circ` node connection dots, and that they cross cleanly using orthogonal layout offsets.
+
+---
+
+## Computer Vision Assisted Visual Mapping (A1 Workflow)
+
+When converting schematics with complex routing or symmetrical structures (such as fully differential filters), you can use the computer vision pipeline to extract precise layout coordinates:
+
+1. **Component Bounding Box Detection**: Run the CV detection script to find coordinates of components:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/detect_components.py sch2tikz-out/YYYY-MMDD-HHMM-upload.png
+   ```
+2. **Grid Alignment and Clustering**: Cluster coordinates on X and Y axes to find the grid lines, and map them to standard absolute TikZ coordinates:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/grid_mapping_new.py sch2tikz-out/YYYY-MMDD-HHMM-upload.png
+   ```
+3. **Manual Override for Symmetry**: When the CV mapping outputs slightly asymmetric coordinates for symmetric components (e.g., $y = 0.52$ and $y = -0.48$), round them to symmetric integers or fractions (e.g., $y = \pm0.5$) to ensure a balanced drawing.
+
 ---
 
 ## Pin Offset Table (Reference)
@@ -123,3 +190,43 @@ This keeps `Apply` round-trips stable and avoids the parser converting dots into
 | `pmos` | `G` | -0.98 | 0 |
 | `pmos` | `D` | 0 | -0.77 |
 | `pmos` | `S` | 0 | +0.77 |
+
+---
+
+## Local LaTeX Rendering Setup
+
+To achieve extremely fast rendering verification (under 1 second compared to 8+ seconds via the remote QuickLaTeX API), it is highly recommended to configure a local LaTeX compilation environment.
+
+### 1. Install local TeX Distribution
+- **Windows**: Install [MiKTeX](https://miktex.org/download) or TeX Live. Ensure the bin directory containing `pdflatex.exe` is added to your Windows user or system PATH environment variable.
+- **macOS / Linux**: Install MacTeX or TeX Live via your package manager.
+
+### 2. Install SVG Conversion Tools
+- `dvisvgm` is required to convert Compiled PDF outputs into vector SVG format. It is bundled by default in most MiKTeX and TeX Live installations.
+- Ensure `pdflatex` and `dvisvgm` are discoverable by running `pdflatex --version` and `dvisvgm --version` in your terminal.
+
+### 3. Required MiKTeX/LaTeX Packages
+Ensure the following LaTeX packages and their dependencies are installed in your TeX manager (e.g. MiKTeX Console):
+- **Core packages**:
+  - `standalone` (Document class/package for cropping figures)
+  - `circuitikz` (v1.8.0+ for circuit design symbols)
+  - `pgf` (TikZ backend drawing engine)
+- **Math & Units**:
+  - `amsmath`, `amsfonts`, `amssymb` (For mathematical labeling)
+  - `siunitx` (For SI unit formatting in circuit components)
+- **Dependencies & Helpers** (highly recommended to prevent compilation failures):
+  - `l3kernel`, `l3backend` (LaTeX3 programming layer, required by `siunitx` and `standalone`)
+  - `xkeyval` (Key-value option processing)
+  - `xstring` (String processing, required by `circuitikz`)
+  - `graphics`, `graphicx`, `trig` (Graphics processing)
+  - `epstopdf-pkg` (EPS graphic conversion)
+
+If package auto-installation is not globally enabled in your MiKTeX settings, you can install them manually using the MiKTeX Console or via CLI:
+```bash
+mpm --install=standalone
+mpm --install=circuitikz
+mpm --install=siunitx
+mpm --install=xstring
+mpm --install=l3kernel
+```
+The verification script automatically runs `pdflatex` with `-disable-installer` to avoid background execution hangs due to interactive package installer prompts, falling back cleanly to the remote QuickLaTeX API if any package is missing.

@@ -3,6 +3,8 @@ export interface PreparedLatexSource {
 	libraries: string[]
 }
 
+const defaultLiveLatexTextStyle = String.raw`\small\sffamily`
+
 export function prepareLatexSource(raw: string): PreparedLatexSource {
 	let code = raw
 	const docMatch = code.match(/\\begin\{document\}([\s\S]*)\\end\{document\}/)
@@ -12,7 +14,6 @@ export function prepareLatexSource(raw: string): PreparedLatexSource {
 	code = code.replace(/\\usepackage[^{]*\{[^}]*\}/g, "")
 	code = code.replace(/%.*$/gm, "")
 	code = code.replace(/[^\x00-\x7F]/g, "")
-	code = code.replace(/,?\s*font=\\[a-zA-Z]+/g, "")
 	code = code.replace(/^\s*\n/gm, "").trim()
 
 	const libraries: string[] = ["calc"]
@@ -32,6 +33,8 @@ export function prepareLatexSource(raw: string): PreparedLatexSource {
 		})
 		code = code.replace(/\\usetikzlibrary\{[^}]+\}/g, "")
 	}
+
+	code = `{${defaultLiveLatexTextStyle}\n${code}\n}`
 
 	return { bodyCode: code, libraries }
 }

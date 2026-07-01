@@ -16,7 +16,13 @@ vi.mock("../src/scripts/internal", () => {
 	}
 })
 
-import { replaceLatexSubSup } from "../src/scripts/utils/textHelper"
+import { nativeTextFontFamily, replaceLatexSubSup } from "../src/scripts/utils/textHelper"
+
+describe("native visual editor text defaults", () => {
+	it("uses the sans-serif Computer Modern face", () => {
+		expect(nativeTextFontFamily).toBe("Computer Modern Sans")
+	})
+})
 
 describe("replaceLatexSubSup", () => {
 	it("should convert simple textsubscript correctly", () => {

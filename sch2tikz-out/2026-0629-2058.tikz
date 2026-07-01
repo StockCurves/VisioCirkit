@@ -1,0 +1,193 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% Left PWM reference waveform and input terminal
+\draw (0.2, 5.35) -- (0.65, 5.35) -- (0.65, 4.8) -- (1.55, 4.8) -- (1.55, 5.35) -- (2.0, 5.35);
+\node[anchor=east, align=right, text width=1.65cm, inner sep=2pt] at (1.9, 4.2) {\small $V_{\mathrm{PWM},P(N)}$};
+\draw (2.18, 4.32) rectangle (2.4, 4.62);
+\draw (2.4, 4.47) -- (3.05, 4.47);
+
+% Left common gate rail feeding two CMOS pre-driver stacks
+\draw (3.05, 1.55) -- (3.05, 7.55);
+\draw (3.05, 7.55) -- (3.45, 7.55);
+\draw (3.05, 5.35) -- (3.45, 5.35);
+\draw (3.05, 3.35) -- (3.45, 3.35);
+\draw (3.05, 1.55) -- (3.45, 1.55);
+
+% Left upper and lower CMOS stacks
+\node[pmos] (LPU) at (4.05, 7.55) {};
+\node[nmos] (LNU) at (4.05, 5.35) {};
+\node[pmos] (LPL) at (4.05, 3.35) {};
+\node[nmos] (LNL) at (4.05, 1.55) {};
+\draw (3.45, 7.55) -- (LPU.G);
+\draw (3.45, 5.35) -- (LNU.G);
+\draw (3.45, 3.35) -- (LPL.G);
+\draw (3.45, 1.55) -- (LNL.G);
+\draw (LPU.S) -- (4.05, 8.65);
+\draw (3.82, 8.65) -- (4.28, 8.65);
+\draw (LNU.S) -- (4.05, 4.45);
+\draw (4.05, 4.45) -- (4.95, 4.45);
+\draw (LPL.S) -- (4.05, 4.0);
+\draw (4.05, 4.0) -- (4.95, 4.0);
+\draw (LNL.S) -- (4.05, 0.55);
+\draw (3.82, 0.55) -- (4.28, 0.55);
+\draw (3.9, 0.36) -- (4.2, 0.36);
+\draw (3.97, 0.18) -- (4.13, 0.18);
+\draw (4.05, 6.78) -- (4.05, 6.12);
+\draw (4.05, 2.58) -- (4.05, 2.32);
+
+% Narrow pass-device pair before the logic blocks
+\node[pmos] (LPU2) at (4.95, 6.55) {};
+\node[nmos] (LNU2) at (4.95, 5.25) {};
+\node[pmos] (LPL2) at (4.95, 3.15) {};
+\node[nmos] (LNL2) at (4.95, 1.85) {};
+\draw (4.95, 7.32) -- (4.95, 7.75);
+\draw (4.95, 4.48) -- (4.95, 4.25);
+\draw (4.95, 3.92) -- (4.95, 3.65);
+\draw (4.95, 1.08) -- (4.95, 0.68);
+\draw (5.35, 6.55) -- (6.0, 6.55);
+\draw (5.35, 3.15) -- (6.0, 3.15);
+
+% Cross-coupled wires from left stacks to the two logic block inputs
+\draw (4.95, 4.45) -- (5.4, 5.75);
+\draw (5.4, 5.75) -- (6.0, 6.55);
+\draw (4.95, 4.0) -- (5.4, 2.15);
+\draw (5.4, 2.15) -- (6.0, 3.15);
+\draw (4.6, 4.45) -- (5.4, 2.15);
+\draw (4.6, 4.0) -- (5.4, 5.75);
+
+% Logic block rectangles and inverters
+\draw (6.0, 6.02) rectangle (6.9, 7.05);
+\draw (6.0, 2.62) rectangle (6.9, 3.65);
+\node[american not port] (INVU1) at (7.7, 7.05) {};
+\node[american not port] (INVU2) at (7.7, 5.65) {};
+\node[american not port] (INVL1) at (7.7, 3.65) {};
+\node[american not port] (INVL2) at (7.7, 2.25) {};
+\draw (6.9, 6.8) -- (INVU1.in 1);
+\draw (6.9, 6.25) -- (INVU2.in 1);
+\draw (6.9, 3.4) -- (INVL1.in 1);
+\draw (6.9, 2.85) -- (INVL2.in 1);
+
+% Right output CMOS stacks
+\node[pmos] (RPU) at (9.95, 7.05) {};
+\node[nmos] (RNU) at (9.95, 5.65) {};
+\node[pmos] (RPL) at (9.95, 3.05) {};
+\node[nmos] (RNL) at (9.95, 1.65) {};
+\draw (INVU1.out) -- (RPU.G);
+\draw (INVU2.out) -- (RNU.G);
+\draw (INVL1.out) -- (RPL.G);
+\draw (INVL2.out) -- (RNL.G);
+\draw (RPU.S) -- (9.95, 8.45);
+\draw (9.72, 8.45) -- (10.18, 8.45);
+\draw (RNU.S) -- (9.95, 4.65);
+\draw (9.75, 4.65) -- (10.15, 4.65);
+\draw (9.83, 4.46) -- (10.07, 4.46);
+\draw (9.9, 4.28) -- (10.0, 4.28);
+\draw (RPL.S) -- (9.95, 4.15);
+\draw (RNL.S) -- (9.95, 0.55);
+\draw (9.75, 0.55) -- (10.15, 0.55);
+\draw (9.83, 0.36) -- (10.07, 0.36);
+\draw (9.9, 0.18) -- (10.0, 0.18);
+\draw (9.95, 6.28) -- (9.95, 6.42);
+\draw (9.95, 2.28) -- (9.95, 2.42);
+
+% Output rails and right terminals
+\draw (9.95, 6.35) -- (12.1, 6.35);
+\draw (12.1, 6.35) -- (13.45, 6.35);
+\draw (13.45, 6.2) rectangle (13.68, 6.5);
+\draw (12.1, 6.35) -- (12.1, 5.0);
+\draw (12.1, 5.0) -- (10.65, 5.0);
+\node[anchor=west, align=left, text width=1.8cm, inner sep=2pt] at (12.55, 5.65) {\small $V_{\mathrm{PMOS},P(N)}$};
+\draw (9.95, 2.35) -- (12.1, 2.35);
+\draw (12.1, 2.35) -- (13.45, 2.35);
+\draw (13.45, 2.2) rectangle (13.68, 2.5);
+\draw (12.1, 2.35) -- (12.1, 3.7);
+\draw (12.1, 3.7) -- (10.65, 3.7);
+\node[anchor=west, align=left, text width=1.8cm, inner sep=2pt] at (12.55, 2.95) {\small $V_{\mathrm{NMOS},P(N)}$};
+
+% Manual dashed boxes around the matched-delay elements
+\draw (6.45, 4.0) -- (6.78, 4.0);
+\draw (7.0, 4.0) -- (7.35, 4.0);
+\draw (7.57, 4.0) -- (7.92, 4.0);
+\draw (8.14, 4.0) -- (8.49, 4.0);
+\draw (8.71, 4.0) -- (9.06, 4.0);
+\draw (9.28, 4.0) -- (9.63, 4.0);
+\draw (9.85, 4.0) -- (10.25, 4.0);
+\draw (6.45, 4.9) -- (6.78, 4.9);
+\draw (7.0, 4.9) -- (7.35, 4.9);
+\draw (7.57, 4.9) -- (7.92, 4.9);
+\draw (8.14, 4.9) -- (8.49, 4.9);
+\draw (8.71, 4.9) -- (9.06, 4.9);
+\draw (9.28, 4.9) -- (9.63, 4.9);
+\draw (9.85, 4.9) -- (10.25, 4.9);
+\draw (6.45, 4.0) -- (6.45, 4.3);
+\draw (6.45, 4.58) -- (6.45, 4.9);
+\draw (10.25, 4.0) -- (10.25, 4.3);
+\draw (10.25, 4.58) -- (10.25, 4.9);
+\draw (6.45, 2.7) -- (6.78, 2.7);
+\draw (7.0, 2.7) -- (7.35, 2.7);
+\draw (7.57, 2.7) -- (7.92, 2.7);
+\draw (8.14, 2.7) -- (8.49, 2.7);
+\draw (8.71, 2.7) -- (9.06, 2.7);
+\draw (9.28, 2.7) -- (9.63, 2.7);
+\draw (9.85, 2.7) -- (10.25, 2.7);
+\draw (6.45, 3.6) -- (6.78, 3.6);
+\draw (7.0, 3.6) -- (7.35, 3.6);
+\draw (7.57, 3.6) -- (7.92, 3.6);
+\draw (8.14, 3.6) -- (8.49, 3.6);
+\draw (8.71, 3.6) -- (9.06, 3.6);
+\draw (9.28, 3.6) -- (9.63, 3.6);
+\draw (9.85, 3.6) -- (10.25, 3.6);
+\draw (6.45, 2.7) -- (6.45, 3.0);
+\draw (6.45, 3.28) -- (6.45, 3.6);
+\draw (10.25, 2.7) -- (10.25, 3.0);
+\draw (10.25, 3.28) -- (10.25, 3.6);
+
+% Delay-chain inverters and connection dots
+\node[american not port, rotate=180] (DU1) at (7.55, 4.45) {};
+\node[american not port] (DU2) at (9.15, 4.45) {};
+\node[american not port, rotate=180] (DL1) at (7.55, 3.15) {};
+\node[american not port] (DL2) at (9.15, 3.15) {};
+\draw (6.85, 4.45) -- (DU1.out);
+\draw (DU1.in 1) -- (8.05, 4.45);
+\draw (8.68, 4.45) -- (DU2.in 1);
+\draw (DU2.out) -- (9.95, 4.45);
+\draw (6.85, 3.15) -- (DL1.out);
+\draw (DL1.in 1) -- (8.05, 3.15);
+\draw (8.68, 3.15) -- (DL2.in 1);
+\draw (DL2.out) -- (9.95, 3.15);
+\node[circ] at (8.32, 4.45) {};
+\node[circ] at (8.55, 4.45) {};
+\node[circ] at (8.32, 3.15) {};
+\node[circ] at (8.55, 3.15) {};
+
+% Diagonal control arrows drawn as editor-safe line art
+\draw (7.25, 3.7) -- (9.35, 5.55);
+\draw (9.35, 5.55) -- (9.05, 5.48);
+\draw (9.35, 5.55) -- (9.22, 5.25);
+\draw (7.55, 4.0) -- (9.15, 5.05);
+\draw (9.15, 5.05) -- (8.86, 5.02);
+\draw (9.15, 5.05) -- (9.05, 4.77);
+\draw (7.45, 2.65) -- (9.2, 4.05);
+\draw (9.2, 4.05) -- (8.9, 4.02);
+\draw (9.2, 4.05) -- (9.08, 3.76);
+
+% Output timing sketches and delay marker
+\draw (13.95, 5.35) -- (14.25, 5.35) -- (14.25, 4.75) -- (15.15, 4.75) -- (15.15, 5.35) -- (15.75, 5.35);
+\draw (13.65, 5.7) -- (13.65, 1.15);
+\draw (13.98, 5.7) -- (13.98, 1.15);
+\draw (13.38, 3.75) -- (13.58, 3.75);
+\draw (13.58, 3.75) -- (13.48, 3.86);
+\draw (13.58, 3.75) -- (13.48, 3.64);
+\draw (13.98, 3.75) -- (14.18, 3.75);
+\draw (13.98, 3.75) -- (14.08, 3.86);
+\draw (13.98, 3.75) -- (14.08, 3.64);
+\node[anchor=west, align=left, text width=1.5cm, inner sep=2pt] at (14.1, 4.05) {\small $\sim 6.5\mathrm{ns}$};
+\draw (13.95, 2.0) -- (14.25, 2.0) -- (14.25, 1.35) -- (15.5, 1.35) -- (15.5, 2.0) -- (15.9, 2.0);
+
+\end{circuitikz}
+\end{document}

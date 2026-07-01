@@ -65,6 +65,7 @@ import {
 	SymbolEditorController,
 	TemplateController,
 	LiveRenderController,
+	nativeTextFontFamily,
 } from "../internal"
 
 export type CanvasSettings = {
@@ -282,7 +283,7 @@ export class MainController {
 		let dbPromise = new Promise<IDBDatabase>((resolve) => {
 			dbResolve = resolve
 		})
-		let fontPromise = Promise.all([document.fonts.load("1em Computer Modern Serif"), loadTextConverter()])
+		let fontPromise = Promise.all([document.fonts.load(`1em "${nativeTextFontFamily}"`), loadTextConverter()])
 
 		MainController.appVersion = version
 		this.designName = new TextProperty("Design Name", "")
@@ -795,8 +796,6 @@ export class MainController {
 		)
 	}
 }
-
-
 
 
 

@@ -1,0 +1,192 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% --- Component Definitions ---
+
+% Stage 1: Stacked Transistors (Top: M1, M2, M3; Bottom: M4, M5, M6)
+\node[pmos, emptycircle] (M1) at (2.5, 5.0) {};
+\node at (2.0, 5.2) {\small M1};
+
+\node[nmos, xscale=-1] (M2) at (2.5, 3.0) {};
+\node at (2.0, 3.2) {\small M2};
+
+\node[nmos] (M3) at (2.5, 1.2) {};
+\node at (2.0, 1.0) {\small M3};
+
+\node[pmos, emptycircle] (M4) at (2.5, -0.6) {};
+\node at (2.0, -0.4) {\small M4};
+
+\node[pmos, emptycircle, xscale=-1] (M5) at (2.5, -2.4) {};
+\node at (2.0, -2.2) {\small M5};
+
+\node[nmos] (M6) at (2.5, -4.5) {};
+\node at (2.0, -4.7) {\small M6};
+
+% Stage 2: Parallel Inverters
+\node[american not port] (INVT1) at (4.8, 4.6) {};
+\node[american not port] (INVT2) at (4.8, 3.2) {};
+\node[american not port] (INVB1) at (4.8, -3.0) {};
+\node[american not port] (INVB2) at (4.8, -4.4) {};
+
+% Stage 3: Split-Gate Output Driver Transistors
+\node[pmos, emptycircle] (M_OUT1) at (10.0, 4.6) {};
+\node at (10.5, 4.8) {\small M7};
+
+\node[nmos] (M_OUT2) at (10.0, 3.2) {};
+\node at (10.5, 3.0) {\small M8};
+
+\node[pmos, emptycircle] (M_OUT3) at (10.0, -3.0) {};
+\node at (10.5, -2.8) {\small M9};
+
+\node[nmos] (M_OUT4) at (10.0, -4.4) {};
+\node at (10.5, -4.6) {\small M10};
+
+
+% --- Wiring & Connections ---
+
+% 1. Input Section
+\node[osquarepole] at (0.5, -0.15) {};
+\node[anchor=east] at (0.35, -0.15) {\small $V_{\mathrm{PWM,P(N)}}$};
+\draw (0.5, -0.15) -- (1.0, -0.15);
+\node[circ] at (1.0, -0.15) {};
+
+% Input distribution bus
+\draw (1.0, 5.0) -- (1.0, -4.5);
+\draw (1.0, 5.0) -- (M1.G);
+\draw (1.0, 1.2) -- (M3.G);
+\draw (1.0, -0.6) -- (M4.G);
+\draw (1.0, -4.5) -- (M6.G);
+
+% 2. First Stage Power Rails & Stack Wires
+% Top Stack
+\draw (M1.S) -- (2.5, 6.1);
+\draw (2.35, 6.1) -- (2.65, 6.1); % VDD
+\draw (M1.D) -- (M2.D);
+\draw (M2.S) -- (M3.D);
+\draw (M3.S) -- (2.5, 0.2) node[ground] {}; % GND
+
+% Bottom Stack
+\draw (M4.S) -- (2.5, 0.6);
+\draw (2.35, 0.6) -- (2.65, 0.6); % VDD
+\draw (M4.D) -- (M5.S);
+\draw (M5.D) -- (M6.D);
+\draw (M6.S) -- (2.5, -5.6) node[ground] {}; % GND
+
+% 3. Stage 1 Split-Node outputs to Inverter Inputs
+% Top Branch: tapped from Junction of M1 and M2 (y = 4.0)
+\node[circ] at (2.5, 4.0) {};
+\draw (2.5, 4.0) -- (3.7, 4.0);
+\draw (3.7, 4.0) -- (3.7, 4.6) -- (INVT1.in 1);
+\draw (3.7, 4.0) -- (3.7, 3.2) -- (INVT2.in 1);
+\node[circ] at (3.7, 4.0) {};
+
+% Bottom Branch: tapped from Junction of M5 and M6 (y = -3.5)
+\node[circ] at (2.5, -3.5) {};
+\draw (2.5, -3.5) -- (3.7, -3.5);
+\draw (3.7, -3.5) -- (3.7, -3.0) -- (INVB1.in 1);
+\draw (3.7, -3.5) -- (3.7, -4.4) -- (INVB2.in 1);
+\node[circ] at (3.7, -3.5) {};
+
+% Note: Junction 2 (y = 3.0) and Junction 3 (y = -3.0) have no direct inverter connections.
+
+% 4. Inverter Outputs to Driver Stage Gates
+\draw (INVT1.out) -- (M_OUT1.G);
+\draw (INVT2.out) -- (M_OUT2.G);
+\draw (INVB1.out) -- (M_OUT3.G);
+\draw (INVB2.out) -- (M_OUT4.G);
+
+% 5. Output Section
+% Top Output Driver Stack & Terminal
+\draw (M_OUT1.S) -- (10.0, 5.7);
+\draw (9.85, 5.7) -- (10.15, 5.7); % VDD
+\draw (M_OUT1.D) -- (M_OUT2.D);
+\draw (M_OUT2.S) -- (10.0, 2.0) node[ground] {}; % GND
+
+\draw (10.0, 3.9) -- (11.5, 3.9);
+\node[osquarepole] at (11.5, 3.9) {};
+\node[anchor=west] at (11.65, 3.9) {\small $V_{\mathrm{PMOS,P(N)}}$};
+
+% Bottom Output Driver Stack & Terminal
+\draw (M_OUT3.S) -- (10.0, -1.8);
+\draw (9.85, -1.8) -- (10.15, -1.8); % VDD
+\draw (M_OUT3.D) -- (M_OUT4.D);
+\draw (M_OUT4.S) -- (10.0, -5.6) node[ground] {}; % GND
+
+\draw (10.0, -3.7) -- (11.5, -3.7);
+\node[osquarepole] at (11.5, -3.7) {};
+\node[anchor=west] at (11.65, -3.7) {\small $V_{\mathrm{NMOS,P(N)}}$};
+
+
+% --- Feedback Delay Lines (Spaced Center = 7.5, Width = 2.4, Triangles Pointing Left) ---
+
+% 1. Upper Feedback Delay Line (in a solid box)
+\draw (6.2, 0.6) rectangle (8.6, 1.6);
+\draw (6.4, 0.4) -- (8.4, 1.8); % Adjustable arrow
+\draw (8.3, 1.8) -- (8.4, 1.8) -- (8.4, 1.7); % Arrowhead
+% Left buffer pointing left
+\draw (6.9, 1.3) -- (6.5, 1.1) -- (6.9, 0.9) -- cycle;
+\draw (6.9, 1.3) -- (6.9, 0.9);
+% Right buffer pointing left
+\draw (8.3, 1.3) -- (7.9, 1.1) -- (8.3, 0.9) -- cycle;
+\draw (8.3, 1.3) -- (8.3, 0.9);
+% Dotted line
+\node at (7.4, 1.1) {\small $\dots$};
+% Wires inside & connections
+\draw (8.6, 1.1) -- (8.3, 1.1);
+\draw (7.9, 1.1) -- (7.6, 1.1);
+\draw (7.2, 1.1) -- (6.9, 1.1);
+\draw (6.5, 1.1) -- (6.2, 1.1);
+
+% 2. Lower Feedback Delay Line (in a solid box)
+\draw (6.2, -1.6) rectangle (8.6, -0.6);
+\draw (6.4, -1.8) -- (8.4, -0.4); % Adjustable arrow
+\draw (8.3, -0.4) -- (8.4, -0.4) -- (8.4, -0.5); % Arrowhead
+% Left buffer pointing left
+\draw (6.9, -0.9) -- (6.5, -1.1) -- (6.9, -1.3) -- cycle;
+\draw (6.9, -0.9) -- (6.9, -1.3);
+% Right buffer pointing left
+\draw (8.3, -0.9) -- (7.9, -1.1) -- (8.3, -1.3) -- cycle;
+\draw (8.3, -0.9) -- (8.3, -1.3);
+% Dotted line
+\node at (7.4, -1.1) {\small $\dots$};
+% Wires inside & connections
+\draw (8.6, -1.1) -- (8.3, -1.1);
+\draw (7.9, -1.1) -- (7.6, -1.1);
+\draw (7.2, -1.1) -- (6.9, -1.1);
+\draw (6.5, -1.1) -- (6.2, -1.1);
+
+% 3. Feedback Taps from Output to Delay Line Inputs (V_OUT to Right Inputs)
+\node[circ] at (10.8, 3.9) {};
+\draw (10.8, 3.9) -- (10.8, 1.1) -- (8.6, 1.1);
+
+\node[circ] at (10.8, -3.7) {};
+\draw (10.8, -3.7) -- (10.8, -1.1) -- (8.6, -1.1);
+
+% 4. Diagonal Cross-Coupling Feedback Wires (Left Outputs to Left Stack Gates at x=3.48)
+\draw (6.2, 1.1) -- (5.9, 1.1) -- (3.8, -2.4) -- (M5.G);
+\draw (6.2, -1.1) -- (5.9, -1.1) -- (3.8, 3.0) -- (M2.G);
+
+
+% --- Timing Waveforms & Delay Indicators (Right Side) ---
+
+% Top Waveform (V_PMOS)
+\draw (12.5, 3.4) -- (13.0, 3.4) -- (13.0, 2.7) -- (13.8, 2.7) -- (13.8, 3.4) -- (14.3, 3.4);
+
+% Bottom Waveform (V_NMOS)
+\draw (12.5, -2.4) -- (13.5, -2.4) -- (13.5, -3.1) -- (14.3, -3.1) -- (14.3, -2.4) -- (14.5, -2.4);
+
+% Vertical alignment markers (Avoid dashed option)
+\draw (13.0, 3.6) -- (13.0, -3.3);
+\draw (13.5, 3.6) -- (13.5, -3.3);
+
+% Delay dimension arrows (drawn manually)
+\draw (12.8, 0.0) -- (13.0, 0.0);
+\draw (13.7, 0.0) -- (13.5, 0.0);
+\node[anchor=west] at (13.6, 0.0) {\small $\sim$6.5ns};
+
+\end{circuitikz}
+\end{document}
