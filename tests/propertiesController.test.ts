@@ -207,6 +207,65 @@ describe("PropertyController", () => {
 		expect(appServiceMocks.runSelectionAction).toHaveBeenCalledWith("foreground")
 	})
 
+	it("scrolls flowchart single-selection properties to the text section", async () => {
+		const textHeaderElement = document.createElement("div")
+		textHeaderElement.textContent = "Text"
+		textHeaderElement.scrollIntoView = vi.fn()
+		const textHeader = {
+			id: "text:header",
+			getHTMLElement: vi.fn(() => textHeaderElement),
+			remove: vi.fn(),
+		}
+		appServiceMocks.buildPanelState.mockReturnValue({
+			mode: "single",
+			title: "Decision",
+			showViewSettings: false,
+			showPropertyEntries: true,
+			majorGridSizecm: 2,
+			majorGridSubdivisions: 4,
+			minorGridDisplay: "0.5 cm",
+			properties: [textHeader],
+			transientProperties: [],
+			actionSections: [],
+			environmentViewRequired: false,
+			selectedComponents: [{ displayName: "Decision", toJson: () => ({ type: "flowDecision" }) }],
+		})
+		const { PropertyController } = await import("../src/scripts/controllers/propertiesController")
+
+		PropertyController.instance.update()
+
+		expect(textHeaderElement.scrollIntoView).toHaveBeenCalledWith({ block: "start", inline: "nearest" })
+	})
+
+	it("does not scroll ordinary single-selection properties to the text section", async () => {
+		const textHeaderElement = document.createElement("div")
+		textHeaderElement.scrollIntoView = vi.fn()
+		const textHeader = {
+			id: "text:header",
+			getHTMLElement: vi.fn(() => textHeaderElement),
+			remove: vi.fn(),
+		}
+		appServiceMocks.buildPanelState.mockReturnValue({
+			mode: "single",
+			title: "Rectangle",
+			showViewSettings: false,
+			showPropertyEntries: true,
+			majorGridSizecm: 2,
+			majorGridSubdivisions: 4,
+			minorGridDisplay: "0.5 cm",
+			properties: [textHeader],
+			transientProperties: [],
+			actionSections: [],
+			environmentViewRequired: false,
+			selectedComponents: [{ displayName: "Rectangle", toJson: () => ({ type: "rectangle" }) }],
+		})
+		const { PropertyController } = await import("../src/scripts/controllers/propertiesController")
+
+		PropertyController.instance.update()
+
+		expect(textHeaderElement.scrollIntoView).not.toHaveBeenCalled()
+	})
+
 	it("setSliderValues updates labels without rebinding listeners", async () => {
 		const { PropertyController } = await import("../src/scripts/controllers/propertiesController")
 

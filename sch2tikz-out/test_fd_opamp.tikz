@@ -1,3 +1,0 @@
-\begin{circuitikz}
-\node[fd op amp] at (0,0) {};
-\end{circuitikz}

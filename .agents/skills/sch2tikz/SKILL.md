@@ -20,14 +20,19 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    python .agents/skills/sch2tikz/scripts/lookup_pin_offset.py "op amp"
    ```
 4. **Draft TikZ Code**: Write clean TikZ code using the **Editor Compatibility Rules** below.
-5. **Compile and Verify**: Save to a `.tikz` file and compile/render it before handoff.
+5. **Topological Grid Spacing**: To prevent overlapping components (like a resistor shorting through a capacitor's body), mathematically enforce bounding box clearance by stretching the base grid lines while preserving component pin offsets. Run the topological alignment script:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/align_topology.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --output sch2tikz-out/YYYY-MMDD-HHMM_aligned.tikz --x_stretch 1.5 --y_stretch 1.4
+   ```
+   Then proceed with `YYYY-MMDD-HHMM_aligned.tikz` for compilation.
+6. **Compile and Verify**: Save to a `.tikz` file and compile/render it before handoff.
    - First check for local LaTeX tooling (`pdflatex`, `lualatex`, or `tectonic`) and use the local renderer if available.
    - If local `pdflatex`/LaTeX rendering is not available, use the QuickLaTeX verification script as the fallback:
    ```bash
-   python .agents/skills/sch2tikz/scripts/verify_tikz.py sch2tikz-out/YYYY-MMDD-HHMM.tikz
+   python .agents/skills/sch2tikz/scripts/verify_tikz.py sch2tikz-out/YYYY-MMDD-HHMM_aligned.tikz
    ```
    - QuickLaTeX sends the generated TikZ content to an external service; this is the expected fallback path for this skill when local rendering is unavailable.
-6. **Editor Compatibility Lint**: Run the local lint script before handing off generated code:
+7. **Editor Compatibility Lint**: Run the local lint script before handing off generated code:
    ```bash
    python .agents/skills/sch2tikz/scripts/lint_editor_compat.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --report sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md
    ```

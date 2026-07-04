@@ -1,0 +1,284 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% --- Thick Oxide Stage ---
+% Power rail V_HV
+\draw (0.2, 8.5) -- (13.5, 8.5);
+\node[above] at (6.8, 8.5) {\small $V_{HV}$};
+
+% Transistors
+\node[pmos, emptycircle] (M14) at (1.6, 7.5) {};
+\node[pmos, emptycircle] (M15) at (4.3, 7.5) {};
+\node[pmos, emptycircle] (M16) at (11.7, 7.5) {};
+
+\node[anchor=east] at (0.7, 7.5) {\small M14};
+\node[anchor=south] at (4.3, 8.3) {\small M15};
+\node[anchor=south] at (11.7, 8.3) {\small M16};
+
+% Connections to V_HV
+\draw (1.6, 8.27) -- (1.6, 8.5);
+\draw (4.3, 8.27) -- (4.3, 8.5);
+\draw (11.7, 8.27) -- (11.7, 8.5);
+
+% Gate connection line
+\draw (M14.G) -- (M16.G);
+
+% Diode connection for M14
+\draw (M14.G) -- (0.4, 7.5);
+\draw (0.4, 7.5) -- (0.4, 6.73);
+\draw (0.4, 6.73) -- (1.6, 6.73);
+\node[circ] at (1.6, 6.73) {};
+
+% Current source under M14
+\draw (1.6, 6.73) to[I] (1.6, 5.2);
+\draw (1.6, 5.2) node[ground] {};
+
+% Thick Oxide box
+\draw (0.2, 6.0) -- (12.5, 6.0);
+\draw (12.5, 6.0) -- (12.5, 9.0);
+\draw (12.5, 9.0) -- (0.2, 9.0);
+\draw (0.2, 9.0) -- (0.2, 6.0);
+\node[anchor=north west] at (0.3, 8.9) {\small \textbf{Thick Oxide}};
+
+
+% --- CMFB Stage ---
+% Transistors
+\node[pmos, emptycircle] (M9) at (2.7, 5.0) {};
+\node[pmos, emptycircle, xscale=-1] (M10) at (5.9, 5.0) {};
+\node[nmos] (M11) at (2.7, 2.5) {};
+\node[nmos] (M12) at (5.9, 2.5) {};
+
+\node[anchor=south] at (2.7, 5.8) {\small M9};
+\node[anchor=south] at (5.9, 5.8) {\small M10};
+\node[anchor=north] at (2.7, 1.6) {\small M11};
+\node[anchor=north] at (5.9, 1.6) {\small M12};
+
+% Sources of M9 and M10
+\draw (M9.S) -- (M10.S);
+\node[circ] at (4.3, 5.77) {};
+\draw (M15.D) -- (4.3, 5.77);
+
+% Input V_CM to M9
+\draw (M9.G) -- (1.2, 5.0);
+\node[osquarepole] at (1.2, 5.0) {};
+\node[anchor=east] at (0.9, 5.0) {\small $V_{CM}$};
+
+% Resistors R15, R16
+\draw (M11.S) to[R=$R_{15}$] (2.7, 0.5);
+\draw (2.7, 0.5) node[ground] {};
+\draw (M12.S) to[R=$R_{16}$] (5.9, 0.5);
+\draw (5.9, 0.5) node[ground] {};
+
+% Diode connection for M11
+\draw (M11.G) -- (1.5, 2.5);
+\draw (1.5, 2.5) -- (1.5, 3.27);
+\draw (1.5, 3.27) -- (2.7, 3.27);
+\node[circ] at (2.7, 3.27) {};
+
+% Connection from M9 drain to M11 drain
+\draw (M9.D) -- (M11.D);
+
+% Connection from M10 drain to M12 drain
+\draw (M10.D) -- (M12.D);
+
+% Gate connection of M11 and M12 (under the transistor body)
+\draw (M11.G) -- (1.5, 2.5);
+\draw (1.5, 2.5) -- (1.5, 1.9);
+\draw (1.5, 1.9) -- (4.92, 1.9);
+\draw (4.92, 1.9) -- (M12.G);
+
+% RC sensing network for M10
+\draw (M10.G) -- (7.7, 5.0);
+\node[circ] at (7.7, 5.0) {};
+% Top branch to V_OP1
+\draw (7.7, 5.0) -- (7.7, 5.2);
+\draw (7.7, 5.2) -- (7.2, 5.2);
+\draw (7.2, 5.2) to[R] (7.2, 6.0);
+\draw (7.2, 6.0) -- (7.7, 6.0);
+\draw (7.7, 5.2) -- (8.2, 5.2);
+\draw (8.2, 5.2) to[C] (8.2, 6.0);
+\draw (8.2, 6.0) -- (7.7, 6.0);
+\draw (7.7, 6.0) -- (7.7, 6.4);
+\node[osquarepole] at (7.7, 6.4) {};
+\node[anchor=south] at (7.7, 6.7) {\small $V_{OP1}$};
+% Bottom branch to V_ON1
+\draw (7.7, 5.0) -- (7.7, 4.8);
+\draw (7.7, 4.8) -- (7.2, 4.8);
+\draw (7.2, 4.8) to[R] (7.2, 4.0);
+\draw (7.2, 4.0) -- (7.7, 4.0);
+\draw (7.7, 4.8) -- (8.2, 4.8);
+\draw (8.2, 4.8) to[C] (8.2, 4.0);
+\draw (8.2, 4.0) -- (7.7, 4.0);
+\draw (7.7, 4.0) -- (7.7, 3.6);
+\node[osquarepole] at (7.7, 3.6) {};
+\node[anchor=north] at (7.7, 3.3) {\small $V_{ON1}$};
+
+
+% --- 1st-Stage ---
+% Transistors
+\node[pmos, emptycircle] (M1) at (11.0, 5.0) {};
+\node[pmos, emptycircle, xscale=-1] (M2) at (15.0, 5.0) {};
+\node[nmos] (M3) at (11.0, 2.5) {};
+\node[nmos] (M4) at (15.0, 2.5) {};
+
+\node[anchor=south] at (11.0, 5.8) {\small M1};
+\node[anchor=south] at (15.0, 5.8) {\small M2};
+\node[anchor=north] at (11.0, 1.6) {\small M3};
+\node[anchor=north] at (15.0, 1.6) {\small M4};
+
+% Sources of M1 and M2
+\draw (M1.S) -- (M2.S);
+\node[circ] at (13.0, 5.77) {};
+\draw (M16.D) -- (13.0, 5.77);
+
+% Input V_IP1 and V_IN1 to gates
+\draw (M1.G) -- (9.5, 5.0);
+\node[osquarepole] at (9.5, 5.0) {};
+\node[anchor=south] at (9.5, 5.4) {\small $V_{IP1}$};
+\draw (M2.G) -- (16.5, 5.0);
+\node[osquarepole] at (16.5, 5.0) {};
+\node[anchor=south] at (16.5, 5.4) {\small $V_{IN1}$};
+
+% Resistors R11, R12
+\draw (M3.S) to[R=$R_{11}$] (11.0, 0.5);
+\draw (11.0, 0.5) node[ground] {};
+\draw (M4.S) to[R=$R_{12}$] (15.0, 0.5);
+\draw (15.0, 0.5) node[ground] {};
+
+% Gates of M3 and M4 connected together (under transistor bodies)
+\draw (M3.G) -- (10.02, 1.9);
+\draw (10.02, 1.9) -- (14.02, 1.9);
+\draw (14.02, 1.9) -- (M4.G);
+
+% Connection from M12 drain (CMFB output) to gates of M3/M4
+\node[circ] at (5.9, 3.27) {};
+\draw (5.9, 3.27) -- (6.8, 3.27);
+\draw (6.8, 3.27) -- (6.8, 1.9);
+\draw (6.8, 1.9) -- (10.02, 1.9);
+
+
+% --- 2nd-Stage ---
+% Power rail V_LV
+\draw (15.0, 8.5) -- (22.0, 8.5);
+\node[above] at (16.5, 8.5) {\small $V_{LV}$};
+
+% Transistors
+\node[pmos, emptycircle] (M13) at (18.2, 7.5) {};
+\node[pmos, emptycircle] (M7) at (21.0, 5.0) {};
+\node[pmos, emptycircle, xscale=-1] (M8) at (23.4, 5.0) {};
+\node[nmos] (M5) at (21.0, 2.5) {};
+\node[nmos] (M6) at (23.4, 2.5) {};
+
+\node[anchor=south] at (18.2, 8.3) {\small M13};
+\node[anchor=south] at (21.0, 5.8) {\small M7};
+\node[anchor=south] at (23.4, 5.8) {\small M8};
+\node[anchor=north] at (21.0, 1.6) {\small M5};
+\node[anchor=north] at (23.4, 1.6) {\small M6};
+
+% Connections to V_LV
+\draw (18.2, 8.27) -- (18.2, 8.5);
+\draw (M7.S) -- (21.0, 8.5);
+\draw (M8.S) -- (23.4, 8.5);
+
+% Diode connection for M13
+\draw (M13.G) -- (17.2, 7.5);
+\draw (17.2, 7.5) -- (17.2, 6.73);
+\draw (17.2, 6.73) -- (18.2, 6.73);
+\node[circ] at (18.2, 6.73) {};
+
+% Current source under M13
+\draw (18.2, 6.73) to[I] (18.2, 5.2);
+\draw (18.2, 5.2) node[ground] {};
+
+% Gate bias distribution line
+\draw (17.2, 6.4) -- (22.42, 6.4);
+\node[circ] at (17.2, 6.4) {};
+
+% Resistors R17, R18
+\draw (20.02, 6.4) to[R=$R_{17}$] (M7.G);
+\node[circ] at (20.02, 6.4) {};
+\draw (22.42, 6.4) to[R=$R_{18}$] (M8.G);
+\node[circ] at (22.42, 6.4) {};
+
+% AC input coupling capacitors C11, C12
+\draw (M7.G) to[C=$C_{11}$] (19.7, 5.0);
+\node[osquarepole] at (19.7, 5.0) {};
+\node[anchor=south] at (19.7, 5.4) {\small $V_{IN1}$};
+\draw (M8.G) to[C=$C_{12}$] (22.2, 5.0);
+\node[osquarepole] at (22.2, 5.0) {};
+\node[anchor=south] at (22.2, 5.4) {\small $V_{IP1}$};
+
+% Output nodes of 2nd stage
+\draw (M7.D) -- (M5.D);
+\node[circ] at (21.0, 3.75) {};
+\draw (M8.D) -- (M6.D);
+\node[circ] at (23.4, 3.75) {};
+
+% Feedback network left (C13, R13)
+\draw (21.0, 3.75) -- (19.3, 3.75);
+\draw (19.3, 3.75) -- (19.3, 3.6);
+\draw (19.3, 3.6) to[C=$C_{13}$] (19.3, 2.5);
+\draw (19.3, 2.5) to[R=$R_{13}$] (19.3, 1.4);
+\draw (19.3, 1.4) -- (19.3, 2.5);
+\draw (19.3, 2.5) -- (M5.G);
+\node[circ] at (19.3, 3.75) {};
+\draw (19.3, 3.75) -- (19.3, 4.1);
+\node[osquarepole] at (19.3, 4.1) {};
+\node[anchor=east] at (19.0, 4.1) {\small $V_{OP1}$};
+
+% Feedback network right (C14, R14)
+\draw (23.4, 3.75) -- (25.1, 3.75);
+\draw (25.1, 3.75) -- (25.1, 3.6);
+\draw (25.1, 3.6) to[C=$C_{14}$] (25.1, 2.5);
+\draw (25.1, 2.5) to[R=$R_{14}$] (25.1, 1.4);
+\draw (25.1, 1.4) -- (25.1, 2.5);
+\draw (25.1, 2.5) -- (M6.G);
+\node[circ] at (25.1, 3.75) {};
+\draw (25.1, 3.75) -- (25.1, 4.1);
+\node[osquarepole] at (25.1, 4.1) {};
+\node[anchor=west] at (25.4, 4.1) {\small $V_{ON1}$};
+
+% Common source connection of M5 and M6 to R10
+\draw (M5.S) -- (M6.S);
+\node[circ] at (22.2, 1.73) {};
+\draw (22.2, 1.73) to[R=$R_{10}$] (22.2, 0.5);
+\draw (22.2, 0.5) node[ground] {};
+\node[left] at (21.8, 0.8) {\small $I_{R10}$};
+
+% --- Inter-stage Connections (Differential cross-coupling) ---
+% Drain of M1/M3 to Gate of M6
+\node[circ] at (11.0, 3.9) {};
+\draw (11.0, 3.9) -- (22.0, 3.9);
+\draw (22.0, 3.9) -- (22.0, 2.5);
+\draw (22.0, 2.5) -- (M6.G);
+
+% Drain of M2/M4 to Gate of M5
+\node[circ] at (15.0, 3.5) {};
+\draw (15.0, 3.5) -- (15.4, 3.5);
+\draw (15.4, 3.5) -- (15.4, 1.1);
+\draw (15.4, 1.1) -- (20.02, 1.1);
+\draw (20.02, 1.1) -- (M5.G);
+
+
+% --- Stage Labels & Brackets at bottom ---
+\draw (1.0, -0.1) -- (1.0, -0.2);
+\draw (1.0, -0.2) -- (4.8, -0.2);
+\draw (4.8, -0.2) -- (4.8, -0.1);
+\node at (2.9, -0.5) {\small \textbf{CMFB}};
+
+\draw (8.0, -0.1) -- (8.0, -0.2);
+\draw (8.0, -0.2) -- (11.8, -0.2);
+\draw (11.8, -0.2) -- (11.8, -0.1);
+\node at (9.9, -0.5) {\small \textbf{$1^{\text{st}}$-stage}};
+
+\draw (16.8, -0.1) -- (16.8, -0.2);
+\draw (16.8, -0.2) -- (19.2, -0.2);
+\draw (19.2, -0.2) -- (19.2, -0.1);
+\node at (18.0, -0.5) {\small \textbf{$2^{\text{nd}}$-stage}};
+
+\end{circuitikz}
+\end{document}

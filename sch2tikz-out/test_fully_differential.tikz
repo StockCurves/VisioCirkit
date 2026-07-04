@@ -1,3 +1,0 @@
-\begin{circuitikz}
-\node[fully differential op amp] at (0,0) {};
-\end{circuitikz}

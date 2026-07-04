@@ -168,22 +168,36 @@
 }
 
 #tikzEditorResizer {
-	width: 1px !important;
-	min-width: 1px !important;
-	max-width: 1px !important;
-	flex: 0 0 1px !important;
+	position: relative;
+	width: 8px !important;
+	min-width: 8px !important;
+	max-width: 8px !important;
+	flex: 0 0 8px !important;
 	margin: 0 !important;
 	padding: 0 !important;
 	border: none !important;
-	transition: background-color 0.2s ease, width 0.2s ease;
-	
-	&:hover, &:active {
-		background-color: var(--primary) !important;
-		width: 1px !important;
-		min-width: 1px !important;
-		max-width: 1px !important;
-		flex: 0 0 1px !important;
+	cursor: col-resize;
+	user-select: none;
+	align-self: stretch;
+	z-index: 10;
+	background-color: transparent !important;
+
+	&::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 50%;
+		width: 1px;
+		transform: translateX(-50%);
+		background-color: var(--border-color);
+		transition: background-color 0.2s ease, width 0.2s ease;
+	}
+
+	&:hover::before,
+	&:active::before {
+		width: 2px;
+		background-color: var(--primary);
 	}
 }
-
 

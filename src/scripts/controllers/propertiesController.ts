@@ -14,6 +14,17 @@ import {
 import { PropertiesApplicationService } from "../services/propertiesApplicationService"
 import { PropertiesPanelState, PropertyActionSection } from "../services/propertiesTypes"
 
+const FLOWCHART_COMPONENT_TYPES = new Set([
+	"flowTerminator",
+	"flowDecision",
+	"flowInputOutput",
+	"flowDocument",
+	"flowDatabase",
+	"flowSubprocess",
+	"flowConnector",
+	"flowOffPageConnector",
+])
+
 export type FormEntry = {
 	originalObject: object
 	propertyName: string
@@ -169,7 +180,41 @@ export class PropertyController {
 			for (const section of panelState.actionSections) {
 				this.renderActionSection(section)
 			}
-			this.propertiesEntries.append(...panelState.properties.map((property) => property.getHTMLElement()))
+			const textHeader = this.renderProperties(panelState)
+			this.scrollFlowchartTextPropertiesIntoView(panelState, textHeader)
+		}
+	}
+
+	private renderProperties(panelState: PropertiesPanelState): HTMLElement | null {
+		let textHeader: HTMLElement | null = null
+		for (const property of panelState.properties) {
+			const propertyElement = property.getHTMLElement()
+			if (property.id === "text:header") {
+				textHeader = propertyElement
+			}
+			this.propertiesEntries.appendChild(propertyElement)
+		}
+		return textHeader
+	}
+
+	private scrollFlowchartTextPropertiesIntoView(panelState: PropertiesPanelState, textHeader: HTMLElement | null) {
+		if (!textHeader || panelState.mode !== "single" || panelState.selectedComponents.length !== 1) {
+			return
+		}
+		if (!this.shouldAutoScrollToText(panelState.selectedComponents[0])) {
+			return
+		}
+		textHeader.scrollIntoView({ block: "start", inline: "nearest" })
+	}
+
+	private shouldAutoScrollToText(component: CircuitComponent): boolean {
+		if (component.displayName === "Process") {
+			return true
+		}
+		try {
+			return FLOWCHART_COMPONENT_TYPES.has(component.toJson().type)
+		} catch {
+			return false
 		}
 	}
 
