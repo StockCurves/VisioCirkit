@@ -31,20 +31,22 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    ```bash
    python .agents/skills/sch2tikz/scripts/lint_editor_compat.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --report sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md
    ```
-7. **Visual Overlay QA**: When the original image and rendered output are both available, create an overlay report:
+7. **Geometry Overlap QA**: This is the primary and only gate for overlap detection. It estimates component, terminal, and label bounding boxes from the TikZ source and fails when boxes overlap:
    ```bash
-   python .agents/skills/sch2tikz/scripts/overlay_diff.py sch2tikz-out/YYYY-MMDD-HHMM-upload.png sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg
+   python .agents/skills/sch2tikz/scripts/lint_geometry_overlap.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --report sch2tikz-out/YYYY-MMDD-HHMM_geometry-report.md
    ```
-8. **Iterate**: Inspect the compiled SVG and overlay report. Treat label size, font metrics, and hand-drawn wobble as low-priority visual differences; prioritize topology, pin alignment, missing symbols, wire routing, and connection dots. Do not present the result as visually verified unless render verification and overlay QA were actually run.
+   Fix any component/label overlap reported here before delivery.
+8. **Visual Overlay QA (Deprecated)**: Do not use rendered-image overlay comparison (`overlay_diff.py`) to adjust component positions, as it is overly sensitive to hand-drawn reference variations, font metrics, and scale factors. Rely solely on the geometry linter instead.
+9. **Iterate**: Inspect the compiled SVG and geometry report. Prioritize topology, pin alignment, missing symbols, wire routing, connection dots, and geometry-lint overlaps. Do not present the result as overlap-clean unless `lint_geometry_overlap.py` passes.
 
 ## Output Formatting & Storage
 
 Save the resulting files in the following format:
 - `sch2tikz-out/YYYY-MMDD-HHMM-upload.png` (the original uploaded schematic image)
 - `sch2tikz-out/YYYY-MMDD-HHMM.tikz` (the CircuiTikZ LaTeX source file)
-- `sch2tikz-out/YYYY-MMDD-HHMM.png` or `_rendered.svg` (the compiled output image)
+- `sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg` (the compiled output image, compiled locally with a 60-second timeout)
 - `sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md` (optional editor compatibility lint report)
-- `sch2tikz-out/YYYY-MMDD-HHMM_rendered_overlay.html` (optional visual overlay QA report)
+- `sch2tikz-out/YYYY-MMDD-HHMM_geometry-report.md` (component/label bbox overlap report)
 
 These scripts are manual agent/developer QA tools. Do not wire them into the production frontend bundle, Vercel build command, or `build:demo` unless a separate deployment decision is made.
 

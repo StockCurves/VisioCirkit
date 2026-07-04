@@ -46,7 +46,7 @@ def compile_local(file_path, output_svg_path):
             "-halt-on-error",
             f"-output-directory={local_render_dir}",
             temp_tex_path
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=15)
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
         
         if res.returncode != 0:
             print("Local pdflatex compilation failed.")
@@ -71,7 +71,7 @@ def compile_local(file_path, output_svg_path):
             "--no-fonts",
             f"--output={output_svg_path}",
             pdf_path
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
         
         if res_svg.returncode != 0:
             print("Local dvisvgm conversion failed.")
