@@ -8,7 +8,19 @@ export type CustomSymbolState = {
 }
 
 export class CustomSymbolApplicationService {
+	private listeners: (() => void)[] = []
+
 	public constructor(private readonly customSymbolService: CustomSymbolService) {}
+
+	public onChange(listener: () => void): void {
+		this.listeners.push(listener)
+	}
+
+	private notifyChange(): void {
+		for (const listener of this.listeners) {
+			listener()
+		}
+	}
 
 	public async loadState(): Promise<CustomSymbolState> {
 		return {
@@ -44,6 +56,7 @@ export class CustomSymbolApplicationService {
 		if (!duplicated) return "missing-metadata"
 
 		this.customSymbolService.replaceCustomSymbolRecord(currentCustomSymbols, duplicated.updatedRecord)
+		this.notifyChange()
 		return this.loadState()
 	}
 
@@ -67,6 +80,7 @@ export class CustomSymbolApplicationService {
 			currentCustomSymbols,
 			circuitComponents
 		)
+		this.notifyChange()
 		return this.loadState()
 	}
 
@@ -76,16 +90,19 @@ export class CustomSymbolApplicationService {
 		currentCustomSymbols: CustomSymbolRecord[]
 	): Promise<CustomSymbolState> {
 		await this.customSymbolService.deleteCustomGraphicsSymbol(tikzName, runtimeSymbols, currentCustomSymbols)
+		this.notifyChange()
 		return this.loadState()
 	}
 
 	public async addCategory(name: string): Promise<CustomSymbolState> {
 		await this.customSymbolService.addCategory(name.trim())
+		this.notifyChange()
 		return this.loadState()
 	}
 
 	public async deleteCategory(name: string): Promise<CustomSymbolState> {
 		await this.customSymbolService.deleteCategory(name)
+		this.notifyChange()
 		return this.loadState()
 	}
 
@@ -93,6 +110,7 @@ export class CustomSymbolApplicationService {
 		const trimmedName = newName.trim()
 		if (!trimmedName || trimmedName === oldName) return "no-op"
 		await this.customSymbolService.renameCategory(oldName, trimmedName)
+		this.notifyChange()
 		return this.loadState()
 	}
 
@@ -111,11 +129,13 @@ export class CustomSymbolApplicationService {
 			circuitComponents
 		)
 		if (!renamed) return "missing"
+		this.notifyChange()
 		return this.loadState()
 	}
 
-	public async deleteCustomSymbol(symbolId: string, currentCustomSymbols: CustomSymbolRecord[]): Promise<CustomSymbolState> {
-		await this.customSymbolService.deleteCustomSymbol(symbolId, currentCustomSymbols)
+	public async deleteCustomSymbol(symbolId: string, customSymbols?: CustomSymbolRecord[]): Promise<CustomSymbolState> {
+		await this.customSymbolService.deleteCustomSymbol(symbolId, customSymbols)
+		this.notifyChange()
 		return this.loadState()
 	}
 
@@ -125,24 +145,29 @@ export class CustomSymbolApplicationService {
 		customSymbolData?: CustomSymbolRecord
 	): Promise<CustomSymbolState> {
 		await this.customSymbolService.addSymbolToCategory(categoryName, symbolId, customSymbolData)
+		this.notifyChange()
 		return this.loadState()
 	}
 
 	public async removeSymbolFromCategory(categoryName: string, symbolId: string): Promise<CustomSymbolState> {
 		await this.customSymbolService.removeSymbolFromCategory(categoryName, symbolId)
+		this.notifyChange()
 		return this.loadState()
 	}
 
 	public async reorderCategories(orderedNames: string[]): Promise<void> {
 		await this.customSymbolService.reorderCategories(orderedNames)
+		this.notifyChange()
 	}
 
 	public async reorderSymbolsInCategory(categoryName: string, orderedIds: string[]): Promise<void> {
 		await this.customSymbolService.reorderSymbolsInCategory(categoryName, orderedIds)
+		this.notifyChange()
 	}
 
-	public putCustomSymbol(customSymbol: CustomSymbolRecord): Promise<void> {
-		return this.customSymbolService.putCustomSymbol(customSymbol)
+	public async putCustomSymbol(customSymbol: CustomSymbolRecord): Promise<void> {
+		await this.customSymbolService.putCustomSymbol(customSymbol)
+		this.notifyChange()
 	}
 
 	public buildSubcircuitRecord(proposedName: string, subcircuitData: any, existingSymbols: CustomSymbolRecord[]) {
@@ -161,6 +186,7 @@ export class CustomSymbolApplicationService {
 		}
 		const customSymbolData = this.customSymbolService.buildSubcircuitRecord(proposedName, subcircuitData, existingSymbols)
 		await this.customSymbolService.addSymbolToCategory(categoryName, customSymbolData.id, customSymbolData)
+		this.notifyChange()
 		return this.loadState()
 	}
 }
