@@ -120,6 +120,29 @@
 							<li class="nav-item col-12 col-md-auto">
 								<button class="nav-link fw-semibold text-muted" id="btn-live-render" type="button">🔬 Live LaTeX</button>
 							</li>
+							<li class="nav-item col-12 col-md-auto d-none align-items-center gap-2 px-2" id="github-auth-section">
+								<a href="/api/auth/github" class="btn btn-outline-dark btn-sm fw-semibold d-flex align-items-center gap-1" id="github-login-btn">
+									<span>Sign in with GitHub</span>
+								</a>
+								<div class="d-none align-items-center gap-2" id="github-profile-section">
+									<img id="github-avatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="width: 28px; height: 28px; border-radius: 50%;" />
+									<div class="dropdown">
+										<button
+											id="github-repo-dropdown-btn"
+											class="btn btn-outline-secondary btn-sm dropdown-toggle text-start d-flex justify-content-between align-items-center"
+											type="button"
+											data-bs-toggle="dropdown"
+											aria-expanded="false"
+											style="min-width: 150px; background-color: var(--bg-panel); color: var(--text-main); border-color: var(--border-color);">
+											<span>Select Repo</span>
+										</button>
+										<ul id="github-repo-dropdown-menu" class="dropdown-menu shadow" style="max-height: 400px; overflow-y: auto; z-index: 1060; background-color: var(--bg-panel); border-color: var(--border-color);">
+											<!-- Dynamically populated -->
+										</ul>
+									</div>
+									<button class="btn btn-sm btn-outline-secondary" id="github-logout-btn">Logout</button>
+								</div>
+							</li>
 							<li class="nav-item col-12 col-md-auto d-flex align-items-center gap-2 px-2">
 								<span class="text-nowrap mb-0 fw-semibold" style="color: var(--text-main); font-size: 14px; font-family: var(--font-sans);">📐 Template:</span>
 								<div class="dropdown">
