@@ -4,6 +4,8 @@ import { CustomSymbolDomService } from "./customSymbolDomService"
 import { CustomSymbolService } from "./customSymbolService"
 import { IndexedDbService } from "./indexedDbService"
 import { IndexedDbTemplateDataSource } from "./indexedDbTemplateDataSource"
+import { GitHubTemplateDataSource } from "./githubTemplateDataSource"
+import { AuthService } from "./authService"
 import { LatexRenderService } from "./latexRenderService"
 import { StaticTemplateDataSource } from "./staticTemplateDataSource"
 import { SubcircuitPreviewService } from "./subcircuitPreviewService"
@@ -57,6 +59,19 @@ class DefaultAppRuntime implements AppRuntime {
 		const readonlySource = this.createReadonlyTemplateDataSource()
 		if (this.config.storageMode === "indexeddb") {
 			return new IndexedDbTemplateDataSource(this.getIndexedDb(), readonlySource)
+		}
+		if (this.config.storageMode === "github") {
+			const auth = new AuthService()
+			return new GitHubTemplateDataSource(
+				() => auth.getToken(),
+				() => {
+					const val = localStorage.getItem("github_active_repo")
+					if (!val) return null
+					const [owner, repo] = val.split("/")
+					return { owner, repo }
+				},
+				readonlySource
+			)
 		}
 		return readonlySource
 	}
