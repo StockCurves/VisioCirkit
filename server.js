@@ -12,6 +12,7 @@ const fs    = require('fs');
 const path  = require('path');
 const url   = require('url');
 const { handleLatexProxyRequest } = require('./server/latexProxy');
+const { handleGithubAuthRequest, handleGithubCallbackRequest } = require('./server/oauthProxy');
 
 const PORT = process.env.PORT || 3001;
 const ROOT = __dirname;
@@ -228,7 +229,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (pathname === '/api/latex') {
+  if (pathname === '/api/auth/github') {
+    handleGithubAuthRequest(req, res);
+  } else if (pathname === '/api/auth/github/callback') {
+    handleGithubCallbackRequest(req, res);
+  } else if (pathname === '/api/latex') {
     handleLatexProxyRequest(req, res);
   } else if (pathname === '/api/files' && req.method === 'GET') {
     try {

@@ -68,13 +68,13 @@ Use the AI Agent skill `/sch2tikz` to convert schematic to tikz code which are r
 
 |                        Original Schematic                        |              Converted & Rendered CircuiTikZ              |
 | :--------------------------------------------------------------: | :-------------------------------------------------------: |
-| ![Integrator Original](./sch2tikz-out/2026-0626-2222-upload.png) | ![Integrator Rendered](./sch2tikz-out/2026-0626-2222.svg) |
+| ![Integrator Original](./sch2tikz-out/2026-0626-2222-upload.png) | ![Integrator Rendered](./sch2tikz-out/2026-0626-2222_rendered.svg) |
 
 ---
 
 > [!WARNING]
 >
-> - **Always Backup Your TikZ Code!** 💾 VisioCircuit uses the TikZ code in the editor as the **single source of truth** for your design. To prevent any data loss, please copy and backup your `.tikz` code frequently.
+> - **Always Backup Your TikZ Code!** 💾 VisioCirkit uses the TikZ code in the editor as the **single source of truth** for your design. To prevent any data loss, please copy and backup your `.tikz` code frequently.
 > - **TikZ Code Alteration & Comments Loss**: Pressing **Apply** in the TikZ editor synchronizes the code to the visual canvas. This process will restructure your TikZ code and completely discard all LaTeX comments (`% ...`). Please keep an external backup of your code if you want to preserve formatting or comments.
 > - **Alternative Preview Option**: As the app is still under active development, rendering bugs may occasionally occur. If you suspect an incorrect render, you can verify your TikZ code in an alternative online previewer such as the [HolaTeX Playground](https://holatex.app/playground.html).
 
@@ -121,9 +121,9 @@ Use the AI Agent skill `/sch2tikz` to convert schematic to tikz code which are r
 ## 💡 Help & Contributing
 
 - **How to Use**: Click the question mark icon `?` in the top right corner of the application to view the interactive help menu and shortcut keys.
-- **Discussions**: If you have any questions, feel free to start a thread on [General Discussions](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/general).
-- **Bug Reports**: Please use the [Issues Page](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/issues) to report bugs. Please always provide clear steps to reproduce.
-- **Feature Requests**: Share and discuss your ideas on the [Discussions - Ideas](https://github.com/Circuit2TikZ/CircuiTikZ-Designer/discussions/categories/ideas) page.
+- **Discussions**: If you have any questions, feel free to start a thread on [General Discussions](https://github.com/StockCurves/VisioCirkit/discussions/categories/general).
+- **Bug Reports**: Please use the [Issues Page](https://github.com/StockCurves/VisioCirkit/issues) to report bugs. Please always provide clear steps to reproduce.
+- **Feature Requests**: Share and discuss your ideas on the [Discussions - Ideas](https://github.com/StockCurves/VisioCirkit/discussions/categories/ideas) page.
 - **Contribute Code**: Fork the repository, make your changes, and submit a pull request. Please always test your code thoroughly!
 
 ---
