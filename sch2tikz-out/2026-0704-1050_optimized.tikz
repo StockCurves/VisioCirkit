@@ -1,0 +1,201 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% V_HV Rail
+\draw (1.500, 14.000) -- (21.000, 14.000);
+\node[above] at (11.250, 14.000) {$V_{HV}$};
+
+% Thick Oxide Box
+\draw[dashed, thick] (1.500, 10.220) rectangle (20.250, 14.840);
+\node[anchor=north west] at (1.800, 14.560) {\textbf{Thick Oxide}};
+
+% Thick Oxide Transistors
+\node[pmos, emptycircle] (M14) at (3.750, 11.900) {};
+\node[above] at (3.750, 13.020) {M14};
+\draw (3.750, 12.670) -- (3.750, 14.000);
+\node[circ] at (3.750, 14.000) {};
+
+\node[pmos, emptycircle] (M15) at (9.750, 11.900) {};
+\node[above] at (9.750, 13.020) {M15};
+\draw (9.750, 12.670) -- (9.750, 14.000);
+\node[circ] at (9.750, 14.000) {};
+
+\node[pmos, emptycircle] (M16) at (24.000, 11.900) {};
+\node[above] at (24.000, 13.020) {M16};
+\draw (24.000, 12.670) -- (24.000, 14.000);
+\node[circ] at (24.000, 14.000) {};
+
+% M14 Bias and Diode Connection
+\draw (3.750, 11.130) to[I] (3.750, 7.000) node[ground]{};
+\node[circ] at (3.750, 11.130) {};
+\draw (3.750, 11.130) -- (2.770, 11.130) -- (2.770, 11.900);
+\node[circ] at (2.770, 11.900) {};
+\draw (2.770, 11.900) -- (23.020, 11.900);
+\node[circ] at (8.770, 11.900) {};
+\node[circ] at (23.020, 11.900) {};
+
+% CMFB Stage (M9, M10)
+\node[pmos, emptycircle] (M9) at (6.750, 8.400) {};
+\node[right] at (8.250, 8.400) {M9};
+\node[pmos, emptycircle, xscale=-1] (M10) at (12.750, 8.400) {};
+\node[left] at (11.250, 8.400) {M10};
+
+% M15 drain to M9, M10 sources
+\draw (9.750, 11.130) -- (9.750, 10.080);
+\draw (6.750, 9.170) -- (6.750, 10.080) -- (12.750, 10.080) -- (12.750, 9.170);
+\node[circ] at (9.750, 10.080) {};
+
+% V_CM Terminal
+\draw (5.770, 8.400) -- (2.250, 8.400) node[osquarepole]{} node[left=5pt] {$V_{CM}$};
+
+% M11, M12
+\node[nmos] (M11) at (6.750, 4.900) {};
+\node[right] at (8.250, 4.900) {M11};
+\node[nmos, xscale=-1] (M12) at (12.750, 4.900) {};
+\node[left] at (11.250, 4.900) {M12};
+
+\draw (6.750, 7.630) -- (6.750, 5.670);
+\draw (12.750, 7.630) -- (12.750, 5.670);
+
+\draw (6.750, 5.670) -- (5.770, 5.670) -- (5.770, 4.900);
+\draw (12.750, 5.670) -- (13.730, 5.670) -- (13.730, 4.900);
+
+\draw (6.750, 4.130) to[R, l_=$R_{15}$] (6.750, 0.700) node[ground]{};
+\draw (12.750, 4.130) to[R, l_=$R_{16}$] (12.750, 0.700) node[ground]{};
+
+% CMFB Label
+\draw (6.750, -0.700) -- (6.750, -1.120) -- (12.750, -1.120) -- (12.750, -0.700);
+\node[below] at (9.750, -1.120) {\textbf{CMFB}};
+
+% Voltage Divider
+\draw (13.730, 8.400) -- (15.750, 8.400);
+\node[circ] at (15.750, 8.400) {};
+\draw (15.750, 8.400) -- (15.000, 8.400) to[R] (15.000, 10.500) -- (15.750, 10.500);
+\draw (15.750, 8.400) -- (16.500, 8.400) to[C] (16.500, 10.500) -- (15.750, 10.500);
+\node[above] at (15.750, 10.500) {$V_{OP1}$};
+
+\draw (15.750, 8.400) -- (15.000, 8.400) to[R] (15.000, 6.300) -- (15.750, 6.300);
+\draw (15.750, 8.400) -- (16.500, 8.400) to[C] (16.500, 6.300) -- (15.750, 6.300);
+\node[below] at (15.750, 6.300) {$V_{ON1}$};
+
+% 1st-stage
+\node[pmos, emptycircle] (M1) at (21.750, 8.400) {};
+\node[above] at (19.500, 8.820) {M1};
+\node[pmos, emptycircle, xscale=-1] (M2) at (26.250, 8.400) {};
+\node[above] at (28.500, 8.820) {M2};
+
+% M16 drain to M1, M2 sources
+\draw (24.000, 11.130) -- (24.000, 10.080) -- (26.250, 10.080) -- (26.250, 9.170);
+\draw (21.750, 10.080) -- (21.750, 9.170);
+\draw (21.750, 10.080) -- (24.000, 10.080);
+\node[circ] at (21.750, 10.080) {};
+
+% V_IP1, V_IN1 Terminals (1st Stage)
+\draw (20.770, 8.400) -- (18.000, 8.400) node[osquarepole]{} node[left=5pt] {$V_{IP1}$};
+\draw (27.230, 8.400) -- (29.700, 8.400) node[osquarepole]{} node[right=5pt] {$V_{IN1}$};
+
+% M3, M4
+\node[nmos] (M3) at (21.750, 4.900) {};
+\node[left] at (20.250, 4.900) {M3};
+\node[nmos, xscale=-1] (M4) at (26.250, 4.900) {};
+\node[right] at (27.750, 4.900) {M4};
+
+\draw (21.750, 7.630) -- (21.750, 5.670);
+\draw (26.250, 7.630) -- (26.250, 5.670);
+
+\draw (21.750, 4.130) to[R, l_=$R_{11}$] (21.750, 0.700) node[ground]{};
+\draw (26.250, 4.130) to[R, l_=$R_{12}$] (26.250, 0.700) node[ground]{};
+
+% Bias from M12
+\draw (13.730, 4.900) -- (27.230, 4.900);
+\node[circ] at (13.730, 4.900) {};
+\node[circ] at (20.770, 4.900) {};
+
+% 1st-stage Label
+\draw (21.750, -0.700) -- (21.750, -1.120) -- (26.250, -1.120) -- (26.250, -0.700);
+\node[below] at (24.000, -1.120) {\textbf{1st-stage}};
+
+% V_LV Rail
+\draw (30.000, 14.000) -- (49.500, 14.000);
+\node[above] at (39.750, 14.000) {$V_{LV}$};
+
+% 2nd-stage
+\node[pmos, emptycircle] (M13) at (32.250, 11.900) {};
+\node[left] at (30.000, 11.900) {M13};
+\draw (32.250, 12.670) -- (32.250, 14.000);
+\node[circ] at (32.250, 14.000) {};
+
+\draw (32.250, 11.130) to[I] (32.250, 9.100) node[ground]{};
+\node[circ] at (32.250, 11.130) {};
+\draw (32.250, 11.130) -- (31.270, 11.130) -- (31.270, 11.900);
+\draw (31.270, 11.200) -- (45.230, 11.200);
+\node[circ] at (31.270, 11.200) {};
+
+\node[pmos, emptycircle] (M7) at (38.250, 8.400) {};
+\node[right] at (39.750, 8.400) {M7};
+\draw (38.250, 9.170) -- (38.250, 14.000);
+\node[circ] at (38.250, 14.000) {};
+
+\node[pmos, emptycircle, xscale=-1] (M8) at (44.250, 8.400) {};
+\node[left] at (42.750, 8.400) {M8};
+\draw (44.250, 9.170) -- (44.250, 14.000);
+\node[circ] at (44.250, 14.000) {};
+
+% R17, R18
+\draw (37.270, 11.200) -- (35.250, 11.200) to[R, l=$R_{17}$] (35.250, 8.400) -- (37.270, 8.400);
+\node[circ] at (37.270, 11.200) {};
+\node[circ] at (37.270, 8.400) {};
+
+\draw (45.230, 11.200) -- (47.250, 11.200) to[R, l=$R_{18}$] (47.250, 8.400) -- (45.230, 8.400);
+\node[circ] at (45.230, 11.200) {};
+\node[circ] at (45.230, 8.400) {};
+
+% C11, C12
+\draw (37.270, 8.400) to[C, l=$C_{11}$] (33.750, 8.400) node[osquarepole]{} node[left=5pt] {$V_{IN1}$};
+\draw (45.230, 8.400) to[C, l=$C_{12}$] (48.750, 8.400) node[osquarepole]{} node[right=5pt] {$V_{IP1}$};
+
+% M5, M6
+\node[nmos] (M5) at (38.250, 3.500) {};
+\node[right] at (39.750, 3.500) {M5};
+\node[nmos, xscale=-1] (M6) at (44.250, 3.500) {};
+\node[left] at (42.750, 3.500) {M6};
+
+\draw (38.250, 7.630) -- (38.250, 4.270);
+\draw (44.250, 7.630) -- (44.250, 4.270);
+
+\node[left] at (38.250, 6.300) {$V_{OP1}$};
+\node[right] at (44.250, 6.300) {$V_{ON1}$};
+
+\draw (38.250, 2.730) -- (38.250, 1.680);
+\draw (44.250, 2.730) -- (44.250, 1.680);
+\draw (38.250, 1.680) -- (44.250, 1.680);
+
+\draw (41.250, 1.680) to[R, l_=$R_{10}$, i>=$I_{R10}$] (41.250, -0.700) node[ground]{};
+\node[circ] at (41.250, 1.680) {};
+
+% RC Networks
+\draw (38.250, 5.320) -- (35.250, 5.320) to[C, l=$C_{13}$] (35.250, 3.920) to[R, l=$R_{13}$] (35.250, 2.520) -- (37.270, 2.520) -- (37.270, 3.500);
+\node[circ] at (38.250, 5.320) {};
+\node[circ] at (37.270, 3.500) {};
+
+\draw (44.250, 5.320) -- (47.250, 5.320) to[C, l_=$C_{14}$] (47.250, 3.920) to[R, l_=$R_{14}$] (47.250, 2.520) -- (45.230, 2.520) -- (45.230, 3.500);
+\node[circ] at (44.250, 5.320) {};
+\node[circ] at (45.230, 3.500) {};
+
+% Cross Connections
+\draw (21.750, 6.440) -- (45.230, 6.440) -- (45.230, 3.500);
+\node[circ] at (21.750, 6.440) {};
+
+\draw (26.250, 6.300) -- (37.270, 6.300) -- (37.270, 3.500);
+\node[circ] at (26.250, 6.300) {};
+
+% 2nd-stage Label
+\draw (38.250, -1.400) -- (38.250, -1.820) -- (44.250, -1.820) -- (44.250, -1.400);
+\node[below] at (41.250, -1.820) {\textbf{2nd-stage}};
+
+\end{circuitikz}
+\end{document}

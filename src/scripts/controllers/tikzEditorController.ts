@@ -421,6 +421,9 @@ export class TikzEditorController {
 			Undo.addState()
 			
 			this.updateEditorText()
+			requestAnimationFrame(() => {
+				CanvasController.instance?.fitView()
+			})
 		} catch (error: any) {
 			let errorMsg = ""
 			if (error.startLine !== undefined) {
