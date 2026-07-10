@@ -29,6 +29,7 @@ export type MainControllerShortcutBootstrapDependencies = {
 const shortcutComponents: Array<{ shortcut: string; component: string }> = [
 	{ shortcut: "g", component: "Ground" },
 	{ shortcut: "alt+g,option+g", component: "Ground (tailless)" },
+	{ shortcut: "p", component: "PMOS" },
 	{ shortcut: "r", component: "Resistor (american)" },
 	{ shortcut: "alt+r,option+r", component: "Resistor (european)" },
 	{ shortcut: "c", component: "Capacitor" },
@@ -44,6 +45,11 @@ const shortcutComponents: Array<{ shortcut: string; component: string }> = [
 	{ shortcut: "alt+x,option+x", component: "Jumper-style crossing node" },
 	{ shortcut: ".", component: "Connected terminal" },
 	{ shortcut: "alt+.,option+.", component: "Unconnected terminal" },
+	{ shortcut: "1", component: "Straight line" },
+	{ shortcut: "3", component: "Straight arrow" },
+	{ shortcut: "4", component: "Connected terminal" },
+	{ shortcut: "5", component: "Rectangle/Text" },
+	{ shortcut: "6", component: "Ellipse" },
 ]
 
 export function initializeMainControllerShortcutBootstrap(
@@ -88,6 +94,26 @@ export function initializeMainControllerShortcutBootstrap(
 			dependencies.flipPlacement(false)
 		} else if (dependencies.hasSelection()) {
 			dependencies.flipSelection(false)
+			dependencies.addUndoState()
+		}
+		return false
+	})
+
+	register("shift+h", () => {
+		if (dependencies.isComponentPlacementMode()) {
+			dependencies.flipPlacement(false)
+		} else if (dependencies.hasSelection()) {
+			dependencies.flipSelection(false)
+			dependencies.addUndoState()
+		}
+		return false
+	})
+
+	register("shift+v", () => {
+		if (dependencies.isComponentPlacementMode()) {
+			dependencies.flipPlacement(true)
+		} else if (dependencies.hasSelection()) {
+			dependencies.flipSelection(true)
 			dependencies.addUndoState()
 		}
 		return false
@@ -158,6 +184,11 @@ export function initializeMainControllerShortcutBootstrap(
 		return false
 	})
 	register("t", () => {
+		dependencies.switchToDragPanMode()
+		dependencies.placeTextComponent()
+		return false
+	})
+	register("2", () => {
 		dependencies.switchToDragPanMode()
 		dependencies.placeTextComponent()
 		return false
