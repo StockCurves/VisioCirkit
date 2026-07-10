@@ -1,5 +1,5 @@
-export type StorageMode = "server" | "indexeddb"
-export type TemplateSourceMode = "server" | "static-manifest"
+export type StorageMode = "server" | "indexeddb" | "github"
+export type TemplateSourceMode = "server" | "static-manifest" | "github"
 export type LatexMode = "server-proxy" | "serverless-proxy"
 
 export type AppRuntimeConfig = {

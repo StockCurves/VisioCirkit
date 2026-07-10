@@ -4,7 +4,7 @@ const path = require("path")
 const projectRoot = path.resolve(__dirname, "..")
 const distIndexFile = path.join(projectRoot, "dist", "index.html")
 const preset = process.argv[2]
-const supportedPresets = new Set(["server", "demo"])
+const supportedPresets = new Set(["server", "demo", "github-vc"])
 
 if (!supportedPresets.has(preset)) {
 	console.error(`[runtime-preset] expected one of: ${Array.from(supportedPresets).join(", ")}`)

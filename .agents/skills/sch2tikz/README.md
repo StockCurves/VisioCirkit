@@ -16,6 +16,7 @@ By packaging this skill, AI coding assistants and developers can easily generate
   - **`verify_tikz.py`**: Compiles TikZ code using the QuickLaTeX API, downloads the compiled output as a vector **SVG**, and checks for LaTeX compilation warnings or syntax errors.
   - **`lint_editor_compat.py`**: Performs local, offline checks for VisioCirkit editor compatibility rules such as absolute coordinates, manual terminals, known switch names, and `circ` connection dots.
   - **`overlay_diff.py`**: Generates a browser-viewable visual overlay and side-by-side QA report for the original schematic image and rendered TikZ output.
+  - **`svg_to_png.py`**: Converts rendered SVG previews to PNG using `inkscape`, `magick`, or `rsvg-convert` when one of those CLIs is installed.
   - **`lookup_pin_offset.py`**: Command-line lookup utility to query exact (dx, dy) coordinate offsets in centimeters for component pins.
   - **`extract_pin_offsets.py`**: Script to rebuild the pin offset databases directly from `symbols.svg`.
 - **`resources/`**
@@ -51,14 +52,28 @@ python scripts/verify_tikz.py path/to/your_circuit.tikz
 
 The script will query the QuickLaTeX API and download the rendered vector file to `path/to/your_circuit_rendered.svg`.
 
-### 3. Lint Editor Compatibility
+### 3. Convert Rendered SVG to PNG
+For manual visual QA, install one of these CLI tools and ensure it is on PATH:
+
+```bash
+winget install --id Inkscape.Inkscape
+winget install --id ImageMagick.ImageMagick
+```
+
+Then convert a rendered SVG preview:
+
+```bash
+python scripts/svg_to_png.py path/to/your_circuit_rendered.svg
+```
+
+### 4. Lint Editor Compatibility
 To catch syntax that compiles in LaTeX but does not round-trip cleanly through VisioCirkit:
 
 ```bash
 python scripts/lint_editor_compat.py path/to/your_circuit.tikz --report path/to/your_circuit_lint-report.md
 ```
 
-### 4. Create a Visual Overlay QA Report
+### 5. Create a Visual Overlay QA Report
 To compare the original schematic image against the rendered SVG/PNG without adding image-processing dependencies:
 
 ```bash
@@ -68,6 +83,9 @@ python scripts/overlay_diff.py path/to/original-upload.png path/to/your_circuit_
 The overlay report is an HTML file written next to the rendered image. It is a visual QA aid, not a strict pixel score: label size, font metrics, and hand-drawn wobble should be reviewed manually and treated as lower-priority than topology, pin alignment, missing symbols, and wire routing.
 
 These QA scripts are intended for manual agent/developer workflows only. They are not part of the frontend runtime, Vercel deployment, or `build:demo` flow.
+
+### 6. Upload Corpus
+Keep each root-level `sch2tikz-out/YYYY-MMDD-HHMM-upload.png` next to its generated artifacts for pairing with `overlay_diff.py`. Also copy those uploads into `sch2tikz-out/uploads/` to build a reusable verification corpus for future sch2tikz work.
 
 ---
 

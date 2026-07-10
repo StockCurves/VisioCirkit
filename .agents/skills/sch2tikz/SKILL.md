@@ -32,6 +32,10 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    python .agents/skills/sch2tikz/scripts/verify_tikz.py sch2tikz-out/YYYY-MMDD-HHMM_aligned.tikz
    ```
    - QuickLaTeX sends the generated TikZ content to an external service; this is the expected fallback path for this skill when local rendering is unavailable.
+   - If `inkscape`, `magick`, or `rsvg-convert` is available on PATH, also generate a raster preview for visual inspection:
+   ```bash
+   python .agents/skills/sch2tikz/scripts/svg_to_png.py sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg
+   ```
 7. **Editor Compatibility Lint**: Run the local lint script before handing off generated code:
    ```bash
    python .agents/skills/sch2tikz/scripts/lint_editor_compat.py sch2tikz-out/YYYY-MMDD-HHMM.tikz --report sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md
@@ -43,13 +47,16 @@ This skill converts schematic circuit diagrams into clean, editor-compatible Cir
    Fix any component/label overlap reported here before delivery.
 8. **Visual Overlay QA (Deprecated)**: Do not use rendered-image overlay comparison (`overlay_diff.py`) to adjust component positions, as it is overly sensitive to hand-drawn reference variations, font metrics, and scale factors. Rely solely on the geometry linter instead.
 9. **Iterate**: Inspect the compiled SVG and geometry report. Prioritize topology, pin alignment, missing symbols, wire routing, connection dots, and geometry-lint overlaps. Do not present the result as overlap-clean unless `lint_geometry_overlap.py` passes.
+10. **Upload Corpus Maintenance**: Keep root-level `sch2tikz-out/YYYY-MMDD-HHMM-upload.png` files in place for existing artifact pairing, and copy them into `sch2tikz-out/uploads/` as a reusable verification corpus. Do not move or rename the originals unless the user explicitly asks.
 
 ## Output Formatting & Storage
 
 Save the resulting files in the following format:
 - `sch2tikz-out/YYYY-MMDD-HHMM-upload.png` (the original uploaded schematic image)
+- `sch2tikz-out/uploads/YYYY-MMDD-HHMM-upload.png` (corpus copy for future verification)
 - `sch2tikz-out/YYYY-MMDD-HHMM.tikz` (the CircuiTikZ LaTeX source file)
 - `sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg` (the compiled output image, compiled locally with a 60-second timeout)
+- `sch2tikz-out/YYYY-MMDD-HHMM_rendered.png` (optional raster preview generated from SVG when a converter is installed)
 - `sch2tikz-out/YYYY-MMDD-HHMM_lint-report.md` (optional editor compatibility lint report)
 - `sch2tikz-out/YYYY-MMDD-HHMM_geometry-report.md` (component/label bbox overlap report)
 
@@ -211,6 +218,16 @@ To achieve extremely fast rendering verification (under 1 second compared to 8+ 
 ### 2. Install SVG Conversion Tools
 - `dvisvgm` is required to convert Compiled PDF outputs into vector SVG format. It is bundled by default in most MiKTeX and TeX Live installations.
 - Ensure `pdflatex` and `dvisvgm` are discoverable by running `pdflatex --version` and `dvisvgm --version` in your terminal.
+
+For SVG-to-PNG visual QA, install at least one raster converter and make sure its CLI is on PATH:
+- Inkscape: `winget install --id Inkscape.Inkscape`
+- ImageMagick: `winget install --id ImageMagick.ImageMagick`
+- librsvg: provide `rsvg-convert`
+
+Verify with `inkscape --version`, `magick -version`, or `rsvg-convert --version`, then run:
+```bash
+python .agents/skills/sch2tikz/scripts/svg_to_png.py sch2tikz-out/YYYY-MMDD-HHMM_rendered.svg
+```
 
 ### 3. Required MiKTeX/LaTeX Packages
 Ensure the following LaTeX packages and their dependencies are installed in your TeX manager (e.g. MiKTeX Console):

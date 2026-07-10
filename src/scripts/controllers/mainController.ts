@@ -21,6 +21,7 @@ import { CustomSymbolExportService } from "../services/customSymbolExportService
 import type { CustomSymbolRecord } from "../services/customSymbolService"
 import { ModalDialogService } from "../services/modalDialogService"
 import { getAppRuntime } from "../services/appRuntime"
+import { AuthService } from "../services/authService"
 import type { BroadcastMessage, BroadcastMessageType } from "../services/tabBroadcastService"
 import { preprocessSymbolColors } from "../utils/symbolColorTheme"
 import { SnapDragHandler } from "../snapDrag/dragHandlers"
@@ -387,6 +388,7 @@ export class MainController {
 					console.error("Error loading templates:", err)
 				},
 			})
+			this.initGitHubVC()
 		})
 	}
 
@@ -794,6 +796,132 @@ export class MainController {
 			this.customSymbols,
 			this.symbols as any
 		)
+	}
+
+	private initGitHubVC(): void {
+		if (this.appRuntime.config.storageMode !== "github") {
+			return
+		}
+
+		const authSection = document.getElementById("github-auth-section")
+		if (authSection) {
+			authSection.classList.remove("d-none")
+			authSection.classList.add("d-flex")
+		}
+
+		const auth = new AuthService()
+		const urlParams = new URLSearchParams(window.location.search)
+		const tokenFromUrl = urlParams.get("token")
+		if (tokenFromUrl) {
+			auth.saveToken(tokenFromUrl)
+			urlParams.delete("token")
+			const newUrl = window.location.pathname + (urlParams.toString() ? "?" + urlParams.toString() : "")
+			window.history.replaceState({}, document.title, newUrl)
+		}
+
+		const token = auth.getToken()
+		const loginBtn = document.getElementById("github-login-btn")
+		const profileSection = document.getElementById("github-profile-section")
+		const avatarImg = document.getElementById("github-avatar") as HTMLImageElement
+		const logoutBtn = document.getElementById("github-logout-btn")
+		const repoBtn = document.getElementById("github-repo-dropdown-btn")
+		const repoMenu = document.getElementById("github-repo-dropdown-menu")
+
+		if (!token) {
+			if (loginBtn) loginBtn.classList.remove("d-none")
+			if (profileSection) profileSection.classList.add("d-none")
+			return
+		}
+
+		if (loginBtn) loginBtn.classList.add("d-none")
+		if (profileSection) {
+			profileSection.classList.remove("d-none")
+			profileSection.classList.add("d-flex")
+		}
+
+		auth.getUserProfile().then(user => {
+			if (avatarImg && user.avatar_url) {
+				avatarImg.src = user.avatar_url
+				avatarImg.title = `Logged in as ${user.login}`
+			}
+		}).catch(err => {
+			console.error("Failed to load user profile:", err)
+			auth.clearToken()
+			if (loginBtn) loginBtn.classList.remove("d-none")
+			if (profileSection) profileSection.classList.add("d-none")
+		})
+
+		fetch("https://api.github.com/user/repos?per_page=100", {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				Accept: "application/vnd.github+json"
+			}
+		}).then(res => res.json()).then((repos: any[]) => {
+			if (repoMenu && Array.isArray(repos)) {
+				repoMenu.innerHTML = ""
+				
+				const createItem = document.createElement("li")
+				createItem.innerHTML = `<a class="dropdown-item fw-bold text-primary" href="#">+ Create New Repo</a>`
+				createItem.addEventListener("click", (e) => {
+					e.preventDefault()
+					this.modalDialogService.openPrompt("Create New Repository", "Enter a name for the new repository:").then(repoName => {
+						if (!repoName) return
+						fetch("https://api.github.com/user/repos", {
+							method: "POST",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								Accept: "application/vnd.github+json",
+								"Content-Type": "application/json"
+							},
+							body: JSON.stringify({ name: repoName.trim(), private: true })
+						}).then(res => {
+							if (res.ok) {
+								return res.json()
+							}
+							throw new Error("Failed to create repo")
+						}).then(newRepo => {
+							localStorage.setItem("github_active_repo", newRepo.full_name)
+							window.location.reload()
+						}).catch(err => {
+							void this.modalDialogService.openAlert("Error", "Could not create repository: " + (err as Error).message)
+						})
+					})
+				})
+				repoMenu.appendChild(createItem)
+				const divider = document.createElement("li")
+				divider.innerHTML = `<hr class="dropdown-divider">`
+				repoMenu.appendChild(divider)
+
+				repos.forEach(repo => {
+					const li = document.createElement("li")
+					li.innerHTML = `<a class="dropdown-item" href="#">${repo.full_name}</a>`
+					li.addEventListener("click", (e) => {
+						e.preventDefault()
+						localStorage.setItem("github_active_repo", repo.full_name)
+						window.location.reload()
+					})
+					repoMenu.appendChild(li)
+				})
+
+				const activeRepo = localStorage.getItem("github_active_repo")
+				if (activeRepo && repoBtn) {
+					const btnSpan = repoBtn.querySelector("span")
+					if (btnSpan) {
+						btnSpan.textContent = activeRepo.split("/")[1]
+					}
+				}
+			}
+		}).catch(err => {
+			console.error("Failed to load user repos:", err)
+		})
+
+		if (logoutBtn) {
+			logoutBtn.addEventListener("click", () => {
+				auth.clearToken()
+				localStorage.removeItem("github_active_repo")
+				window.location.reload()
+			})
+		}
 	}
 }
 
