@@ -48,8 +48,9 @@ def compile_local(file_path, output_svg_path):
             temp_tex_path
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
         
+        pdf_path = os.path.join(local_render_dir, f"{base_name}.pdf")
         if res.returncode != 0:
-            print("Local pdflatex compilation failed.")
+            print("Local pdflatex returned a non-zero exit code.")
             log_path = os.path.join(local_render_dir, f"{base_name}.log")
             if os.path.exists(log_path):
                 with open(log_path, 'r', encoding='utf-8', errors='ignore') as log_f:
@@ -57,9 +58,11 @@ def compile_local(file_path, output_svg_path):
                     print("--- pdflatex Error Log Snippet ---")
                     for line in log_lines[-30:]:
                         print(line.strip())
-            return False
+            if not os.path.exists(pdf_path):
+                print("Local pdflatex did not produce PDF.")
+                return False
+            print("PDF was produced; continuing to SVG conversion.")
             
-        pdf_path = os.path.join(local_render_dir, f"{base_name}.pdf")
         if not os.path.exists(pdf_path):
             print("Local pdflatex did not produce PDF.")
             return False
