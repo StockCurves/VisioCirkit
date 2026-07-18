@@ -439,6 +439,46 @@
 			</div>
 			<div class="offcanvas-body pt-0">
 				<div class="accordion" id="leftOffcanvasAccordion"></div>
+				<button
+					type="button"
+					class="btn btn-primary btn-sm shape-library-more-button"
+					id="shapeLibraryMoreButton"
+					data-bs-toggle="modal"
+					data-bs-target="#shapeLibraryModal">
+					<span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+					<span>More Shapes</span>
+				</button>
+			</div>
+		</div>
+
+		<!-- Modal (shape library categories) -->
+		<div
+			class="modal fade"
+			id="shapeLibraryModal"
+			aria-labelledby="shapeLibraryModalLabel"
+			aria-hidden="true"
+			tabindex="-1"
+			role="dialog">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h1 class="modal-title fs-5" id="shapeLibraryModalLabel">Shapes</h1>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<div class="shape-library-category-list" id="shapeLibraryCategoryList"></div>
+					</div>
+					<div class="modal-footer justify-content-between">
+						<label class="shape-library-remember">
+							<input type="checkbox" id="shapeLibraryRememberCheckbox" />
+							<span>Remember this setting</span>
+						</label>
+						<div class="d-flex gap-2">
+							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+							<button type="button" class="btn btn-primary" id="shapeLibraryApplyButton" data-bs-dismiss="modal">Apply</button>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 
