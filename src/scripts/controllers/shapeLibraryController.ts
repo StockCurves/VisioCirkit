@@ -101,6 +101,23 @@ export class ShapeLibraryController {
 		}))
 	}
 
+	public renderPreview(itemId: string): SVGElement | null {
+		const item = this.categories.flatMap((category) => category.items).find((candidate) => candidate.id === itemId)
+		if (!item) return null
+
+		const previewHost = document.createElement("div")
+		item.render(previewHost, {
+			hideDrawer: () => {},
+			switchToPanMode: () => {},
+			switchToComponentMode: () => {},
+			cancelComponentPlacement: () => {},
+			placeComponent: () => {},
+		})
+
+		const svg = previewHost.querySelector("svg")
+		return svg ? svg.cloneNode(true) as SVGElement : null
+	}
+
 	private createAccordionGroup(groupName: string): HTMLDivElement {
 		const collapseGroupID = "collapseGroup-" + groupName.replace(/[^\d\w\-\_]+/gi, "-")
 

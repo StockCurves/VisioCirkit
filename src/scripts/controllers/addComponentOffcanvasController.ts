@@ -39,6 +39,7 @@ type DrawerItem = {
 	id: string
 	name: string
 	sourceId: string
+	preview?: () => SVGElement | null
 }
 
 const DRAWER_CATEGORY_STORAGE_KEY = "visiocirkit.componentDrawer.visibleCategories"
@@ -212,8 +213,17 @@ export class AddComponentOffcanvasController {
 		categoryList.innerHTML = ""
 
 		for (const category of categories) {
-			const option = categoryList.appendChild(document.createElement("label"))
+			const option = categoryList.appendChild(document.createElement("div"))
 			option.classList.add("shape-library-option", "shape-library-category-option")
+
+			const toggleButton = option.appendChild(document.createElement("button"))
+			toggleButton.type = "button"
+			toggleButton.classList.add("shape-library-category-toggle")
+			toggleButton.setAttribute("aria-expanded", "true")
+			toggleButton.setAttribute("aria-label", `Collapse ${category.name}`)
+			const toggleIcon = toggleButton.appendChild(document.createElement("span"))
+			toggleIcon.classList.add("material-symbols-outlined")
+			toggleIcon.textContent = "expand_more"
 
 			const checkbox = option.appendChild(document.createElement("input"))
 			checkbox.type = "checkbox"
@@ -229,6 +239,14 @@ export class AddComponentOffcanvasController {
 			const itemList = categoryList.appendChild(document.createElement("div"))
 			itemList.classList.add("shape-library-item-list")
 
+			toggleButton.addEventListener("click", () => {
+				itemList.hidden = !itemList.hidden
+				const expanded = String(!itemList.hidden)
+				toggleButton.setAttribute("aria-expanded", expanded)
+				toggleButton.setAttribute("aria-label", itemList.hidden ? `Expand ${category.name}` : `Collapse ${category.name}`)
+				toggleIcon.textContent = itemList.hidden ? "chevron_right" : "expand_more"
+			})
+
 			for (const item of category.items) {
 				const itemOption = itemList.appendChild(document.createElement("label"))
 				itemOption.classList.add("shape-library-option", "shape-library-item-option")
@@ -238,6 +256,13 @@ export class AddComponentOffcanvasController {
 				itemCheckbox.value = item.id
 				itemCheckbox.dataset.parentCategoryId = category.id
 				itemCheckbox.checked = visibleIds.includes(category.id) && visibleIds.includes(item.id)
+
+				const preview = itemOption.appendChild(document.createElement("span"))
+				preview.classList.add("shape-library-preview")
+				const previewSvg = item.preview?.()
+				if (previewSvg) {
+					preview.appendChild(previewSvg)
+				}
 
 				const itemLabel = itemOption.appendChild(document.createElement("span"))
 				itemLabel.textContent = item.name
@@ -267,6 +292,7 @@ export class AddComponentOffcanvasController {
 				id: this.createShapeItemId(category.id, item.id),
 				name: item.name,
 				sourceId: item.id,
+				preview: () => this.shapeLibraryController.renderPreview?.(item.id) ?? null,
 			})),
 		}))
 		const componentGroupNames = Array.from(
@@ -283,6 +309,7 @@ export class AddComponentOffcanvasController {
 					id: this.createComponentItemId(groupName, symbol.tikzName),
 					name: symbol.displayName || symbol.tikzName,
 					sourceId: symbol.tikzName,
+					preview: () => this.renderSymbolPreview(symbol),
 				})),
 		}))
 		return shapeCategories.concat(componentCategories)
@@ -342,5 +369,20 @@ export class AddComponentOffcanvasController {
 
 	private createComponentItemId(groupName: string, symbolName: string): string {
 		return `component-item:${groupName}:${symbolName}`
+	}
+
+	private renderSymbolPreview(symbol: ComponentSymbol): SVGElement | null {
+		if (!symbol.symbolElement || !symbol.viewBox) return null
+
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+		svg.setAttribute("viewBox", `0 0 ${symbol.viewBox.width} ${symbol.viewBox.height}`)
+
+		const use = document.createElementNS("http://www.w3.org/2000/svg", "use")
+		use.setAttribute("href", `#${symbol.symbolElement.id()}`)
+		use.setAttribute("width", String(symbol.viewBox.width))
+		use.setAttribute("height", String(symbol.viewBox.height))
+		svg.appendChild(use)
+
+		return svg
 	}
 }
