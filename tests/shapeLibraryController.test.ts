@@ -77,14 +77,7 @@ import { ShapeLibraryController } from "../src/scripts/controllers/shapeLibraryC
 describe("ShapeLibraryController", () => {
 	beforeEach(() => {
 		localStorage.clear()
-		document.body.innerHTML = `
-			<button id="shapeLibraryMoreButton"></button>
-			<div id="shapeLibraryModal">
-				<div id="shapeLibraryCategoryList"></div>
-				<input type="checkbox" id="shapeLibraryRememberCheckbox" />
-				<button id="shapeLibraryApplyButton"></button>
-			</div>
-		`
+		document.body.innerHTML = ""
 	})
 
 	it("renders the basic shape palette", () => {
@@ -127,50 +120,13 @@ describe("ShapeLibraryController", () => {
 		expect(root.querySelectorAll(".libComponent")).toHaveLength(10)
 	})
 
-	it("applies category choices from the More Shapes dialog and remembers them", () => {
+	it("exposes built-in shape categories for the drawer chooser", () => {
 		const controller = new ShapeLibraryController()
-		const root = document.createElement("div")
-		const callbacks = {
-			hideDrawer: vi.fn(),
-			switchToPanMode: vi.fn(),
-			switchToComponentMode: vi.fn(),
-			cancelComponentPlacement: vi.fn(),
-			placeComponent: vi.fn(),
-		}
 
-		controller.render(root, callbacks)
-		;(document.getElementById("shapeLibraryMoreButton") as HTMLButtonElement).click()
-
-		const basicCheckbox = document.querySelector<HTMLInputElement>('input[value="basic"]')
-		const flowchartCheckbox = document.querySelector<HTMLInputElement>('input[value="flowchart"]')
-		expect(basicCheckbox?.checked).toBe(true)
-		expect(flowchartCheckbox?.checked).toBe(true)
-
-		basicCheckbox!.checked = false
-		;(document.getElementById("shapeLibraryRememberCheckbox") as HTMLInputElement).checked = true
-		;(document.getElementById("shapeLibraryApplyButton") as HTMLButtonElement).click()
-
-		const headers = Array.from(root.querySelectorAll(".accordion-button")).map((button) => (button as HTMLButtonElement).innerText)
-		expect(headers).toEqual(["Flowchart"])
-		expect(localStorage.getItem("visiocirkit.shapeLibrary.visibleCategories")).toBe('["flowchart"]')
-	})
-
-	it("loads remembered category choices when rendering the drawer", () => {
-		localStorage.setItem("visiocirkit.shapeLibrary.rememberCategories", "true")
-		localStorage.setItem("visiocirkit.shapeLibrary.visibleCategories", '["basic"]')
-		const controller = new ShapeLibraryController()
-		const root = document.createElement("div")
-
-		controller.render(root, {
-			hideDrawer: vi.fn(),
-			switchToPanMode: vi.fn(),
-			switchToComponentMode: vi.fn(),
-			cancelComponentPlacement: vi.fn(),
-			placeComponent: vi.fn(),
-		})
-
-		const headers = Array.from(root.querySelectorAll(".accordion-button")).map((button) => (button as HTMLButtonElement).innerText)
-		expect(headers).toEqual(["Basic"])
+		expect(controller.getCategories()).toEqual([
+			{ id: "basic", name: "Basic" },
+			{ id: "flowchart", name: "Flowchart" },
+		])
 	})
 
 	it("places the expected component type when a shape is clicked", () => {
