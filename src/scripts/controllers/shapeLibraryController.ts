@@ -22,6 +22,12 @@ export type ShapeLibraryCallbacks = {
 type ShapeLibraryCategory = {
 	id: string
 	name: string
+	items: ShapeLibraryItem[]
+}
+
+type ShapeLibraryItem = {
+	id: string
+	name: string
 	render: (parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks) => void
 }
 
@@ -30,16 +36,42 @@ export class ShapeLibraryController {
 		{
 			id: "basic",
 			name: "Basic",
-			render: (parent, callbacks) => this.renderBasicCategory(parent, callbacks),
+			items: [
+				{ id: "short", name: "Short", render: (parent, callbacks) => this.addShortButton(parent, callbacks) },
+				{ id: "open", name: "Open", render: (parent, callbacks) => this.addOpenButton(parent, callbacks) },
+				{ id: "text", name: "Text", render: (parent, callbacks) => this.addTextButton(parent, callbacks) },
+				{ id: "rectangle", name: "Rectangle/Text", render: (parent, callbacks) => this.addRectangleButton(parent, callbacks) },
+				{ id: "ellipse", name: "Ellipse", render: (parent, callbacks) => this.addEllipseButton(parent, callbacks) },
+				{ id: "polygon", name: "Polygon", render: (parent, callbacks) => this.addPolygonButton(parent, callbacks) },
+				{ id: "straight-line", name: "Straight line", render: (parent, callbacks) => this.addStraightLineButton(parent, callbacks) },
+				{ id: "straight-arrow", name: "Straight arrow", render: (parent, callbacks) => this.addStraightArrowButton(parent, callbacks) },
+				{ id: "arrow", name: "Arrow", render: (parent, callbacks) => this.addArrowButton(parent, callbacks) },
+			],
 		},
 		{
 			id: "flowchart",
 			name: "Flowchart",
-			render: (parent, callbacks) => this.renderFlowchartCategory(parent, callbacks),
+			items: [
+				{ id: "terminator", name: "Start / End", render: (parent, callbacks) => this.addFlowchartTerminatorButton(parent, callbacks) },
+				{ id: "process", name: "Process", render: (parent, callbacks) => this.addFlowchartProcessButton(parent, callbacks) },
+				{ id: "decision", name: "Decision", render: (parent, callbacks) => this.addFlowchartDecisionButton(parent, callbacks) },
+				{ id: "input-output", name: "Input / Output", render: (parent, callbacks) => this.addFlowchartInputOutputButton(parent, callbacks) },
+				{ id: "flow-arrow", name: "Flow Arrow", render: (parent, callbacks) => this.addFlowchartArrowButton(parent, callbacks) },
+				{ id: "document", name: "Document", render: (parent, callbacks) => this.addFlowchartDocumentButton(parent, callbacks) },
+				{ id: "database", name: "Database", render: (parent, callbacks) => this.addFlowchartDatabaseButton(parent, callbacks) },
+				{ id: "subprocess", name: "Subprocess", render: (parent, callbacks) => this.addFlowchartSubprocessButton(parent, callbacks) },
+				{ id: "connector", name: "Connector", render: (parent, callbacks) => this.addFlowchartConnectorButton(parent, callbacks) },
+				{ id: "off-page-connector", name: "Off-page Connector", render: (parent, callbacks) => this.addFlowchartOffPageConnectorButton(parent, callbacks) },
+			],
 		},
 	]
 
-	public render(leftOffcanvasAccordion: HTMLDivElement, callbacks: ShapeLibraryCallbacks, visibleCategoryIds?: string[]): void {
+	public render(
+		leftOffcanvasAccordion: HTMLDivElement,
+		callbacks: ShapeLibraryCallbacks,
+		visibleCategoryIds?: string[],
+		visibleItemIds?: string[]
+	): void {
 		const visibleIds = visibleCategoryIds ?? this.categories.map((category) => category.id)
 
 		Array.from(leftOffcanvasAccordion.querySelectorAll(".shape-library-accordion-item")).forEach((item) => item.remove())
@@ -47,8 +79,13 @@ export class ShapeLibraryController {
 		const fragment = document.createDocumentFragment()
 		for (const category of this.categories) {
 			if (visibleIds.includes(category.id)) {
+				const itemIds = visibleItemIds ?? category.items.map((item) => item.id)
+				const visibleItems = category.items.filter((item) => itemIds.includes(item.id))
+				if (visibleItems.length === 0) continue
 				const group = this.createAccordionGroup(category.name)
-				category.render(group, callbacks)
+				for (const item of visibleItems) {
+					item.render(group, callbacks)
+				}
 				fragment.appendChild(group.closest(".accordion-item")!)
 			}
 		}
@@ -56,33 +93,12 @@ export class ShapeLibraryController {
 		leftOffcanvasAccordion.insertBefore(fragment, leftOffcanvasAccordion.firstChild)
 	}
 
-	public getCategories(): Array<{ id: string; name: string }> {
-		return this.categories.map(({ id, name }) => ({ id, name }))
-	}
-
-	private renderBasicCategory(parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks): void {
-		this.addShortButton(parent, callbacks)
-		this.addOpenButton(parent, callbacks)
-		this.addTextButton(parent, callbacks)
-		this.addRectangleButton(parent, callbacks)
-		this.addEllipseButton(parent, callbacks)
-		this.addPolygonButton(parent, callbacks)
-		this.addStraightLineButton(parent, callbacks)
-		this.addStraightArrowButton(parent, callbacks)
-		this.addArrowButton(parent, callbacks)
-	}
-
-	private renderFlowchartCategory(parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks): void {
-		this.addFlowchartTerminatorButton(parent, callbacks)
-		this.addFlowchartProcessButton(parent, callbacks)
-		this.addFlowchartDecisionButton(parent, callbacks)
-		this.addFlowchartInputOutputButton(parent, callbacks)
-		this.addFlowchartArrowButton(parent, callbacks)
-		this.addFlowchartDocumentButton(parent, callbacks)
-		this.addFlowchartDatabaseButton(parent, callbacks)
-		this.addFlowchartSubprocessButton(parent, callbacks)
-		this.addFlowchartConnectorButton(parent, callbacks)
-		this.addFlowchartOffPageConnectorButton(parent, callbacks)
+	public getCategories(): Array<{ id: string; name: string; items: Array<{ id: string; name: string }> }> {
+		return this.categories.map(({ id, name, items }) => ({
+			id,
+			name,
+			items: items.map((item) => ({ id: item.id, name: item.name })),
+		}))
 	}
 
 	private createAccordionGroup(groupName: string): HTMLDivElement {
