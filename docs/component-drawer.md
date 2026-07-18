@@ -10,6 +10,8 @@ Use **More Shapes** at the bottom of the drawer to choose which categories are d
 - **Flowchart** includes flowchart-specific nodes such as process, decision, document, database, and connector shapes.
 - CircuiTikZ symbol groups such as **Wiring** and **Block diagram** are listed alongside the built-in shape categories.
 
-Click **Apply** to refresh the drawer with the selected categories. Enable **Remember this setting** to keep the same category selection for future sessions in the same browser.
+Each category can be selected as a whole, and individual components inside each category can be selected independently. Click **Apply** to refresh the drawer with the selected categories and components.
+
+Enable **Remember this setting** to keep the same category and component selection for future sessions in the same browser.
 
 Custom user categories continue to render independently from the built-in category chooser.

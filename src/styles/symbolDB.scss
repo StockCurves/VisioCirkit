@@ -87,6 +87,25 @@
 	}
 }
 
+.shape-library-category-option {
+	font-weight: 700;
+}
+
+.shape-library-item-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: -2px 0 6px 28px;
+}
+
+.shape-library-item-option {
+	padding-top: 6px;
+	padding-bottom: 6px;
+	color: var(--text-muted);
+	font-size: 14px;
+	font-weight: 500;
+}
+
 .shape-library-option input,
 .shape-library-remember input {
 	width: 18px;

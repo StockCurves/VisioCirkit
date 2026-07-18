@@ -120,13 +120,32 @@ describe("ShapeLibraryController", () => {
 		expect(root.querySelectorAll(".libComponent")).toHaveLength(10)
 	})
 
+	it("renders only selected shape items inside a visible category", () => {
+		const controller = new ShapeLibraryController()
+		const root = document.createElement("div")
+
+		controller.render(root, {
+			hideDrawer: vi.fn(),
+			switchToPanMode: vi.fn(),
+			switchToComponentMode: vi.fn(),
+			cancelComponentPlacement: vi.fn(),
+			placeComponent: vi.fn(),
+		}, ["basic"], ["ellipse"])
+
+		const buttons = root.querySelectorAll(".libComponent")
+		expect(root.querySelectorAll(".accordion-button")).toHaveLength(1)
+		expect(buttons).toHaveLength(1)
+		expect((buttons[0] as HTMLDivElement).title).toBe("Ellipse")
+	})
+
 	it("exposes built-in shape categories for the drawer chooser", () => {
 		const controller = new ShapeLibraryController()
 
 		expect(controller.getCategories()).toEqual([
-			{ id: "basic", name: "Basic" },
-			{ id: "flowchart", name: "Flowchart" },
+			expect.objectContaining({ id: "basic", name: "Basic" }),
+			expect.objectContaining({ id: "flowchart", name: "Flowchart" }),
 		])
+		expect(controller.getCategories()[0].items.map((item) => item.name)).toContain("Ellipse")
 	})
 
 	it("places the expected component type when a shape is clicked", () => {

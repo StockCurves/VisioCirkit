@@ -32,6 +32,13 @@ type DrawerCategory = {
 	name: string
 	kind: "shape" | "component"
 	sourceId: string
+	items: DrawerItem[]
+}
+
+type DrawerItem = {
+	id: string
+	name: string
+	sourceId: string
 }
 
 const DRAWER_CATEGORY_STORAGE_KEY = "visiocirkit.componentDrawer.visibleCategories"
@@ -108,16 +115,21 @@ export class AddComponentOffcanvasController {
 
 		const categories = this.getDrawerCategories()
 		const visibleCategoryIds = this.loadVisibleCategoryIds(categories)
+		const visibleItemIds = this.loadVisibleItemIds(categories)
 		const visibleShapeIds = categories
 			.filter((category) => category.kind === "shape" && visibleCategoryIds.includes(category.id))
 			.map((category) => category.sourceId)
+		const visibleShapeItemIds = categories
+			.filter((category) => category.kind === "shape" && visibleCategoryIds.includes(category.id))
+			.flatMap((category) => category.items.filter((item) => visibleItemIds.includes(item.id)).map((item) => item.sourceId))
 		const visibleComponentGroupNames = new Set(
 			categories
 				.filter((category) => category.kind === "component" && visibleCategoryIds.includes(category.id))
 				.map((category) => category.sourceId)
 		)
 		const visibleSymbols = this.symbols.filter((symbol) =>
-			visibleComponentGroupNames.has(symbol.groupName || "Unsorted components")
+			visibleComponentGroupNames.has(symbol.groupName || "Unsorted components") &&
+			visibleItemIds.includes(this.createComponentItemId(symbol.groupName || "Unsorted components", symbol.tikzName))
 		)
 
 		this.shapeLibraryController.render(this.leftOffcanvasAccordion, {
@@ -126,7 +138,7 @@ export class AddComponentOffcanvasController {
 			switchToComponentMode: this.switchToComponentMode,
 			cancelComponentPlacement: this.cancelComponentPlacement,
 			placeComponent: this.placeComponent,
-		}, visibleShapeIds)
+		}, visibleShapeIds, visibleShapeItemIds)
 
 		this.componentLibraryController.render(this.leftOffcanvasAccordion, visibleSymbols, {
 			hideDrawer: this.hideDrawer,
@@ -196,20 +208,52 @@ export class AddComponentOffcanvasController {
 
 	private renderChooserOptions(categoryList: HTMLDivElement): void {
 		const categories = this.getDrawerCategories()
-		const visibleIds = this.loadVisibleCategoryIds(categories)
+		const visibleIds = this.loadVisibleIds(categories)
 		categoryList.innerHTML = ""
 
 		for (const category of categories) {
 			const option = categoryList.appendChild(document.createElement("label"))
-			option.classList.add("shape-library-option")
+			option.classList.add("shape-library-option", "shape-library-category-option")
 
 			const checkbox = option.appendChild(document.createElement("input"))
 			checkbox.type = "checkbox"
 			checkbox.value = category.id
-			checkbox.checked = visibleIds.includes(category.id)
+			checkbox.dataset.categoryId = category.id
+			const checkedItemCount = category.items.filter((item) => visibleIds.includes(item.id)).length
+			checkbox.checked = visibleIds.includes(category.id) && checkedItemCount === category.items.length
+			checkbox.indeterminate = visibleIds.includes(category.id) && checkedItemCount > 0 && checkedItemCount < category.items.length
 
 			const label = option.appendChild(document.createElement("span"))
 			label.textContent = category.name
+
+			const itemList = categoryList.appendChild(document.createElement("div"))
+			itemList.classList.add("shape-library-item-list")
+
+			for (const item of category.items) {
+				const itemOption = itemList.appendChild(document.createElement("label"))
+				itemOption.classList.add("shape-library-option", "shape-library-item-option")
+
+				const itemCheckbox = itemOption.appendChild(document.createElement("input"))
+				itemCheckbox.type = "checkbox"
+				itemCheckbox.value = item.id
+				itemCheckbox.dataset.parentCategoryId = category.id
+				itemCheckbox.checked = visibleIds.includes(category.id) && visibleIds.includes(item.id)
+
+				const itemLabel = itemOption.appendChild(document.createElement("span"))
+				itemLabel.textContent = item.name
+			}
+
+			checkbox.addEventListener("change", () => {
+				const itemCheckboxes = itemList.querySelectorAll<HTMLInputElement>("input[type='checkbox']")
+				itemCheckboxes.forEach((itemCheckbox) => {
+					itemCheckbox.checked = checkbox.checked
+				})
+				checkbox.indeterminate = false
+			})
+
+			itemList.addEventListener("change", () => {
+				this.syncCategoryCheckbox(checkbox, itemList)
+			})
 		}
 	}
 
@@ -219,6 +263,11 @@ export class AddComponentOffcanvasController {
 			name: category.name,
 			kind: "shape" as const,
 			sourceId: category.id,
+			items: (category.items ?? []).map((item) => ({
+				id: this.createShapeItemId(category.id, item.id),
+				name: item.name,
+				sourceId: item.id,
+			})),
 		}))
 		const componentGroupNames = Array.from(
 			this.symbols.reduce((groups, symbol) => groups.add(symbol.groupName || "Unsorted components"), new Set<string>())
@@ -228,21 +277,70 @@ export class AddComponentOffcanvasController {
 			name: groupName,
 			kind: "component" as const,
 			sourceId: groupName,
+			items: this.symbols
+				.filter((symbol) => (symbol.groupName || "Unsorted components") === groupName)
+				.map((symbol) => ({
+					id: this.createComponentItemId(groupName, symbol.tikzName),
+					name: symbol.displayName || symbol.tikzName,
+					sourceId: symbol.tikzName,
+				})),
 		}))
 		return shapeCategories.concat(componentCategories)
 	}
 
 	private loadVisibleCategoryIds(categories: DrawerCategory[]): string[] {
-		const defaultIds = categories.map((category) => category.id)
-		if (this.visibleCategoryIds) return this.visibleCategoryIds.filter((id) => categories.some((category) => category.id === id))
+		const visibleIds = this.loadVisibleIds(categories)
+		return categories
+			.filter((category) =>
+				visibleIds.includes(category.id) &&
+				category.items.some((item) => visibleIds.includes(item.id))
+			)
+			.map((category) => category.id)
+	}
+
+	private loadVisibleItemIds(categories: DrawerCategory[]): string[] {
+		const visibleIds = this.loadVisibleIds(categories)
+		const visibleCategoryIds = this.loadVisibleCategoryIds(categories)
+		return categories
+			.filter((category) => visibleCategoryIds.includes(category.id))
+			.flatMap((category) => category.items.map((item) => item.id))
+			.filter((id) => visibleIds.includes(id))
+	}
+
+	private loadVisibleIds(categories: DrawerCategory[]): string[] {
+		const defaultIds = categories.flatMap((category) => [category.id].concat(category.items.map((item) => item.id)))
+		if (this.visibleCategoryIds) return this.visibleCategoryIds.filter((id) => defaultIds.includes(id))
 		if (localStorage.getItem(DRAWER_CATEGORY_REMEMBER_KEY) !== "true") return defaultIds
 
 		try {
 			const storedIds = JSON.parse(localStorage.getItem(DRAWER_CATEGORY_STORAGE_KEY) ?? "[]")
 			if (!Array.isArray(storedIds)) return defaultIds
-			return storedIds.filter((id) => categories.some((category) => category.id === id))
+			const visibleIds = storedIds.filter((id) => defaultIds.includes(id))
+			for (const category of categories) {
+				const hasCategory = visibleIds.includes(category.id)
+				const hasAnyItem = category.items.some((item) => visibleIds.includes(item.id))
+				if (hasCategory && !hasAnyItem) {
+					visibleIds.push(...category.items.map((item) => item.id))
+				}
+			}
+			return visibleIds
 		} catch (_err) {
 			return defaultIds
 		}
+	}
+
+	private syncCategoryCheckbox(categoryCheckbox: HTMLInputElement, itemList: HTMLDivElement): void {
+		const itemCheckboxes = Array.from(itemList.querySelectorAll<HTMLInputElement>("input[type='checkbox']"))
+		const checkedCount = itemCheckboxes.filter((itemCheckbox) => itemCheckbox.checked).length
+		categoryCheckbox.checked = checkedCount === itemCheckboxes.length
+		categoryCheckbox.indeterminate = checkedCount > 0 && checkedCount < itemCheckboxes.length
+	}
+
+	private createShapeItemId(categoryId: string, itemId: string): string {
+		return `shape-item:${categoryId}:${itemId}`
+	}
+
+	private createComponentItemId(groupName: string, symbolName: string): string {
+		return `component-item:${groupName}:${symbolName}`
 	}
 }
