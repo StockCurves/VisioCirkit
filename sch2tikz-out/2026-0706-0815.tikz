@@ -1,0 +1,174 @@
+\documentclass{standalone}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\begin{document}
+\begin{circuitikz}[american, scale=1.0, every node/.style={transform shape}]
+
+% Grid & Thick Oxide
+\draw[dashed, thick] (-0.35, 9.45) rectangle (13.85, 12.25);
+\node[anchor=north west, font=\bfseries] at (-0.15, 12.05) {Thick Oxide};
+\draw[thick] (0, 12) -- (14, 12);
+\node[above] at (7, 12) {$V_{HV}$};
+\draw[thick] (15.5, 12) -- (26.5, 12);
+\node[above] at (21, 12) {$V_{LV}$};
+
+% Top PMOS current mirrors (Thick Oxide)
+\node[pmos, emptycircle] (M14) at (1, 10.5) {};
+\node[left] at (0.2, 11) {$M_{14}$};
+\node[pmos, emptycircle] (M15) at (3, 10.5) {};
+\node[right] at (3.8, 10.5) {$M_{15}$};
+\node[pmos, emptycircle] (M16) at (12.5, 10.5) {};
+\node[right] at (13.3, 10.5) {$M_{16}$};
+
+\draw (1, 11.27) -- (1, 12);
+\draw (3, 11.27) -- (3, 12);
+\draw (12.5, 11.27) -- (12.5, 12);
+
+\draw (0.02, 10.5) -- (11.52, 10.5);
+\draw (1, 9.73) -- (1, 9) -- (0.02, 9) -- (0.02, 10.5);
+\node[circ] at (1, 9) {};
+\node[circ] at (0.02, 9) {};
+\node[circ] at (2.02, 10.5) {};
+\node[circ] at (11.52, 10.5) {};
+
+\draw (1, 9) -- (0, 9) to[I] (0, 7) node[ground]{};
+\draw (3, 9.73) -- (3, 8.5);
+\draw (12.5, 9.73) -- (12.5, 8.5);
+
+% CMFB
+\node[pmos, emptycircle] (M9) at (2.5, 7.5) {};
+\node[left] at (1.7, 8.0) {$M_9$};
+\node[pmos, emptycircle, xscale=-1] (M10) at (5.5, 7.5) {};
+\node[right] at (6.3, 8.0) {$M_{10}$};
+
+\draw (2.5, 8.27) -- (2.5, 8.5) -- (5.5, 8.5) -- (5.5, 8.27);
+\draw (3, 8.5) -- (3, 8.5); % Connect M15 drain to common source
+\node[circ] at (3, 8.5) {};
+
+\draw (1.52, 7.5) -- (0.5, 7.5) node[left]{$V_{CM}$};
+
+\draw (6.48, 7.5) -- (7.0, 7.5);
+\draw (7.0, 7.5) -- (7.0, 8.5);
+\draw (7.0, 8.5) -- (7.5, 8.5) to[R] (8.5, 8.5) -- (9.0, 8.5);
+\draw (7.0, 8.5) -- (7.0, 9.1) -- (7.5, 9.1) to[C] (8.5, 9.1) -- (9.0, 9.1) -- (9.0, 8.5);
+\node[osquarepole] at (9.0, 8.5) {};
+\node[right] at (9.4, 8.5) {$V_{OP1}$};
+
+\draw (7.0, 7.5) -- (7.0, 6.5);
+\draw (7.0, 6.5) -- (7.5, 6.5) to[R] (8.5, 6.5) -- (9.0, 6.5);
+\draw (7.0, 6.5) -- (7.0, 5.9) -- (7.5, 5.9) to[C] (8.5, 5.9) -- (9.0, 5.9) -- (9.0, 6.5);
+\node[osquarepole] at (9.0, 6.5) {};
+\node[right] at (9.4, 6.5) {$V_{ON1}$};
+
+\node[nmos, xscale=-1] (M11) at (2.5, 4.5) {};
+\node[left] at (1.7, 4.0) {$M_{11}$};
+\node[nmos] (M12) at (5.5, 4.5) {};
+\node[right] at (6.3, 4.0) {$M_{12}$};
+
+\draw (3.48, 4.5) -- (4.52, 4.5);
+\node[circ] at (3.48, 4.5) {};
+\node[circ] at (4.52, 4.5) {};
+
+\draw (2.5, 5.8) -- (3.48, 5.8) -- (3.48, 4.5);
+\node[circ] at (2.5, 5.8) {};
+
+\draw (2.5, 6.73) -- (2.5, 5.27);
+\draw (5.5, 6.73) -- (5.5, 5.27);
+
+\draw (2.5, 3.73) -- (2.5, 2.5) to[R, l=$R_{15}$] (2.5, 1) node[ground]{};
+\draw (5.5, 3.73) -- (5.5, 2.5) to[R, l=$R_{16}$] (5.5, 1) node[ground]{};
+
+\draw (4.52, 4.5) -- (11.98, 4.5);
+
+% 1st Stage
+\node[pmos, emptycircle] (M1) at (11, 7.5) {};
+\node[right] at (11.8, 7.5) {$M_1$};
+\node[pmos, emptycircle, xscale=-1] (M2) at (14, 7.5) {};
+\node[left] at (13.2, 7.5) {$M_2$};
+
+\draw (11, 8.27) -- (11, 8.5) -- (14, 8.5) -- (14, 8.27);
+\node[circ] at (12.5, 8.5) {};
+
+\draw (10.02, 7.5) -- (9.5, 7.5) node[osquarepole]{} node[left]{$V_{IP1}$};
+\draw (14.98, 7.5) -- (15.5, 7.5) node[osquarepole]{} node[right]{$V_{IN1}$};
+
+\node[nmos, xscale=-1] (M3) at (11, 4.5) {};
+\node[right] at (11.8, 4.5) {$M_3$};
+\node[nmos] (M4) at (14, 4.5) {};
+\node[left] at (13.2, 4.5) {$M_4$};
+
+\draw (11.98, 4.5) -- (13.02, 4.5);
+\node[circ] at (11.98, 4.5) {};
+
+\draw (11, 6.73) -- (11, 5.27);
+\draw (14, 6.73) -- (14, 5.27);
+
+\draw (11, 3.73) -- (11, 2.5) to[R, l=$R_{11}$] (11, 1) node[ground]{};
+\draw (14, 3.73) -- (14, 2.5) to[R, l=$R_{12}$] (14, 1) node[ground]{};
+
+\node[circ] at (14, 6.0) {};
+\node[circ] at (11, 5.0) {};
+
+% 2nd Stage
+\node[pmos, emptycircle] (M13) at (16.6, 10.5) {};
+\node[right] at (17.4, 10.5) {$M_{13}$};
+
+\draw (16.6, 11.27) -- (16.6, 12);
+\draw (16.6, 9.73) -- (16.6, 9) -- (15.62, 9) -- (15.62, 10.5);
+\node[circ] at (16.6, 9) {};
+\node[circ] at (15.62, 9) {};
+\draw (15.62, 9) -- (15.1, 9) to[I] (15.1, 7) node[ground]{};
+
+\node[pmos, emptycircle] (M7) at (19.2, 9) {};
+\node[right] at (20.0, 9) {$M_7$};
+\node[pmos, emptycircle, xscale=-1] (M8) at (24.3, 9) {};
+\node[left] at (23.5, 9) {$M_8$};
+
+\draw (19.2, 9.77) -- (19.2, 12);
+\draw (24.3, 9.77) -- (24.3, 12);
+
+\draw (15.62, 10.5) -- (18.22, 10.5) to[R, l=$R_{17}$] (18.22, 9);
+\draw (18.22, 10.5) -- (25.28, 10.5) to[R, l=$R_{18}$] (25.28, 9);
+\node[circ] at (18.22, 10.5) {};
+
+\draw (18.22, 9) -- (17.35, 9) to[C, l=$C_{11}$] (16.0, 9) node[osquarepole]{} node[left]{$V_{IN1}$};
+\draw (25.28, 9) -- (25.75, 9) to[C, l=$C_{12}$] (27.05, 9) node[osquarepole]{} node[right]{$V_{IP1}$};
+
+\node[nmos] (M5) at (19.2, 4.5) {};
+\node[right] at (20.0, 4.5) {$M_5$};
+\node[nmos, xscale=-1] (M6) at (24.3, 4.5) {};
+\node[left] at (23.5, 4.5) {$M_6$};
+
+\draw (19.2, 8.23) -- (19.2, 5.27);
+\draw (24.3, 8.23) -- (24.3, 5.27);
+
+\node[circ] at (19.2, 6.8) {};
+\node[right] at (19.5, 6.8) {$V_{OP1}$};
+\node[circ] at (24.3, 6.8) {};
+\node[left] at (24.0, 6.8) {$V_{ON1}$};
+
+\draw (19.2, 3.73) -- (19.2, 3.2) -- (24.3, 3.2) -- (24.3, 3.73);
+\draw (21.75, 3.2) -- (21.75, 2) to[R, l=$R_{10}$] (21.75, 0.5) node[ground]{};
+\draw[->, thick] (20.75, 2.5) -- (20.75, 1.5) node[midway, left]{$I_{R10}$};
+
+% Miller RC
+\draw (19.2, 6.8) -- (17.55, 6.8) to[C, l=$C_{13}$] (17.55, 5.65) to[R, l=$R_{13}$] (17.55, 4.5) -- (18.22, 4.5);
+\draw (24.3, 6.8) -- (25.95, 6.8) to[C, l=$C_{14}$] (25.95, 5.65) to[R, l=$R_{14}$] (25.95, 4.5) -- (25.28, 4.5);
+
+% Connections from 1st to 2nd Stage
+\draw (14, 6.0) -- (18.22, 6.0) -- (18.22, 4.5);
+\node[circ] at (18.22, 4.5) {};
+\draw (11, 5.0) -- (25.28, 5.0) -- (25.28, 4.5);
+\node[circ] at (25.28, 4.5) {};
+
+% Brackets
+\draw[thick] (2.5, 0.3) -- (2.5, 0.1) -- (5.5, 0.1) -- (5.5, 0.3);
+\node[font=\bfseries] at (4, 0) {CMFB};
+\draw[thick] (11, 0.3) -- (11, 0.1) -- (14, 0.1) -- (14, 0.3);
+\node[font=\bfseries] at (12.5, 0) {$1^{st}$-stage};
+\draw[thick] (19.2, 0.3) -- (19.2, 0.1) -- (24.3, 0.1) -- (24.3, 0.3);
+\node[font=\bfseries] at (21.75, 0) {$2^{nd}$-stage};
+
+\end{circuitikz}
+\end{document}

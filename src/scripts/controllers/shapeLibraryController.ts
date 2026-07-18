@@ -19,37 +19,110 @@ export type ShapeLibraryCallbacks = {
 	placeComponent: (component: CircuitComponent) => void
 }
 
-export class ShapeLibraryController {
-	public render(leftOffcanvasAccordion: HTMLDivElement, callbacks: ShapeLibraryCallbacks): void {
-		const basicGroup = this.createAccordionGroup(leftOffcanvasAccordion, "Basic")
-		this.addShortButton(basicGroup, callbacks)
-		this.addOpenButton(basicGroup, callbacks)
-		this.addTextButton(basicGroup, callbacks)
-		this.addRectangleButton(basicGroup, callbacks)
-		this.addEllipseButton(basicGroup, callbacks)
-		this.addPolygonButton(basicGroup, callbacks)
-		this.addStraightLineButton(basicGroup, callbacks)
-		this.addStraightArrowButton(basicGroup, callbacks)
-		this.addArrowButton(basicGroup, callbacks)
+type ShapeLibraryCategory = {
+	id: string
+	name: string
+	items: ShapeLibraryItem[]
+}
 
-		const flowchartGroup = this.createAccordionGroup(leftOffcanvasAccordion, "Flowchart")
-		this.addFlowchartTerminatorButton(flowchartGroup, callbacks)
-		this.addFlowchartProcessButton(flowchartGroup, callbacks)
-		this.addFlowchartDecisionButton(flowchartGroup, callbacks)
-		this.addFlowchartInputOutputButton(flowchartGroup, callbacks)
-		this.addFlowchartArrowButton(flowchartGroup, callbacks)
-		this.addFlowchartDocumentButton(flowchartGroup, callbacks)
-		this.addFlowchartDatabaseButton(flowchartGroup, callbacks)
-		this.addFlowchartSubprocessButton(flowchartGroup, callbacks)
-		this.addFlowchartConnectorButton(flowchartGroup, callbacks)
-		this.addFlowchartOffPageConnectorButton(flowchartGroup, callbacks)
+type ShapeLibraryItem = {
+	id: string
+	name: string
+	render: (parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks) => void
+}
+
+export class ShapeLibraryController {
+	private readonly categories: ShapeLibraryCategory[] = [
+		{
+			id: "basic",
+			name: "Basic",
+			items: [
+				{ id: "short", name: "Short", render: (parent, callbacks) => this.addShortButton(parent, callbacks) },
+				{ id: "open", name: "Open", render: (parent, callbacks) => this.addOpenButton(parent, callbacks) },
+				{ id: "text", name: "Text", render: (parent, callbacks) => this.addTextButton(parent, callbacks) },
+				{ id: "rectangle", name: "Rectangle/Text", render: (parent, callbacks) => this.addRectangleButton(parent, callbacks) },
+				{ id: "ellipse", name: "Ellipse", render: (parent, callbacks) => this.addEllipseButton(parent, callbacks) },
+				{ id: "polygon", name: "Polygon", render: (parent, callbacks) => this.addPolygonButton(parent, callbacks) },
+				{ id: "straight-line", name: "Straight line", render: (parent, callbacks) => this.addStraightLineButton(parent, callbacks) },
+				{ id: "straight-arrow", name: "Straight arrow", render: (parent, callbacks) => this.addStraightArrowButton(parent, callbacks) },
+				{ id: "arrow", name: "Arrow", render: (parent, callbacks) => this.addArrowButton(parent, callbacks) },
+			],
+		},
+		{
+			id: "flowchart",
+			name: "Flowchart",
+			items: [
+				{ id: "terminator", name: "Start / End", render: (parent, callbacks) => this.addFlowchartTerminatorButton(parent, callbacks) },
+				{ id: "process", name: "Process", render: (parent, callbacks) => this.addFlowchartProcessButton(parent, callbacks) },
+				{ id: "decision", name: "Decision", render: (parent, callbacks) => this.addFlowchartDecisionButton(parent, callbacks) },
+				{ id: "input-output", name: "Input / Output", render: (parent, callbacks) => this.addFlowchartInputOutputButton(parent, callbacks) },
+				{ id: "flow-arrow", name: "Flow Arrow", render: (parent, callbacks) => this.addFlowchartArrowButton(parent, callbacks) },
+				{ id: "document", name: "Document", render: (parent, callbacks) => this.addFlowchartDocumentButton(parent, callbacks) },
+				{ id: "database", name: "Database", render: (parent, callbacks) => this.addFlowchartDatabaseButton(parent, callbacks) },
+				{ id: "subprocess", name: "Subprocess", render: (parent, callbacks) => this.addFlowchartSubprocessButton(parent, callbacks) },
+				{ id: "connector", name: "Connector", render: (parent, callbacks) => this.addFlowchartConnectorButton(parent, callbacks) },
+				{ id: "off-page-connector", name: "Off-page Connector", render: (parent, callbacks) => this.addFlowchartOffPageConnectorButton(parent, callbacks) },
+			],
+		},
+	]
+
+	public render(
+		leftOffcanvasAccordion: HTMLDivElement,
+		callbacks: ShapeLibraryCallbacks,
+		visibleCategoryIds?: string[],
+		visibleItemIds?: string[]
+	): void {
+		const visibleIds = visibleCategoryIds ?? this.categories.map((category) => category.id)
+
+		Array.from(leftOffcanvasAccordion.querySelectorAll(".shape-library-accordion-item")).forEach((item) => item.remove())
+
+		const fragment = document.createDocumentFragment()
+		for (const category of this.categories) {
+			if (visibleIds.includes(category.id)) {
+				const itemIds = visibleItemIds ?? category.items.map((item) => item.id)
+				const visibleItems = category.items.filter((item) => itemIds.includes(item.id))
+				if (visibleItems.length === 0) continue
+				const group = this.createAccordionGroup(category.name)
+				for (const item of visibleItems) {
+					item.render(group, callbacks)
+				}
+				fragment.appendChild(group.closest(".accordion-item")!)
+			}
+		}
+
+		leftOffcanvasAccordion.insertBefore(fragment, leftOffcanvasAccordion.firstChild)
 	}
 
-	private createAccordionGroup(parent: HTMLDivElement, groupName: string): HTMLDivElement {
+	public getCategories(): Array<{ id: string; name: string; items: Array<{ id: string; name: string }> }> {
+		return this.categories.map(({ id, name, items }) => ({
+			id,
+			name,
+			items: items.map((item) => ({ id: item.id, name: item.name })),
+		}))
+	}
+
+	public renderPreview(itemId: string): SVGElement | null {
+		const item = this.categories.flatMap((category) => category.items).find((candidate) => candidate.id === itemId)
+		if (!item) return null
+
+		const previewHost = document.createElement("div")
+		item.render(previewHost, {
+			hideDrawer: () => {},
+			switchToPanMode: () => {},
+			switchToComponentMode: () => {},
+			cancelComponentPlacement: () => {},
+			placeComponent: () => {},
+		})
+
+		const svg = previewHost.querySelector("svg")
+		return svg ? svg.cloneNode(true) as SVGElement : null
+	}
+
+	private createAccordionGroup(groupName: string): HTMLDivElement {
 		const collapseGroupID = "collapseGroup-" + groupName.replace(/[^\d\w\-\_]+/gi, "-")
 
-		const accordionGroup = parent.appendChild(document.createElement("div"))
-		accordionGroup.classList.add("accordion-item")
+		const accordionGroup = document.createElement("div")
+		accordionGroup.classList.add("accordion-item", "shape-library-accordion-item")
 
 		const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
 		accordionItemHeader.classList.add("accordion-header")

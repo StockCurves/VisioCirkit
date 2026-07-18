@@ -373,25 +373,29 @@ vi.mock("../src/scripts/controllers/canvasController", () => ({
 vi.mock("@svgdotjs/svg.draggable.js", () => ({}))
 vi.mock("@svgdotjs/svg.panzoom.js", () => ({}))
 
-Object.defineProperty(window, "MathJax", {
-	value: {
-		texReset: vi.fn(),
-		tex2svg: vi.fn(() => ({
-			querySelector: () => ({
-				style: { verticalAlign: "0" },
-				getAttribute: () => "1",
-				height: { baseVal: { valueInSpecifiedUnits: 1 } },
-			}),
-		})),
-	},
-	writable: true,
-})
+if (typeof window !== "undefined") {
+	Object.defineProperty(window, "MathJax", {
+		value: {
+			texReset: vi.fn(),
+			tex2svg: vi.fn(() => ({
+				querySelector: () => ({
+					style: { verticalAlign: "0" },
+					getAttribute: () => "1",
+					height: { baseVal: { valueInSpecifiedUnits: 1 } },
+				}),
+			})),
+		},
+		writable: true,
+	})
+}
 
-HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
-	font: "",
-	measureText: (text: string) => ({
-		width: String(text).length * 8,
-		actualBoundingBoxAscent: 8,
-		actualBoundingBoxDescent: 2,
-	}),
-})) as any
+if (typeof HTMLCanvasElement !== "undefined" && HTMLCanvasElement.prototype) {
+	HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+		font: "",
+		measureText: (text: string) => ({
+			width: String(text).length * 8,
+			actualBoundingBoxAscent: 8,
+			actualBoundingBoxDescent: 2,
+		}),
+	})) as any
+}

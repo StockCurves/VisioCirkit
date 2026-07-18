@@ -12,6 +12,13 @@ const fs    = require('fs');
 const path  = require('path');
 const url   = require('url');
 const { handleLatexProxyRequest } = require('./server/latexProxy');
+const {
+  handleGithubAuthRequest,
+  handleGithubCallbackRequest,
+  handleGithubProxyRequest,
+  handleLogoutRequest,
+  handleSessionRequest,
+} = require('./server/githubAuth');
 
 const PORT = process.env.PORT || 3001;
 const ROOT = __dirname;
@@ -216,11 +223,13 @@ function serveStatic(req, res) {
 // ---------- Main server ----------
 const server = http.createServer((req, res) => {
   const { pathname } = url.parse(req.url);
+  const requestOrigin = req.headers.origin;
 
   // CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
-      'Access-Control-Allow-Origin':  '*',
+      'Access-Control-Allow-Origin':  requestOrigin || '*',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     });
@@ -228,7 +237,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (pathname === '/api/latex') {
+  if (pathname.startsWith('/api/auth/') || pathname.startsWith('/api/github/')) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  if (pathname === '/api/auth/github') {
+    handleGithubAuthRequest(req, res);
+  } else if (pathname === '/api/auth/github/callback') {
+    handleGithubCallbackRequest(req, res);
+  } else if (pathname === '/api/auth/session') {
+    handleSessionRequest(req, res);
+  } else if (pathname === '/api/auth/logout') {
+    handleLogoutRequest(req, res);
+  } else if (pathname.startsWith('/api/github/')) {
+    handleGithubProxyRequest(req, res);
+  } else if (pathname === '/api/latex') {
     handleLatexProxyRequest(req, res);
   } else if (pathname === '/api/files' && req.method === 'GET') {
     try {

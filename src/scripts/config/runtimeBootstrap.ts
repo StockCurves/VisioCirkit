@@ -1,6 +1,6 @@
 import type { AppRuntimeConfig } from "./runtimeConfig"
 
-export type RuntimePreset = "server" | "demo"
+export type RuntimePreset = "server" | "demo" | "github-vc"
 const RUNTIME_META_SELECTOR = 'meta[name="circuitikz-runtime"]'
 
 const DEMO_RUNTIME_OVERRIDES: Partial<AppRuntimeConfig> = Object.freeze({
@@ -9,8 +9,14 @@ const DEMO_RUNTIME_OVERRIDES: Partial<AppRuntimeConfig> = Object.freeze({
 	latexMode: "serverless-proxy",
 })
 
+const GITHUB_VC_RUNTIME_OVERRIDES: Partial<AppRuntimeConfig> = Object.freeze({
+	storageMode: "github",
+	templateSource: "github",
+	latexMode: "serverless-proxy",
+})
+
 function isRuntimePreset(value: string | null | undefined): value is RuntimePreset {
-	return value === "server" || value === "demo"
+	return value === "server" || value === "demo" || value === "github-vc"
 }
 
 export function resolveRuntimePreset(
@@ -27,6 +33,9 @@ export function resolveRuntimePreset(
 export function getRuntimeOverridesForPreset(preset: RuntimePreset): Partial<AppRuntimeConfig> {
 	if (preset === "demo") {
 		return DEMO_RUNTIME_OVERRIDES
+	}
+	if (preset === "github-vc") {
+		return GITHUB_VC_RUNTIME_OVERRIDES
 	}
 	return {}
 }

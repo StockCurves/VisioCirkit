@@ -4,6 +4,9 @@ import { CustomSymbolDomService } from "./customSymbolDomService"
 import { CustomSymbolService } from "./customSymbolService"
 import { IndexedDbService } from "./indexedDbService"
 import { IndexedDbTemplateDataSource } from "./indexedDbTemplateDataSource"
+import { GitHubTemplateDataSource } from "./githubTemplateDataSource"
+import { CustomSymbolRepository } from "./customSymbolRepository"
+import { GitHubCustomSymbolSyncService } from "./githubCustomSymbolSyncService"
 import { LatexRenderService } from "./latexRenderService"
 import { StaticTemplateDataSource } from "./staticTemplateDataSource"
 import { SubcircuitPreviewService } from "./subcircuitPreviewService"
@@ -58,6 +61,18 @@ class DefaultAppRuntime implements AppRuntime {
 		if (this.config.storageMode === "indexeddb") {
 			return new IndexedDbTemplateDataSource(this.getIndexedDb(), readonlySource)
 		}
+		if (this.config.storageMode === "github") {
+			return new GitHubTemplateDataSource(
+				this.config.apiBase,
+				() => {
+					const val = localStorage.getItem("github_active_repo")
+					if (!val) return null
+					const [owner, repo] = val.split("/")
+					return { owner, repo }
+				},
+				readonlySource
+			)
+		}
 		return readonlySource
 	}
 
@@ -108,8 +123,28 @@ class DefaultAppRuntime implements AppRuntime {
 		return this.tabLifecycleService as TabLifecycleService<TData, TSettings>
 	}
 
+	private customSymbolSyncService: GitHubCustomSymbolSyncService | null = null
+
 	public createCustomSymbolApplicationService(getDb: () => IDBDatabase): CustomSymbolApplicationService {
-		return new CustomSymbolApplicationService(this.createCustomSymbolService(getDb))
+		const appService = new CustomSymbolApplicationService(this.createCustomSymbolService(getDb))
+
+		if (this.config.storageMode === "github") {
+			const repository = new CustomSymbolRepository(getDb())
+			this.customSymbolSyncService = new GitHubCustomSymbolSyncService(
+				this.config.apiBase,
+				repository
+			)
+			// Trigger initial sync in background
+			this.customSymbolSyncService.sync().catch((err) => {
+				console.error("Initial library sync failed:", err)
+			})
+			// Register change listener to push local updates
+			appService.onChange(() => {
+				this.customSymbolSyncService?.triggerPush()
+			})
+		}
+
+		return appService
 	}
 
 	public createSymbolLibraryService(): SymbolLibraryService {

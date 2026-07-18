@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 class MockSvgNode {
 	addTo() { return this }
@@ -75,6 +75,11 @@ import { EllipseComponent, ShortComponent } from "../src/scripts/internal"
 import { ShapeLibraryController } from "../src/scripts/controllers/shapeLibraryController"
 
 describe("ShapeLibraryController", () => {
+	beforeEach(() => {
+		localStorage.clear()
+		document.body.innerHTML = ""
+	})
+
 	it("renders the basic shape palette", () => {
 		const controller = new ShapeLibraryController()
 		const root = document.createElement("div")
@@ -96,6 +101,51 @@ describe("ShapeLibraryController", () => {
 		expect((buttons[13] as HTMLDivElement).title).toBe("Flow Arrow")
 		expect((buttons[14] as HTMLDivElement).title).toBe("Document")
 		expect((buttons[18] as HTMLDivElement).title).toBe("Off-page Connector")
+	})
+
+	it("renders only the selected shape categories", () => {
+		const controller = new ShapeLibraryController()
+		const root = document.createElement("div")
+
+		controller.render(root, {
+			hideDrawer: vi.fn(),
+			switchToPanMode: vi.fn(),
+			switchToComponentMode: vi.fn(),
+			cancelComponentPlacement: vi.fn(),
+			placeComponent: vi.fn(),
+		}, ["flowchart"])
+
+		const headers = Array.from(root.querySelectorAll(".accordion-button")).map((button) => (button as HTMLButtonElement).innerText)
+		expect(headers).toEqual(["Flowchart"])
+		expect(root.querySelectorAll(".libComponent")).toHaveLength(10)
+	})
+
+	it("renders only selected shape items inside a visible category", () => {
+		const controller = new ShapeLibraryController()
+		const root = document.createElement("div")
+
+		controller.render(root, {
+			hideDrawer: vi.fn(),
+			switchToPanMode: vi.fn(),
+			switchToComponentMode: vi.fn(),
+			cancelComponentPlacement: vi.fn(),
+			placeComponent: vi.fn(),
+		}, ["basic"], ["ellipse"])
+
+		const buttons = root.querySelectorAll(".libComponent")
+		expect(root.querySelectorAll(".accordion-button")).toHaveLength(1)
+		expect(buttons).toHaveLength(1)
+		expect((buttons[0] as HTMLDivElement).title).toBe("Ellipse")
+	})
+
+	it("exposes built-in shape categories for the drawer chooser", () => {
+		const controller = new ShapeLibraryController()
+
+		expect(controller.getCategories()).toEqual([
+			expect.objectContaining({ id: "basic", name: "Basic" }),
+			expect.objectContaining({ id: "flowchart", name: "Flowchart" }),
+		])
+		expect(controller.getCategories()[0].items.map((item) => item.name)).toContain("Ellipse")
 	})
 
 	it("places the expected component type when a shape is clicked", () => {
