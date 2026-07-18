@@ -22,8 +22,8 @@ describe("AddComponentOffcanvasController", () => {
 		}
 		const shapeLibraryController = {
 			getCategories: () => [
-				{ id: "basic", name: "Basic" },
-				{ id: "flowchart", name: "Flowchart" },
+				{ id: "basic", name: "Basic", items: [{ id: "ellipse", name: "Ellipse" }] },
+				{ id: "flowchart", name: "Flowchart", items: [{ id: "decision", name: "Decision" }] },
 			],
 			render: vi.fn(),
 		}
@@ -100,8 +100,8 @@ describe("AddComponentOffcanvasController", () => {
 		}
 		const shapeLibraryController = {
 			getCategories: () => [
-				{ id: "basic", name: "Basic" },
-				{ id: "flowchart", name: "Flowchart" },
+				{ id: "basic", name: "Basic", items: [{ id: "ellipse", name: "Ellipse" }] },
+				{ id: "flowchart", name: "Flowchart", items: [{ id: "decision", name: "Decision" }] },
 			],
 			render: vi.fn(),
 		}
@@ -133,6 +133,7 @@ describe("AddComponentOffcanvasController", () => {
 			document.getElementById("leftOffcanvasAccordion") as HTMLDivElement,
 			[
 				{ tikzName: "wire", groupName: "Wiring" } as any,
+				{ tikzName: "junction", displayName: "Connected terminal", groupName: "Wiring" } as any,
 				{ tikzName: "amp", groupName: "Block diagram" } as any,
 			]
 		)
@@ -140,25 +141,33 @@ describe("AddComponentOffcanvasController", () => {
 		;(document.getElementById("shapeLibraryMoreButton") as HTMLButtonElement).click()
 		const wiringCheckbox = document.querySelector<HTMLInputElement>('input[value="component:Wiring"]')
 		const blockDiagramCheckbox = document.querySelector<HTMLInputElement>('input[value="component:Block diagram"]')
+		const wireItemCheckbox = document.querySelector<HTMLInputElement>('input[value="component-item:Wiring:wire"]')
+		const junctionItemCheckbox = document.querySelector<HTMLInputElement>('input[value="component-item:Wiring:junction"]')
 		expect(wiringCheckbox?.checked).toBe(true)
 		expect(blockDiagramCheckbox?.checked).toBe(true)
+		expect(wireItemCheckbox?.checked).toBe(true)
+		expect(junctionItemCheckbox?.checked).toBe(true)
 
-		wiringCheckbox!.checked = false
+		wireItemCheckbox!.checked = false
 		;(document.getElementById("shapeLibraryRememberCheckbox") as HTMLInputElement).checked = true
 		;(document.getElementById("shapeLibraryApplyButton") as HTMLButtonElement).click()
 
 		expect(shapeLibraryController.render).toHaveBeenLastCalledWith(
 			document.getElementById("leftOffcanvasAccordion"),
 			expect.any(Object),
-			["basic", "flowchart"]
+			["basic", "flowchart"],
+			["ellipse", "decision"]
 		)
 		expect(componentLibraryController.render).toHaveBeenLastCalledWith(
 			document.getElementById("leftOffcanvasAccordion"),
-			[{ tikzName: "amp", groupName: "Block diagram" }],
+			[
+				{ tikzName: "junction", displayName: "Connected terminal", groupName: "Wiring" },
+				{ tikzName: "amp", groupName: "Block diagram" },
+			],
 			expect.any(Object)
 		)
 		expect(localStorage.getItem("visiocirkit.componentDrawer.visibleCategories")).toBe(
-			'["shape:basic","shape:flowchart","component:Block diagram"]'
+			'["shape:basic","shape-item:basic:ellipse","shape:flowchart","shape-item:flowchart:decision","component:Wiring","component-item:Wiring:junction","component:Block diagram","component-item:Block diagram:amp"]'
 		)
 	})
 })
