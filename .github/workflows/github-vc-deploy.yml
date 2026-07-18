@@ -1,0 +1,66 @@
+name: GitHub VC Deploy
+
+on:
+  push:
+    branches:
+      - deploy/github-vc-vercel
+  workflow_dispatch:
+
+jobs:
+  verify-github-vc:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run github-vc verification flow
+        run: npm run deploy:github-vc
+
+      - name: Upload github-vc artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-vc-dist
+          path: dist
+
+  deploy-vercel:
+    runs-on: ubuntu-latest
+    needs: verify-github-vc
+    if: github.ref == 'refs/heads/deploy/github-vc-vercel' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.GITHUB_VC_VERCEL_PROJECT_ID != ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build github-vc artifact
+        run: npm run build:github-vc
+
+      - name: Pull Vercel environment
+        run: npx vercel@latest pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.GITHUB_VC_VERCEL_PROJECT_ID }}
+
+      - name: Deploy to Vercel
+        run: npx vercel@latest deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.GITHUB_VC_VERCEL_PROJECT_ID }}

@@ -4,21 +4,20 @@ export class GitHubTemplateDataSource implements TemplateDataSource {
 	private shaCache = new Map<string, string>()
 
 	public constructor(
-		private readonly getToken: () => string | null,
+		private readonly apiBase: string,
 		private readonly getActiveRepo: () => { owner: string; repo: string } | null,
 		private readonly templateSource?: Pick<TemplateDataSource, "listFiles" | "readFile">
 	) {}
 
 	private getHeaders(): Record<string, string> {
-		const token = this.getToken()
-		if (!token) {
-			throw new Error("Missing GitHub access token")
-		}
 		return {
-			Authorization: `Bearer ${token}`,
 			Accept: "application/vnd.github+json",
 			"Content-Type": "application/json",
 		}
+	}
+
+	private githubApi(path: string): string {
+		return `${this.apiBase}/api/github${path.startsWith("/") ? path : "/" + path}`
 	}
 
 	private getRepoPath(): string {
@@ -40,7 +39,8 @@ export class GitHubTemplateDataSource implements TemplateDataSource {
 	private async fetchLatestSha(name: string): Promise<string | undefined> {
 		const repoPath = this.getRepoPath()
 		try {
-			const response = await fetch(`https://api.github.com/repos/${repoPath}/contents/${name}`, {
+			const response = await fetch(this.githubApi(`/repos/${repoPath}/contents/${encodeURI(name)}`), {
+				credentials: "include",
 				headers: this.getHeaders(),
 			})
 			if (response.ok) {
@@ -60,7 +60,8 @@ export class GitHubTemplateDataSource implements TemplateDataSource {
 		const repoPath = this.getRepoPath()
 		const templatesList = this.templateSource ? (await this.templateSource.listFiles()).templates : []
 
-		const response = await fetch(`https://api.github.com/repos/${repoPath}/git/trees/main?recursive=1`, {
+		const response = await fetch(this.githubApi(`/repos/${repoPath}/git/trees/main?recursive=1`), {
+			credentials: "include",
 			headers: this.getHeaders(),
 		})
 
@@ -97,7 +98,8 @@ export class GitHubTemplateDataSource implements TemplateDataSource {
 		}
 
 		const repoPath = this.getRepoPath()
-		const response = await fetch(`https://api.github.com/repos/${repoPath}/contents/${name}`, {
+		const response = await fetch(this.githubApi(`/repos/${repoPath}/contents/${encodeURI(name)}`), {
+			credentials: "include",
 			headers: this.getHeaders(),
 		})
 
@@ -127,8 +129,9 @@ export class GitHubTemplateDataSource implements TemplateDataSource {
 		const base64Content = btoa(String.fromCharCode(...binString))
 
 		const commitMessage = `Update ${name}`
-		const response = await fetch(`https://api.github.com/repos/${repoPath}/contents/${name}`, {
+		const response = await fetch(this.githubApi(`/repos/${repoPath}/contents/${encodeURI(name)}`), {
 			method: "PUT",
+			credentials: "include",
 			headers: this.getHeaders(),
 			body: JSON.stringify({
 				message: commitMessage,
@@ -160,8 +163,9 @@ export class GitHubTemplateDataSource implements TemplateDataSource {
 		}
 
 		const commitMessage = `Delete ${name}`
-		const response = await fetch(`https://api.github.com/repos/${repoPath}/contents/${name}`, {
+		const response = await fetch(this.githubApi(`/repos/${repoPath}/contents/${encodeURI(name)}`), {
 			method: "DELETE",
+			credentials: "include",
 			headers: this.getHeaders(),
 			body: JSON.stringify({
 				message: commitMessage,

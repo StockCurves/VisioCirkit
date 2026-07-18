@@ -5,7 +5,6 @@ import { CustomSymbolService } from "./customSymbolService"
 import { IndexedDbService } from "./indexedDbService"
 import { IndexedDbTemplateDataSource } from "./indexedDbTemplateDataSource"
 import { GitHubTemplateDataSource } from "./githubTemplateDataSource"
-import { AuthService } from "./authService"
 import { CustomSymbolRepository } from "./customSymbolRepository"
 import { GitHubCustomSymbolSyncService } from "./githubCustomSymbolSyncService"
 import { LatexRenderService } from "./latexRenderService"
@@ -63,9 +62,8 @@ class DefaultAppRuntime implements AppRuntime {
 			return new IndexedDbTemplateDataSource(this.getIndexedDb(), readonlySource)
 		}
 		if (this.config.storageMode === "github") {
-			const auth = new AuthService()
 			return new GitHubTemplateDataSource(
-				() => auth.getToken(),
+				this.config.apiBase,
 				() => {
 					const val = localStorage.getItem("github_active_repo")
 					if (!val) return null
@@ -131,10 +129,9 @@ class DefaultAppRuntime implements AppRuntime {
 		const appService = new CustomSymbolApplicationService(this.createCustomSymbolService(getDb))
 
 		if (this.config.storageMode === "github") {
-			const auth = new AuthService()
 			const repository = new CustomSymbolRepository(getDb())
 			this.customSymbolSyncService = new GitHubCustomSymbolSyncService(
-				() => auth.getToken(),
+				this.config.apiBase,
 				repository
 			)
 			// Trigger initial sync in background

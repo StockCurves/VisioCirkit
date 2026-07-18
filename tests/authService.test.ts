@@ -5,39 +5,46 @@ describe("AuthService", () => {
 	let service: AuthService
 
 	beforeEach(() => {
-		localStorage.clear()
-		service = new AuthService()
+		service = new AuthService("https://app.example")
 	})
 
-	it("manages OAuth tokens in localStorage", () => {
-		expect(service.getToken()).toBeNull()
-		
-		service.saveToken("test-token-123")
-		expect(service.getToken()).toBe("test-token-123")
-		
-		service.clearToken()
-		expect(service.getToken()).toBeNull()
-	})
-
-	it("fetches user profile from GitHub API using token", async () => {
+	it("fetches user profile from the session endpoint", async () => {
 		const mockProfile = { login: "testuser", id: 12345 }
 		
-		// Mock global fetch
 		const fetchMock = vi.fn().mockResolvedValue({
 			ok: true,
-			json: async () => mockProfile,
+			json: async () => ({ authenticated: true, user: mockProfile }),
 		})
 		global.fetch = fetchMock
 
-		service.saveToken("my-token")
 		const profile = await service.getUserProfile()
 		
-		expect(fetchMock).toHaveBeenCalledWith("https://api.github.com/user", {
+		expect(fetchMock).toHaveBeenCalledWith("https://app.example/api/auth/session", {
+			credentials: "include",
 			headers: {
-				Authorization: "Bearer my-token",
-				Accept: "application/vnd.github+json",
+				Accept: "application/json",
 			},
 		})
 		expect(profile).toEqual(mockProfile)
+	})
+
+	it("returns an unauthenticated session for 401 responses", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			status: 401,
+			ok: false,
+		})
+		global.fetch = fetchMock
+
+		await expect(service.getSession()).resolves.toEqual({ authenticated: false })
+	})
+
+	it("builds the GitHub OAuth URL from the runtime API base", () => {
+		expect(service.getAuthorizationUrl("http://localhost:3001")).toBe(
+			"http://localhost:3001/api/auth/github"
+		)
+		expect(service.getAuthorizationUrl("http://localhost:3001/")).toBe(
+			"http://localhost:3001/api/auth/github"
+		)
+		expect(service.getAuthorizationUrl("")).toBe("/api/auth/github")
 	})
 })

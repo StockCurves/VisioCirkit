@@ -8,7 +8,6 @@ describe("GitHubCustomSymbolSyncService", () => {
 	let fetchMock: any
 	let mockRepository: any
 	let syncService: GitHubCustomSymbolSyncService
-	let token = "mock-token"
 
 	beforeEach(() => {
 		fetchMock = vi.fn()
@@ -24,7 +23,7 @@ describe("GitHubCustomSymbolSyncService", () => {
 		}
 
 		syncService = new GitHubCustomSymbolSyncService(
-			() => token,
+			"",
 			mockRepository as any
 		)
 	})
@@ -55,17 +54,18 @@ describe("GitHubCustomSymbolSyncService", () => {
 		await syncService.ensureLibraryRepo()
 
 		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/user",
+			"/api/github/user",
 			expect.any(Object)
 		)
 		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/repos/testowner/visiocirkit-library",
+			"/api/github/repos/testowner/visiocirkit-library",
 			expect.any(Object)
 		)
 		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/user/repos",
+			"/api/github/user/repos",
 			expect.objectContaining({
 				method: "POST",
+				credentials: "include",
 				body: JSON.stringify({
 					name: "visiocirkit-library",
 					private: true,

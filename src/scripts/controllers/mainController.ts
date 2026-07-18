@@ -798,7 +798,7 @@ export class MainController {
 		)
 	}
 
-	private initGitHubVC(): void {
+	private async initGitHubVC(): Promise<void> {
 		if (this.appRuntime.config.storageMode !== "github") {
 			return
 		}
@@ -809,25 +809,39 @@ export class MainController {
 			authSection.classList.add("d-flex")
 		}
 
-		const auth = new AuthService()
-		const urlParams = new URLSearchParams(window.location.search)
-		const tokenFromUrl = urlParams.get("token")
-		if (tokenFromUrl) {
-			auth.saveToken(tokenFromUrl)
-			urlParams.delete("token")
-			const newUrl = window.location.pathname + (urlParams.toString() ? "?" + urlParams.toString() : "")
-			window.history.replaceState({}, document.title, newUrl)
-		}
-
-		const token = auth.getToken()
-		const loginBtn = document.getElementById("github-login-btn")
+		const auth = new AuthService(this.appRuntime.config.apiBase)
+		const loginBtn = document.getElementById("github-login-btn") as HTMLAnchorElement | null
 		const profileSection = document.getElementById("github-profile-section")
 		const avatarImg = document.getElementById("github-avatar") as HTMLImageElement
 		const logoutBtn = document.getElementById("github-logout-btn")
 		const repoBtn = document.getElementById("github-repo-dropdown-btn")
 		const repoMenu = document.getElementById("github-repo-dropdown-menu")
+		const authUrl = auth.getAuthorizationUrl(this.appRuntime.config.apiBase)
 
-		if (!token) {
+		if (loginBtn) {
+			loginBtn.href = authUrl
+			loginBtn.addEventListener("click", (event) => {
+				if (window.location.protocol !== "file:" || this.appRuntime.config.apiBase) {
+					return
+				}
+
+				event.preventDefault()
+				void this.modalDialogService.openAlert(
+					"GitHub Sign-In Unavailable",
+					"GitHub OAuth needs the local API server. Start the app with `npm start` or `npm run start:server`, then try again."
+				)
+			})
+		}
+
+		let session: { authenticated: boolean; user?: any }
+		try {
+			session = await auth.getSession()
+		} catch (err) {
+			console.error("Failed to load GitHub session:", err)
+			session = { authenticated: false }
+		}
+
+		if (!session.authenticated) {
 			if (loginBtn) loginBtn.classList.remove("d-none")
 			if (profileSection) profileSection.classList.add("d-none")
 			return
@@ -839,21 +853,14 @@ export class MainController {
 			profileSection.classList.add("d-flex")
 		}
 
-		auth.getUserProfile().then(user => {
-			if (avatarImg && user.avatar_url) {
-				avatarImg.src = user.avatar_url
-				avatarImg.title = `Logged in as ${user.login}`
-			}
-		}).catch(err => {
-			console.error("Failed to load user profile:", err)
-			auth.clearToken()
-			if (loginBtn) loginBtn.classList.remove("d-none")
-			if (profileSection) profileSection.classList.add("d-none")
-		})
+		if (avatarImg && session.user?.avatar_url) {
+			avatarImg.src = session.user.avatar_url
+			avatarImg.title = `Logged in as ${session.user.login}`
+		}
 
-		fetch("https://api.github.com/user/repos?per_page=100", {
+		fetch(`${this.appRuntime.config.apiBase}/api/github/user/repos?per_page=100`, {
+			credentials: "include",
 			headers: {
-				Authorization: `Bearer ${token}`,
 				Accept: "application/vnd.github+json"
 			}
 		}).then(res => res.json()).then((repos: any[]) => {
@@ -866,10 +873,10 @@ export class MainController {
 					e.preventDefault()
 					this.modalDialogService.openPrompt("Create New Repository", "Enter a name for the new repository:").then(repoName => {
 						if (!repoName) return
-						fetch("https://api.github.com/user/repos", {
+						fetch(`${this.appRuntime.config.apiBase}/api/github/user/repos`, {
 							method: "POST",
+							credentials: "include",
 							headers: {
-								Authorization: `Bearer ${token}`,
 								Accept: "application/vnd.github+json",
 								"Content-Type": "application/json"
 							},
@@ -916,14 +923,12 @@ export class MainController {
 		})
 
 		if (logoutBtn) {
-			logoutBtn.addEventListener("click", () => {
-				auth.clearToken()
+			logoutBtn.addEventListener("click", async () => {
+				await auth.logout()
 				localStorage.removeItem("github_active_repo")
 				window.location.reload()
 			})
 		}
 	}
 }
-
-
 

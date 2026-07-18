@@ -1,35 +1,45 @@
 export class AuthService {
-	private static readonly TOKEN_KEY = "git_oauth_token"
+	private static readonly GITHUB_AUTH_PATH = "/api/auth/github"
 
-	public saveToken(token: string): void {
-		localStorage.setItem(AuthService.TOKEN_KEY, token)
+	public constructor(private readonly apiBase = "") {}
+
+	public getAuthorizationUrl(apiBase = ""): string {
+		const normalizedBase = apiBase.trim().replace(/\/+$/, "")
+		return normalizedBase
+			? `${normalizedBase}${AuthService.GITHUB_AUTH_PATH}`
+			: AuthService.GITHUB_AUTH_PATH
 	}
 
-	public getToken(): string | null {
-		return localStorage.getItem(AuthService.TOKEN_KEY)
-	}
-
-	public clearToken(): void {
-		localStorage.removeItem(AuthService.TOKEN_KEY)
-	}
-
-	public async getUserProfile(): Promise<any> {
-		const token = this.getToken()
-		if (!token) {
-			throw new Error("No access token found")
-		}
-
-		const response = await fetch("https://api.github.com/user", {
+	public async getSession(): Promise<{ authenticated: boolean; user?: any }> {
+		const response = await fetch(`${this.apiBase}/api/auth/session`, {
+			credentials: "include",
 			headers: {
-				Authorization: `Bearer ${token}`,
-				Accept: "application/vnd.github+json",
+				Accept: "application/json",
 			},
 		})
 
+		if (response.status === 401) {
+			return { authenticated: false }
+		}
 		if (!response.ok) {
-			throw new Error(`Failed to fetch profile: ${response.statusText}`)
+			throw new Error(`Failed to fetch session: ${response.statusText}`)
 		}
 
 		return response.json()
+	}
+
+	public async logout(): Promise<void> {
+		await fetch(`${this.apiBase}/api/auth/logout`, {
+			method: "POST",
+			credentials: "include",
+		})
+	}
+
+	public async getUserProfile(): Promise<any> {
+		const session = await this.getSession()
+		if (!session.authenticated || !session.user) {
+			throw new Error("No authenticated GitHub session found")
+		}
+		return session.user
 	}
 }

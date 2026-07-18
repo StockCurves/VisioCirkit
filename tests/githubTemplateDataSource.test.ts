@@ -7,16 +7,14 @@ import { GitHubTemplateDataSource } from "../src/scripts/services/githubTemplate
 describe("GitHubTemplateDataSource", () => {
 	let fetchMock: any
 	let dataSource: GitHubTemplateDataSource
-	let token: string | null = "mock-token"
 	let activeRepo: { owner: string; repo: string } | null = { owner: "testowner", repo: "testrepo" }
 
 	beforeEach(() => {
 		fetchMock = vi.fn()
 		global.fetch = fetchMock
 		activeRepo = { owner: "testowner", repo: "testrepo" }
-		token = "mock-token"
 		dataSource = new GitHubTemplateDataSource(
-			() => token,
+			"",
 			() => activeRepo
 		)
 	})
@@ -42,10 +40,11 @@ describe("GitHubTemplateDataSource", () => {
 
 		const files = await dataSource.listFiles()
 		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/repos/testowner/testrepo/git/trees/main?recursive=1",
+			"/api/github/repos/testowner/testrepo/git/trees/main?recursive=1",
 			expect.objectContaining({
+				credentials: "include",
 				headers: expect.objectContaining({
-					Authorization: "Bearer mock-token",
+					Accept: "application/vnd.github+json",
 				})
 			})
 		)
@@ -68,7 +67,7 @@ describe("GitHubTemplateDataSource", () => {
 
 		const content = await dataSource.readFile("work", "drawing1.tex")
 		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/repos/testowner/testrepo/contents/drawing1.tex",
+			"/api/github/repos/testowner/testrepo/contents/drawing1.tex",
 			expect.any(Object)
 		)
 		expect(content).toBe("tikz code")
@@ -86,9 +85,10 @@ describe("GitHubTemplateDataSource", () => {
 		await dataSource.saveWork("drawing1.tex", "new tikz code")
 		
 		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/repos/testowner/testrepo/contents/drawing1.tex",
+			"/api/github/repos/testowner/testrepo/contents/drawing1.tex",
 			expect.objectContaining({
 				method: "PUT",
+				credentials: "include",
 				body: JSON.stringify({
 					message: "Update drawing1.tex",
 					content: Buffer.from("new tikz code").toString("base64"),

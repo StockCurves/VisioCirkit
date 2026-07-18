@@ -94,12 +94,32 @@ Use the AI Agent skill `/sch2tikz` to convert schematic to tikz code which are r
     ```
 5. Open your browser and navigate to the local URL (default is `http://localhost:1234`) to start designing!
 
+### GitHub OAuth Local Setup
+
+If you want to use the `github-vc` sign-in flow locally, create a `.env.local` file in the project root with:
+
+```bash
+GITHUB_CLIENT_ID=your_github_oauth_app_client_id
+GITHUB_CLIENT_SECRET=your_github_oauth_app_client_secret
+AUTH_COOKIE_SECRET=replace_with_a_long_random_secret
+APP_BASE_URL=http://localhost:3001
+```
+
+Then configure your GitHub OAuth App callback URL as:
+
+```text
+http://localhost:3001/api/auth/github/callback
+```
+
+`npm start` now auto-loads `.env.local` and `.env` for the local API server. If `GITHUB_CLIENT_ID` is missing, GitHub sign-in will fail immediately at `/api/auth/github`.
+
 ---
 
 ## 📦 Demo Build & Deployment
 
 - The default `npm run build` keeps the app in `server` runtime mode.
 - To deploy to static hosts like Vercel, run `npm run build:demo`. This updates `<meta name="circuitikz-runtime" ...>` to `demo`.
+- To deploy the GitHub-backed cloud version, use `npm run build:github-vc` and the separate GitHub VC Vercel flow in [docs/deployment/github-vc-vercel.md](docs/deployment/github-vc-vercel.md).
 - The deployed demo artifact boots with:
     - `storageMode = "indexeddb"`
     - `templateSource = "static-manifest"`

@@ -7,25 +7,25 @@ export class GitHubCustomSymbolSyncService {
 	private owner: string | null = null
 
 	public constructor(
-		private readonly getToken: () => string | null,
+		private readonly apiBase: string,
 		private readonly repository: CustomSymbolRepository
 	) {}
 
 	private getHeaders(): Record<string, string> {
-		const token = this.getToken()
-		if (!token) {
-			throw new Error("Missing GitHub access token")
-		}
 		return {
-			Authorization: `Bearer ${token}`,
 			Accept: "application/vnd.github+json",
 			"Content-Type": "application/json",
 		}
 	}
 
+	private githubApi(path: string): string {
+		return `${this.apiBase}/api/github${path.startsWith("/") ? path : "/" + path}`
+	}
+
 	private async resolveOwner(): Promise<string> {
 		if (this.owner) return this.owner
-		const response = await fetch("https://api.github.com/user", {
+		const response = await fetch(this.githubApi("/user"), {
+			credentials: "include",
 			headers: this.getHeaders(),
 		})
 		if (!response.ok) {
@@ -38,7 +38,8 @@ export class GitHubCustomSymbolSyncService {
 
 	public async ensureLibraryRepo(): Promise<string> {
 		const owner = await this.resolveOwner()
-		const checkResponse = await fetch(`https://api.github.com/repos/${owner}/visiocirkit-library`, {
+		const checkResponse = await fetch(this.githubApi(`/repos/${owner}/visiocirkit-library`), {
+			credentials: "include",
 			headers: this.getHeaders(),
 		})
 
@@ -47,8 +48,9 @@ export class GitHubCustomSymbolSyncService {
 		}
 
 		if (checkResponse.status === 404) {
-			const createResponse = await fetch("https://api.github.com/user/repos", {
+			const createResponse = await fetch(this.githubApi("/user/repos"), {
 				method: "POST",
+				credentials: "include",
 				headers: this.getHeaders(),
 				body: JSON.stringify({
 					name: "visiocirkit-library",
@@ -71,7 +73,8 @@ export class GitHubCustomSymbolSyncService {
 		// 1. Pull remote categories
 		let remoteCategories: any[] = []
 		try {
-			const catRes = await fetch(`https://api.github.com/repos/${repoPath}/contents/categories.json`, {
+			const catRes = await fetch(this.githubApi(`/repos/${repoPath}/contents/categories.json`), {
+				credentials: "include",
 				headers: this.getHeaders(),
 			})
 			if (catRes.ok) {
@@ -87,7 +90,8 @@ export class GitHubCustomSymbolSyncService {
 		// 2. Pull remote symbols
 		const remoteSymbols = new Map<string, any>()
 		try {
-			const treeRes = await fetch(`https://api.github.com/repos/${repoPath}/git/trees/main?recursive=1`, {
+			const treeRes = await fetch(this.githubApi(`/repos/${repoPath}/git/trees/main?recursive=1`), {
+				credentials: "include",
 				headers: this.getHeaders(),
 			})
 			if (treeRes.ok) {
@@ -99,7 +103,8 @@ export class GitHubCustomSymbolSyncService {
 							this.symbolShas.set(symId, node.sha)
 
 							// Fetch symbol content
-							const symRes = await fetch(`https://api.github.com/repos/${repoPath}/contents/${node.path}`, {
+							const symRes = await fetch(this.githubApi(`/repos/${repoPath}/contents/${encodeURI(node.path)}`), {
+								credentials: "include",
 								headers: this.getHeaders(),
 							})
 							if (symRes.ok) {
@@ -180,8 +185,9 @@ export class GitHubCustomSymbolSyncService {
 		// 1. Push categories.json
 		const catBytes = new TextEncoder().encode(JSON.stringify(localCategories))
 		const catBase64 = btoa(String.fromCharCode(...catBytes))
-		const catRes = await fetch(`https://api.github.com/repos/${repoPath}/contents/categories.json`, {
+		const catRes = await fetch(this.githubApi(`/repos/${repoPath}/contents/categories.json`), {
 			method: "PUT",
+			credentials: "include",
 			headers: this.getHeaders(),
 			body: JSON.stringify({
 				message: "Sync component categories",
@@ -206,8 +212,9 @@ export class GitHubCustomSymbolSyncService {
 			const symBase64 = btoa(String.fromCharCode(...symBytes))
 			const sha = this.symbolShas.get(symId)
 
-			const symRes = await fetch(`https://api.github.com/repos/${repoPath}/contents/${symPath}`, {
+			const symRes = await fetch(this.githubApi(`/repos/${repoPath}/contents/${encodeURI(symPath)}`), {
 				method: "PUT",
+				credentials: "include",
 				headers: this.getHeaders(),
 				body: JSON.stringify({
 					message: `Sync symbol ${sym.displayName}`,

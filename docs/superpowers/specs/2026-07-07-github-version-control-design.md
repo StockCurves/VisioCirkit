@@ -48,7 +48,7 @@ graph TD
 ### 3.1 Authentication & Session Management
 1.  **OAuth Server Endpoint (`server.js`)**:
     *   `GET /api/auth/github`: Initiates GitHub OAuth authorization, redirecting the browser to `https://github.com/login/oauth/authorize?client_id=CLIENT_ID&scope=repo`.
-    *   `GET /api/auth/github/callback`: Receives the query parameter `code`, executes a backend request to `https://github.com/login/oauth/access_token` using the client secret, and obtains `access_token`. Redirects the user back to the application homepage (e.g. `/?token=ACCESS_TOKEN`).
+    *   `GET /api/auth/github/callback`: Receives the query parameters `code` and `state`, validates the `state` cookie, exchanges the code for an access token with GitHub, stores the token in an encrypted HttpOnly session cookie, and redirects the user back to the application homepage without exposing the token to browser JavaScript.
 2.  **Session Lifecycle (`AuthService`)**:
     *   Extracts `token` from the URL or reads from `localStorage`.
     *   Validates the token via the `GET /user` endpoint.
