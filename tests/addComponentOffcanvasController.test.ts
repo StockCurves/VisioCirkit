@@ -231,12 +231,19 @@ describe("AddComponentOffcanvasController", () => {
 
 		;(document.getElementById("shapeLibraryMoreButton") as HTMLButtonElement).click()
 		const toggles = document.querySelectorAll<HTMLButtonElement>(".shape-library-category-toggle")
+		const categoryRows = document.querySelectorAll<HTMLDivElement>(".shape-library-category-option")
 		const itemLists = document.querySelectorAll<HTMLDivElement>(".shape-library-item-list")
 		expect(toggles).toHaveLength(2)
-		expect(itemLists[0].hidden).toBe(false)
+		expect(itemLists[0].hidden).toBe(true)
+		expect(toggles[0].getAttribute("aria-expanded")).toBe("false")
 		expect(document.querySelectorAll(".shape-library-preview")).toHaveLength(2)
 
-		toggles[0].click()
+		categoryRows[0].click()
+
+		expect(itemLists[0].hidden).toBe(false)
+		expect(toggles[0].getAttribute("aria-expanded")).toBe("true")
+
+		categoryRows[0].click()
 
 		expect(itemLists[0].hidden).toBe(true)
 		expect(toggles[0].getAttribute("aria-expanded")).toBe("false")

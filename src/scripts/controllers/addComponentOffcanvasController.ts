@@ -219,11 +219,11 @@ export class AddComponentOffcanvasController {
 			const toggleButton = option.appendChild(document.createElement("button"))
 			toggleButton.type = "button"
 			toggleButton.classList.add("shape-library-category-toggle")
-			toggleButton.setAttribute("aria-expanded", "true")
-			toggleButton.setAttribute("aria-label", `Collapse ${category.name}`)
+			toggleButton.setAttribute("aria-expanded", "false")
+			toggleButton.setAttribute("aria-label", `Expand ${category.name}`)
 			const toggleIcon = toggleButton.appendChild(document.createElement("span"))
 			toggleIcon.classList.add("material-symbols-outlined")
-			toggleIcon.textContent = "expand_more"
+			toggleIcon.textContent = "chevron_right"
 
 			const checkbox = option.appendChild(document.createElement("input"))
 			checkbox.type = "checkbox"
@@ -238,13 +238,24 @@ export class AddComponentOffcanvasController {
 
 			const itemList = categoryList.appendChild(document.createElement("div"))
 			itemList.classList.add("shape-library-item-list")
+			itemList.hidden = true
 
-			toggleButton.addEventListener("click", () => {
+			const toggleItemList = () => {
 				itemList.hidden = !itemList.hidden
 				const expanded = String(!itemList.hidden)
 				toggleButton.setAttribute("aria-expanded", expanded)
 				toggleButton.setAttribute("aria-label", itemList.hidden ? `Expand ${category.name}` : `Collapse ${category.name}`)
 				toggleIcon.textContent = itemList.hidden ? "chevron_right" : "expand_more"
+			}
+
+			option.addEventListener("click", (ev) => {
+				if (ev.target === checkbox) return
+				toggleItemList()
+			})
+
+			toggleButton.addEventListener("click", (ev) => {
+				ev.stopPropagation()
+				toggleItemList()
 			})
 
 			for (const item of category.items) {
