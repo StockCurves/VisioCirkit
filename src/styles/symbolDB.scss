@@ -51,6 +51,49 @@
 	flex: 0 0 auto;
 }
 
+.shape-library-more-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	width: fit-content;
+	margin: 16px auto 8px;
+	border-radius: 8px;
+}
+
+.shape-library-category-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.shape-library-option,
+.shape-library-remember {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	color: var(--text-main);
+	font-family: var(--font-sans);
+	font-weight: 600;
+}
+
+.shape-library-option {
+	padding: 8px 10px;
+	border-radius: 8px;
+
+	&:hover {
+		background-color: var(--bg-app);
+	}
+}
+
+.shape-library-option input,
+.shape-library-remember input {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 18px;
+}
+
 #filterRegexButton {
 	flex: 0 0 auto;
 	width: 48px;

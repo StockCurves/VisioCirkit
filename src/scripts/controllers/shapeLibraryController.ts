@@ -19,37 +19,83 @@ export type ShapeLibraryCallbacks = {
 	placeComponent: (component: CircuitComponent) => void
 }
 
-export class ShapeLibraryController {
-	public render(leftOffcanvasAccordion: HTMLDivElement, callbacks: ShapeLibraryCallbacks): void {
-		const basicGroup = this.createAccordionGroup(leftOffcanvasAccordion, "Basic")
-		this.addShortButton(basicGroup, callbacks)
-		this.addOpenButton(basicGroup, callbacks)
-		this.addTextButton(basicGroup, callbacks)
-		this.addRectangleButton(basicGroup, callbacks)
-		this.addEllipseButton(basicGroup, callbacks)
-		this.addPolygonButton(basicGroup, callbacks)
-		this.addStraightLineButton(basicGroup, callbacks)
-		this.addStraightArrowButton(basicGroup, callbacks)
-		this.addArrowButton(basicGroup, callbacks)
+type ShapeLibraryCategory = {
+	id: string
+	name: string
+	render: (parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks) => void
+}
 
-		const flowchartGroup = this.createAccordionGroup(leftOffcanvasAccordion, "Flowchart")
-		this.addFlowchartTerminatorButton(flowchartGroup, callbacks)
-		this.addFlowchartProcessButton(flowchartGroup, callbacks)
-		this.addFlowchartDecisionButton(flowchartGroup, callbacks)
-		this.addFlowchartInputOutputButton(flowchartGroup, callbacks)
-		this.addFlowchartArrowButton(flowchartGroup, callbacks)
-		this.addFlowchartDocumentButton(flowchartGroup, callbacks)
-		this.addFlowchartDatabaseButton(flowchartGroup, callbacks)
-		this.addFlowchartSubprocessButton(flowchartGroup, callbacks)
-		this.addFlowchartConnectorButton(flowchartGroup, callbacks)
-		this.addFlowchartOffPageConnectorButton(flowchartGroup, callbacks)
+const SHAPE_LIBRARY_STORAGE_KEY = "visiocirkit.shapeLibrary.visibleCategories"
+const SHAPE_LIBRARY_REMEMBER_KEY = "visiocirkit.shapeLibrary.rememberCategories"
+
+export class ShapeLibraryController {
+	private readonly categories: ShapeLibraryCategory[] = [
+		{
+			id: "basic",
+			name: "Basic",
+			render: (parent, callbacks) => this.renderBasicCategory(parent, callbacks),
+		},
+		{
+			id: "flowchart",
+			name: "Flowchart",
+			render: (parent, callbacks) => this.renderFlowchartCategory(parent, callbacks),
+		},
+	]
+	private root: HTMLDivElement | null = null
+	private callbacks: ShapeLibraryCallbacks | null = null
+	private visibleCategoryIds: string[] | null = null
+	private chooserBound = false
+
+	public render(leftOffcanvasAccordion: HTMLDivElement, callbacks: ShapeLibraryCallbacks, visibleCategoryIds?: string[]): void {
+		this.root = leftOffcanvasAccordion
+		this.callbacks = callbacks
+		this.visibleCategoryIds = visibleCategoryIds ?? this.loadVisibleCategoryIds()
+		this.bindShapeChooser()
+
+		Array.from(leftOffcanvasAccordion.querySelectorAll(".shape-library-accordion-item")).forEach((item) => item.remove())
+
+		const fragment = document.createDocumentFragment()
+		for (const category of this.categories) {
+			if (this.visibleCategoryIds.includes(category.id)) {
+				const group = this.createAccordionGroup(category.name)
+				category.render(group, callbacks)
+				fragment.appendChild(group.closest(".accordion-item")!)
+			}
+		}
+
+		leftOffcanvasAccordion.insertBefore(fragment, leftOffcanvasAccordion.firstChild)
 	}
 
-	private createAccordionGroup(parent: HTMLDivElement, groupName: string): HTMLDivElement {
+	private renderBasicCategory(parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks): void {
+		this.addShortButton(parent, callbacks)
+		this.addOpenButton(parent, callbacks)
+		this.addTextButton(parent, callbacks)
+		this.addRectangleButton(parent, callbacks)
+		this.addEllipseButton(parent, callbacks)
+		this.addPolygonButton(parent, callbacks)
+		this.addStraightLineButton(parent, callbacks)
+		this.addStraightArrowButton(parent, callbacks)
+		this.addArrowButton(parent, callbacks)
+	}
+
+	private renderFlowchartCategory(parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks): void {
+		this.addFlowchartTerminatorButton(parent, callbacks)
+		this.addFlowchartProcessButton(parent, callbacks)
+		this.addFlowchartDecisionButton(parent, callbacks)
+		this.addFlowchartInputOutputButton(parent, callbacks)
+		this.addFlowchartArrowButton(parent, callbacks)
+		this.addFlowchartDocumentButton(parent, callbacks)
+		this.addFlowchartDatabaseButton(parent, callbacks)
+		this.addFlowchartSubprocessButton(parent, callbacks)
+		this.addFlowchartConnectorButton(parent, callbacks)
+		this.addFlowchartOffPageConnectorButton(parent, callbacks)
+	}
+
+	private createAccordionGroup(groupName: string): HTMLDivElement {
 		const collapseGroupID = "collapseGroup-" + groupName.replace(/[^\d\w\-\_]+/gi, "-")
 
-		const accordionGroup = parent.appendChild(document.createElement("div"))
-		accordionGroup.classList.add("accordion-item")
+		const accordionGroup = document.createElement("div")
+		accordionGroup.classList.add("accordion-item", "shape-library-accordion-item")
 
 		const accordionItemHeader = accordionGroup.appendChild(document.createElement("h2"))
 		accordionItemHeader.classList.add("accordion-header")
@@ -71,6 +117,75 @@ export class ShapeLibraryController {
 		const accordionItemBody = accordionItemCollapse.appendChild(document.createElement("div"))
 		accordionItemBody.classList.add("accordion-body", "iconLibAccordionBody")
 		return accordionItemBody
+	}
+
+	private bindShapeChooser(): void {
+		const moreButton = document.getElementById("shapeLibraryMoreButton") as HTMLButtonElement | null
+		const applyButton = document.getElementById("shapeLibraryApplyButton") as HTMLButtonElement | null
+		const categoryList = document.getElementById("shapeLibraryCategoryList") as HTMLDivElement | null
+		const rememberCheckbox = document.getElementById("shapeLibraryRememberCheckbox") as HTMLInputElement | null
+
+		if (!moreButton || !applyButton || !categoryList || !rememberCheckbox) return
+
+		this.renderChooserOptions(categoryList)
+		rememberCheckbox.checked = localStorage.getItem(SHAPE_LIBRARY_REMEMBER_KEY) === "true"
+
+		if (this.chooserBound) return
+		this.chooserBound = true
+
+		moreButton.addEventListener("click", () => {
+			this.renderChooserOptions(categoryList)
+			rememberCheckbox.checked = localStorage.getItem(SHAPE_LIBRARY_REMEMBER_KEY) === "true"
+		})
+
+		applyButton.addEventListener("click", () => {
+			const selectedIds = Array.from(categoryList.querySelectorAll<HTMLInputElement>("input[type='checkbox']"))
+				.filter((checkbox) => checkbox.checked)
+				.map((checkbox) => checkbox.value)
+
+			this.visibleCategoryIds = selectedIds
+			if (rememberCheckbox.checked) {
+				localStorage.setItem(SHAPE_LIBRARY_REMEMBER_KEY, "true")
+				localStorage.setItem(SHAPE_LIBRARY_STORAGE_KEY, JSON.stringify(selectedIds))
+			} else {
+				localStorage.removeItem(SHAPE_LIBRARY_REMEMBER_KEY)
+				localStorage.removeItem(SHAPE_LIBRARY_STORAGE_KEY)
+			}
+
+			if (this.root && this.callbacks) {
+				this.render(this.root, this.callbacks, selectedIds)
+			}
+		})
+	}
+
+	private renderChooserOptions(categoryList: HTMLDivElement): void {
+		categoryList.innerHTML = ""
+		const visibleIds = this.visibleCategoryIds ?? this.loadVisibleCategoryIds()
+		for (const category of this.categories) {
+			const option = categoryList.appendChild(document.createElement("label"))
+			option.classList.add("shape-library-option")
+
+			const checkbox = option.appendChild(document.createElement("input"))
+			checkbox.type = "checkbox"
+			checkbox.value = category.id
+			checkbox.checked = visibleIds.includes(category.id)
+
+			const label = option.appendChild(document.createElement("span"))
+			label.textContent = category.name
+		}
+	}
+
+	private loadVisibleCategoryIds(): string[] {
+		const defaultIds = this.categories.map((category) => category.id)
+		if (localStorage.getItem(SHAPE_LIBRARY_REMEMBER_KEY) !== "true") return defaultIds
+
+		try {
+			const storedIds = JSON.parse(localStorage.getItem(SHAPE_LIBRARY_STORAGE_KEY) ?? "[]")
+			if (!Array.isArray(storedIds)) return defaultIds
+			return storedIds.filter((id) => this.categories.some((category) => category.id === id))
+		} catch (_err) {
+			return defaultIds
+		}
 	}
 
 	private addShortButton(parent: HTMLDivElement, callbacks: ShapeLibraryCallbacks) {
