@@ -213,22 +213,8 @@
 									data-bs-target="#aboutModal"
 									data-bs-toggle-second="tooltip"
 									data-bs-placement="bottom"
-									data-bs-title="About VisioCirkit">
+									data-bs-title="About & Help">
 									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.15rem; line-height: 1;">ℹ️</span>
-								</button>
-							</li>
-							<li class="nav-item col-12 col-md-auto">
-								<button
-									type="button"
-									class="btn btn-outline"
-									id="helpButton"
-									data-bs-toggle="modal"
-									data-bs-target="#helpModal"
-									data-bs-toggle-second="tooltip"
-									data-bs-trigger="hover"
-									data-bs-placement="bottom"
-									data-bs-title="Help menu">
-									<span class="d-flex align-items-center justify-content-center" style="font-size: 1.15rem; line-height: 1;">❓</span>
 								</button>
 							</li>
 						</ul>
@@ -621,7 +607,7 @@
 			</div>
 		</div>
 
-		<!-- Modal (about dialog) -->
+				<!-- Modal (about dialog) -->
 		<div
 			class="modal fade"
 			id="aboutModal"
@@ -629,39 +615,167 @@
 			aria-labelledby="aboutModalLabel"
 			aria-hidden="true"
 			role="dialog">
-			<div class="modal-dialog">
+			<div class="modal-dialog modal-dialog-scrollable modal-lg">
 				<div class="modal-content">
 					<div class="modal-header">
-						<h1 class="modal-title fs-3" id="aboutModalLabel">
-							About VisioCirkit
+						<h1 class="modal-title fs-4" id="aboutModalLabel">
+							About &amp; Help
 						</h1>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 					</div>
-					<div class="modal-body">
-						<p>
-							VisioCirkit is forked from the original <a href="https://github.com/Circuit2TikZ/CircuiTikZ-Designer" target="_blank">CircuiTikZ-Designer</a> and operates with identical behavior. The original project was part of the Circuit2Ti<i>k</i>Z-Project started as a research project at the Institute of Electronics Engineering at the Friedrich-Alexander-Universit&auml;t Erlangen-N&uuml;rnberg.
-						</p>
-						<p>
-							If you find bugs or have suggestions, please feel free to contact us, preferably on
-							<a href="https://github.com/StockCurves/cktikz" target="_blank">GitHub</a>.
-						</p>
-					</div>
-					<div class="modal-footer justify-content-center">
-						<div class="col-sm-12 text-center">
-							<a
-								class="icon-link"
-								href="https://github.com/StockCurves/cktikz"
-								target="_blank">
-								<svg class="bi" width="40" height="40" fill="currentColor">
-									<use xlink:href="../icons/bootstrap-icons.svg#github" />
-								</svg>
-								<span>VisioCirkit GitHub</span>
-							</a>
+					<div class="modal-body p-0">
+						<div class="row g-0">
+							<!-- Sidebar Navigation -->
+							<div class="col-12 col-md-3 border-end p-3 bg-body-tertiary">
+								<div class="nav flex-column nav-pills gap-1" id="infoTab" role="tablist" aria-orientation="vertical">
+									<button class="nav-link active text-start py-2 px-3 d-flex align-items-center gap-2" id="about-tab" data-bs-toggle="tab" data-bs-target="#about-tab-pane" type="button" role="tab" aria-controls="about-tab-pane" aria-selected="true">
+										<span>ℹ️</span> About
+									</button>
+									<button class="nav-link text-start py-2 px-3 d-flex align-items-center gap-2" id="guide-tab" data-bs-toggle="tab" data-bs-target="#guide-tab-pane" type="button" role="tab" aria-controls="guide-tab-pane" aria-selected="false">
+										<span>📖</span> Quick Guide
+									</button>
+									<button class="nav-link text-start py-2 px-3 d-flex align-items-center gap-2" id="shortcuts-tab" data-bs-toggle="tab" data-bs-target="#shortcuts-tab-pane" type="button" role="tab" aria-controls="shortcuts-tab-pane" aria-selected="false">
+										<span>⌨️</span> Shortcuts
+									</button>
+								</div>
+							</div>
+							
+							<!-- Content Pane -->
+							<div class="col-12 col-md-9 p-4" style="max-height: 70vh; overflow-y: auto;">
+								<div class="tab-content" id="infoTabContent">
+									<!-- About Tab Pane -->
+									<div class="tab-pane fade show active" id="about-tab-pane" role="tabpanel" aria-labelledby="about-tab" tabindex="0">
+										<div class="d-flex flex-column gap-3">
+											<p class="lead-text">
+												VisioCirkit is forked from the original <a href="https://github.com/Circuit2TikZ/CircuiTikZ-Designer" target="_blank">CircuiTikZ-Designer</a> and operates with identical behavior. The original project was part of the Circuit2Ti<i>k</i>Z-Project started as a research project at the Institute of Electronics Engineering at the Friedrich-Alexander-Universit&auml;t Erlangen-N&uuml;rnberg.
+											</p>
+											<p>
+												If you find bugs or have suggestions, please feel free to contact us, preferably on
+												<a href="https://github.com/StockCurves/cktikz" target="_blank">GitHub</a>.
+											</p>
+											<div class="text-center mt-3">
+												<a class="btn btn-outline-primary d-inline-flex justify-content-center align-items-center gap-2" href="https://github.com/StockCurves/cktikz" target="_blank">
+													<svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+														<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+													</svg>
+													<span>VisioCirkit GitHub</span>
+												</a>
+											</div>
+										</div>
+									</div>
+
+									<!-- Quick Guide Tab Pane -->
+									<div class="tab-pane fade" id="guide-tab-pane" role="tabpanel" aria-labelledby="guide-tab" tabindex="0">
+										<div class="d-flex flex-column gap-4">
+											<div>
+												<h5 class="section-title mb-2">📌 General Concept</h5>
+												<ul class="guide-list ps-3">
+													<li><strong>Source of Truth:</strong> TikZ code is the single source of truth. Synchronizing code to the visual canvas will restructure your TikZ code and discard comments (<code>% ...</code>). Keep backups!</li>
+													<li><strong>Multi-tab Canvas:</strong> Each tab manages its own canvas. Canvas state is saved locally, so reloading or closing the tab will not erase your drawing (though Undo/Redo history will be lost).</li>
+												</ul>
+											</div>
+											<hr class="my-2 border-secondary opacity-25" />
+											<div>
+												<h5 class="section-title mb-3">🖱️ Mouse &amp; Touch Actions</h5>
+												<div class="action-grid">
+													<div class="action-item">
+														<span class="action-name">Move Canvas</span>
+														<span class="action-value">Hold Right Click + Drag <span class="badge-touch">Touch: Two Fingers</span></span>
+													</div>
+													<div class="action-item">
+														<span class="action-name">Zoom Canvas</span>
+														<span class="action-value">Scroll Wheel <span class="badge-touch">Touch: Pinch</span></span>
+													</div>
+													<div class="action-item">
+														<span class="action-name">Reset View</span>
+														<span class="action-value">Double Click Canvas</span>
+													</div>
+													<div class="action-item">
+														<span class="action-name">Selection</span>
+														<span class="action-value">Left Click + Drag. Use <span class="badge-key">Shift</span> to add, <span class="badge-key">Ctrl/⌘</span> to remove.</span>
+													</div>
+													<div class="action-item">
+														<span class="action-name">Draw Wires</span>
+														<span class="action-value">Drag with Left Click to preview, release to place point. Double-click point or press <kbd>Enter</kbd> to finish.</span>
+													</div>
+													<div class="action-item">
+														<span class="action-name">Draw Straight Wire</span>
+														<span class="action-value">Hold <kbd>Ctrl/⌘</kbd> while drawing wire.</span>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Shortcuts Tab Pane -->
+									<div class="tab-pane fade" id="shortcuts-tab-pane" role="tabpanel" aria-labelledby="shortcuts-tab" tabindex="0">
+										<div class="d-flex flex-column gap-4">
+											<div>
+												<h5 class="section-title mb-3">🛠️ Common Tools</h5>
+												<div class="shortcut-grid">
+													<div class="shortcut-item">
+														<kbd>Q</kbd> <span>Open Component Drawer</span>
+													</div>
+													<div class="shortcut-item">
+														<kbd>W</kbd> <span>Start Wire Drawing Tool</span>
+													</div>
+													<div class="shortcut-item">
+														<kbd>Esc</kbd> <span>Return to Move Tool / Cancel Wire</span>
+													</div>
+													<div class="shortcut-item">
+														<kbd>Del / Backspace</kbd> <span>Erase Selection</span>
+													</div>
+												</div>
+											</div>
+											<hr class="my-2 border-secondary opacity-25" />
+											<div>
+												<h5 class="section-title mb-3">⚡ Quick Place Components</h5>
+												<div class="shortcut-grid">
+													<div class="shortcut-item"><kbd>R</kbd> <span>Resistor</span></div>
+													<div class="shortcut-item"><kbd>C</kbd> <span>Capacitor</span></div>
+													<div class="shortcut-item"><kbd>L</kbd> <span>Inductor</span></div>
+													<div class="shortcut-item"><kbd>D</kbd> <span>Diode</span></div>
+													<div class="shortcut-item"><kbd>G</kbd> <span>Ground</span></div>
+													<div class="shortcut-item"><kbd>B</kbd> <span>NPN/PNP BJT</span></div>
+													<div class="shortcut-item"><kbd>N</kbd> <span>NMOS/PMOS Transistor</span></div>
+													<div class="shortcut-item"><kbd>P</kbd> <span>PMOS Transistor</span></div>
+													<div class="shortcut-item"><kbd>X</kbd> <span>Crossing</span></div>
+													<div class="shortcut-item"><kbd>.</kbd> <span>Terminal</span></div>
+													<div class="shortcut-item"><kbd>T</kbd> <span>Text Label</span></div>
+													<div class="shortcut-item"><kbd>1</kbd> <span>Straight Line</span></div>
+													<div class="shortcut-item"><kbd>2</kbd> <span>Text Label</span></div>
+													<div class="shortcut-item"><kbd>3</kbd> <span>Straight Arrow</span></div>
+													<div class="shortcut-item"><kbd>4</kbd> <span>Connected Terminal (Node)</span></div>
+													<div class="shortcut-item"><kbd>5</kbd> <span>Rectangle</span></div>
+													<div class="shortcut-item"><kbd>6</kbd> <span>Ellipse</span></div>
+												</div>
+											</div>
+											<hr class="my-2 border-secondary opacity-25" />
+											<div>
+												<h5 class="section-title mb-3">⚙️ Canvas Editing</h5>
+												<div class="shortcut-grid">
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + Z</kbd> <span>Undo</span></div>
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + Y</kbd> <span>Redo</span></div>
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + C</kbd> <span>Copy Selection</span></div>
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + V</kbd> <span>Paste Selection</span></div>
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + X</kbd> <span>Cut Selection</span></div>
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + A</kbd> <span>Select All</span></div>
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + R</kbd> <span>Rotate Clockwise</span></div>
+													<div class="shortcut-item"><kbd>Ctrl/⌘ + Shift + R</kbd> <span>Rotate Counter-Clockwise</span></div>
+													<div class="shortcut-item"><kbd>Shift + X / Y</kbd> <span>Flip at X/Y axis</span></div>
+													<div class="shortcut-item"><kbd>Shift + H / V</kbd> <span>Flip Horizontally/Vertically</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+
 
 		<!-- Modal (settings) -->
 		<div
@@ -703,330 +817,6 @@
 			</div>
 		</div>
 
-		<!-- Modal help -->
-		<div
-			class="modal fade"
-			id="helpModal"
-			tabindex="-1"
-			aria-labelledby="helpModalLabel"
-			aria-hidden="true"
-			role="dialog">
-			<div class="modal-dialog modal-dialog-scrollable modal-lg">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h1 class="modal-title fs-3" id="helpModalLabel">Help</h1>
-						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-					</div>
-					<div class="modal-body">
-						<h1 class="fs-4">General</h1>
-						<ul>
-							<li>
-								We use TikZ code as the single source of truth, so we don't use JSON to save circuits.
-							</li>
-							<li class="text-warning">
-								<b>TikZ Code Alteration &amp; Comments Loss</b>: Pressing "Apply" in the TikZ editor synchronizes the code to the visual canvas. This will restructure your TikZ code and completely discard all LaTeX comments (<code>% ...</code>). Please keep an external backup of your code if you want to preserve formatting or comments.
-							</li>
-							<li>
-								Every new browser tab is a new canvas ready for drawing. You can manage the browser tabs
-								in the settings menu.
-							</li>
-							<li>
-								Closing/Reloading the tab <u>will not</u> erase the drawn circuit. Reopening the tab
-								will reload the circuit.
-							</li>
-							<li>
-								Closing/Reloading the tab <u>will</u> erase the editing history (Undo and redo will be
-								lost).
-							</li>
-							<li>Reloading the tab can sometimes be useful if you encounter bugs.</li>
-						</ul>
-						<table class="table table-bordered border-secondary">
-							<thead>
-								<tr class="table-active">
-									<th scope="col">Action</th>
-									<th scope="col">Keyboard & Mouse</th>
-									<th scope="col">Touch</th>
-								</tr>
-							</thead>
-							<tbody class="table-group-divider">
-								<tr>
-									<td class="table-active">Move <b>canvas</b></td>
-									<td>Hold right click and drag</td>
-									<td>Move with two touches</td>
-								</tr>
-								<tr>
-									<td class="table-active">Reset <b>canvas view</b></td>
-									<td>Double click on the canvas</td>
-									<td>-</td>
-								</tr>
-								<tr>
-									<td class="table-active">Zoom <b>canvas</b></td>
-									<td>Scroll</td>
-									<td>Zoom with two touches</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td class="table-active">Deactivate <b>snapping</b></td>
-									<td>Hold Shift</td>
-									<td>-</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td class="table-active">Start <b>selection</b></td>
-									<td>Hold left click and drag</td>
-									<td>Drag with one touch on canvas</td>
-								</tr>
-								<tr>
-									<td class="table-active">Add to <b>selection</b></td>
-									<td>Hold Shift before starting a selection</td>
-									<td>-</td>
-								</tr>
-								<tr>
-									<td class="table-active">Remove from <b>selection</b></td>
-									<td>Hold Ctrl/⌘ before starting a selection</td>
-									<td>-</td>
-								</tr>
-								<tr>
-									<td class="table-active">Delete <b>selection</b></td>
-									<td>Press Del/Backspace while components are selected</td>
-									<td>-</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td class="table-active">Preview <b>wire</b> segment</td>
-									<td>Drag with left click</td>
-									<td>Drag with one touch</td>
-								</tr>
-								<tr>
-									<td class="table-active">Place <b>wire</b> point</td>
-									<td>Release left click</td>
-									<td>Release touch</td>
-								</tr>
-								<tr>
-									<td rowspan="2" class="align-middle table-active">Finish <b>wire</b></td>
-									<td colspan="2" class="text-center">Click same wire point twice</td>
-								</tr>
-								<tr>
-									<td>Press Enter</td>
-									<td>-</td>
-								</tr>
-								<tr>
-									<td class="table-active">Straight <b>wire</b></td>
-									<td>Hold Ctrl/⌘</td>
-									<td>-</td>
-								</tr>
-								<tr>
-									<td class="table-active">Cancel <b>wire</b></td>
-									<td>Press Esc</td>
-									<td>Click move tool</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td rowspan="2" class="align-middle table-active">Add <b>component</b></td>
-									<td colspan="2" class="text-center">Component drawer ("+")</td>
-								</tr>
-								<tr>
-									<td>Keyboard shortcuts (see below)</td>
-									<td>Double click a custom symbol to edit it</td>
-								</tr>
-								<tr>
-									<td class="table-active">Move <b>component</b></td>
-									<td>Hold left click and drag component</td>
-									<td>Drag component with one touch</td>
-								</tr>
-								<tr>
-									<td class="table-active">Adjust <b>component</b></td>
-									<td colspan="2" class="text-center">
-										While one component selected:<br />Drag adjustment points
-									</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td class="table-active"><b>Align/Distribute</b> components</td>
-									<td colspan="2" class="text-center">
-										Select multiple components, then use align/distribute buttons
-									</td>
-								</tr>
-								<tr>
-									<td class="table-active">Set <b>Align/Distribute</b> reference</td>
-									<td colspan="2" class="text-center">
-										Click an already selected component while more than one component is selected
-									</td>
-								</tr>
-							</tbody>
-						</table>
-						<h1 class="fs-4 mt-5">Keyboard Shortcuts</h1>
-						<table class="table table-striped">
-							<thead>
-								<tr>
-									<th scope="col">Category</th>
-									<th scope="col">Shortcut</th>
-									<th scope="col">Description</th>
-								</tr>
-							</thead>
-							<tbody class="table-group-divider">
-								<tr>
-									<td>Modes</td>
-									<td>Q</td>
-									<td>Open component drawer</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>W</td>
-									<td>Start wire drawing tool</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Del/Backspace</td>
-									<td>Erase components and wires</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Esc</td>
-									<td>Return to move tool/ cancel component placement</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td>IO</td>
-									<td>Ctrl/⌘ + E</td>
-									<td>Export CircuiTi<i>k</i>Z code</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Ctrl/⌘ + Shift + E</td>
-									<td>Export SVG code</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td>Components</td>
-									<td>(Alt/⌥ +) G</td>
-									<td>Place (tailless) ground</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>R</td>
-									<td>Place resistor</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>(Alt/⌥ +) L</td>
-									<td>Place (cute) inductor</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>(Alt/⌥ +) C</td>
-									<td>Place (polarized) capacitor</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>D</td>
-									<td>Place diode</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>(Alt/⌥ +) B</td>
-									<td>Place npn (or pnp) BJT</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>(Alt/⌥ +) N</td>
-									<td>Place nmos (or pmos) transistor</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>P</td>
-									<td>Place pmos transistor</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>(Alt/⌥ +) X</td>
-									<td>Place (jump) crossing</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>(Alt/⌥ +) .</td>
-									<td>Place (un-)connected terminal</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>T</td>
-									<td>Place text</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>1/2/3/4/5/6</td>
-									<td>Place straight line, text, straight arrow, node circ, rectangle, ellipse</td>
-								</tr>
-							</tbody>
-							<tbody class="table-group-divider">
-								<tr>
-									<td>Edit</td>
-									<td>Ctrl/⌘ + C</td>
-									<td>Copy selection</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Ctrl/⌘ + V</td>
-									<td>Paste selection</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Ctrl/⌘ + X</td>
-									<td>Cut selection</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Ctrl/⌘ + Z</td>
-									<td>Undo</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Ctrl/⌘ + Y</td>
-									<td>Redo</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Ctrl/⌘ + A</td>
-									<td>Select all</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Ctrl/⌘ (+ Shift) + R</td>
-									<td>Rotate (counter-)clockwise</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Shift + X</td>
-									<td>Flip at x-axis</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Shift + Y</td>
-									<td>Flip at y-axis</td>
-								</tr>
-								<tr>
-									<td></td>
-									<td>Shift + H / Shift + V</td>
-									<td>Flip horizontally / vertically</td>
-								</tr>
-							</tbody>
-						</table>
-						<h1 class="fs-4 mt-5">Known bugs</h1>
-						<ul>
-							<li>LaTeX rendering may differ between the visual editor and live rendering.</li>
-							<li>Copied components in newly created categories may render incorrectly.</li>
-						</ul>
-					</div>
-				</div>
-			</div>
-		</div>
 		<!-- Modal (rename dialog) -->
 		<div class="modal fade" id="renameModal" tabindex="-1"
 		     aria-labelledby="renameModalLabel" aria-hidden="true" role="dialog">

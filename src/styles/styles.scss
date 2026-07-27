@@ -532,3 +532,218 @@ body {
 		color: white !important;
 	}
 }
+#aboutModal {
+  .modal-body {
+    padding: 0 !important;
+  }
+
+  .border-end {
+    border-color: var(--border-color) !important;
+  }
+
+  // Sidebar column background styling
+  .col-12.col-md-3 {
+    background-color: var(--bg-app);
+    border-bottom: 1px solid var(--border-color);
+
+    @media (min-width: 768px) {
+      border-bottom: none;
+      border-right: 1px solid var(--border-color) !important;
+      min-height: 500px;
+    }
+  }
+
+  // Custom nav-pills style for vertical sidebar
+  .nav-pills {
+    background: transparent;
+    padding: 0;
+    border: none;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    margin-bottom: 0 !important;
+
+    @media (min-width: 768px) {
+      flex-direction: column;
+      overflow-x: visible;
+    }
+
+    .nav-item {
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 8px 16px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &:hover {
+        color: var(--text-main);
+        background-color: rgba(0, 0, 0, 0.03);
+      }
+
+      &.active {
+        color: var(--primary) !important;
+        background-color: var(--bg-panel) !important;
+        border-color: var(--border-color);
+        box-shadow: var(--shadow-sm);
+      }
+    }
+  }
+
+  // Dark mode sidebar background and hover adjustments
+  &[data-bs-theme="dark"], &[class*="dark"] {
+    .col-12.col-md-3 {
+      background-color: hsl(215, 20%, 11%);
+    }
+    .nav-pills .nav-link:hover {
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  .lead-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-main);
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+
+  .guide-list {
+    li {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: var(--text-main);
+      margin-bottom: 8px;
+
+      strong {
+        color: var(--text-main);
+      }
+    }
+  }
+
+  // Action grid for mouse & touch actions
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    @media (min-width: 576px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .action-item {
+    background-color: var(--bg-app);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .action-name {
+      font-weight: 700;
+      font-size: 12.5px;
+      color: var(--text-main);
+    }
+
+    .action-value {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+  }
+
+  // Shortcut grid
+  .shortcut-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px 16px;
+
+    @media (min-width: 576px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .shortcut-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: var(--bg-app);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-main);
+
+    kbd {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 3px 8px;
+      box-shadow: var(--shadow-sm);
+      min-width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    span {
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+  }
+
+  // Badges & small helpers
+  .badge-touch {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-key {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-main);
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+}
