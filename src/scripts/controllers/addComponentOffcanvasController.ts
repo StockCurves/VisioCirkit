@@ -212,7 +212,7 @@ export class AddComponentOffcanvasController {
 		const visibleIds = this.loadVisibleIds(categories)
 		categoryList.innerHTML = ""
 
-		for (const category of categories) {
+		for (const [categoryIndex, category] of categories.entries()) {
 			const option = categoryList.appendChild(document.createElement("div"))
 			option.classList.add("shape-library-option", "shape-library-category-option")
 
@@ -229,12 +229,17 @@ export class AddComponentOffcanvasController {
 			checkbox.type = "checkbox"
 			checkbox.value = category.id
 			checkbox.dataset.categoryId = category.id
+			checkbox.id = `shapeLibraryCategoryCheckbox-${categoryIndex}`
 			const checkedItemCount = category.items.filter((item) => visibleIds.includes(item.id)).length
 			checkbox.checked = visibleIds.includes(category.id) && checkedItemCount === category.items.length
 			checkbox.indeterminate = visibleIds.includes(category.id) && checkedItemCount > 0 && checkedItemCount < category.items.length
 
-			const label = option.appendChild(document.createElement("span"))
+			const label = option.appendChild(document.createElement("label"))
+			label.htmlFor = checkbox.id
 			label.textContent = category.name
+			label.addEventListener("click", (ev) => {
+				ev.stopPropagation()
+			})
 
 			const itemList = categoryList.appendChild(document.createElement("div"))
 			itemList.classList.add("shape-library-item-list")
