@@ -191,13 +191,19 @@ export class AddComponentOffcanvasController {
 
 		applyButton.addEventListener("click", () => {
 			const selectedIds = Array.from(categoryList.querySelectorAll<HTMLInputElement>("input[type='checkbox']"))
-				.filter((checkbox) => checkbox.checked)
-				.map((checkbox) => checkbox.value)
+				.reduce((ids, checkbox) => {
+					if (checkbox.checked) {
+						const parentCategoryId = checkbox.dataset.parentCategoryId
+						if (parentCategoryId) ids.add(parentCategoryId)
+						ids.add(checkbox.value)
+					}
+					return ids
+				}, new Set<string>())
 
-			this.visibleCategoryIds = selectedIds
+			this.visibleCategoryIds = Array.from(selectedIds)
 			if (rememberCheckbox.checked) {
 				localStorage.setItem(DRAWER_CATEGORY_REMEMBER_KEY, "true")
-				localStorage.setItem(DRAWER_CATEGORY_STORAGE_KEY, JSON.stringify(selectedIds))
+				localStorage.setItem(DRAWER_CATEGORY_STORAGE_KEY, JSON.stringify(this.visibleCategoryIds))
 			} else {
 				localStorage.removeItem(DRAWER_CATEGORY_REMEMBER_KEY)
 				localStorage.removeItem(DRAWER_CATEGORY_STORAGE_KEY)
