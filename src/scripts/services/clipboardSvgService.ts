@@ -45,6 +45,7 @@ export function createComponentsSvgText(components: CircuitComponent[]): string 
 		bbox.width += 4
 		bbox.height += 4
 		svgObj.viewbox(bbox)
+		svgObj.attr({ width: bbox.width, height: bbox.height })
 	}
 
 	const tempDiv = document.createElement("div")
@@ -58,18 +59,70 @@ function svgTextToHtml(svgText: string): string {
 	return `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}">`
 }
 
+function rasterizeSvgViaImage(svgText: string): Promise<HTMLCanvasElement> {
+	return new Promise((resolve, reject) => {
+		const img = new Image()
+		const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" })
+		const url = URL.createObjectURL(svgBlob)
+
+		img.onload = () => {
+			URL.revokeObjectURL(url)
+			const width = img.naturalWidth || img.width || 300
+			const height = img.naturalHeight || img.height || 150
+			const canvas = document.createElement("canvas")
+			const scale = 2
+			canvas.width = Math.ceil(width * scale)
+			canvas.height = Math.ceil(height * scale)
+			const ctx = canvas.getContext("2d")
+			if (!ctx) {
+				reject(new Error("Could not create canvas context for clipboard image."))
+				return
+			}
+			ctx.fillStyle = "#ffffff"
+			ctx.fillRect(0, 0, canvas.width, canvas.height)
+			ctx.scale(scale, scale)
+			ctx.drawImage(img, 0, 0, width, height)
+			resolve(canvas)
+		}
+
+		img.onerror = () => {
+			URL.revokeObjectURL(url)
+			reject(new Error("Failed to load SVG image for PNG conversion."))
+		}
+
+		img.src = url
+	})
+}
+
 async function svgTextToPngBlob(svgText: string): Promise<Blob> {
-	const svgBlob = new Blob([svgText], { type: "image/svg+xml" })
-	const bitmap = await createImageBitmap(svgBlob)
-	const canvas = document.createElement("canvas")
-	canvas.width = bitmap.width
-	canvas.height = bitmap.height
-	const context = canvas.getContext("2d")
-	if (!context) {
-		throw new Error("Could not create canvas context for clipboard image.")
+	let canvas: HTMLCanvasElement
+
+	try {
+		if (typeof createImageBitmap === "function") {
+			const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" })
+			const bitmap = await createImageBitmap(svgBlob)
+			canvas = document.createElement("canvas")
+			const width = bitmap.width || 300
+			const height = bitmap.height || 150
+			const scale = 2
+			canvas.width = Math.ceil(width * scale)
+			canvas.height = Math.ceil(height * scale)
+			const context = canvas.getContext("2d")
+			if (!context) {
+				throw new Error("Could not create canvas context for clipboard image.")
+			}
+			context.fillStyle = "#ffffff"
+			context.fillRect(0, 0, canvas.width, canvas.height)
+			context.scale(scale, scale)
+			context.drawImage(bitmap, 0, 0, width, height)
+			bitmap.close?.()
+		} else {
+			canvas = await rasterizeSvgViaImage(svgText)
+		}
+	} catch {
+		canvas = await rasterizeSvgViaImage(svgText)
 	}
-	context.drawImage(bitmap, 0, 0)
-	bitmap.close?.()
+
 	return new Promise((resolve, reject) => {
 		canvas.toBlob((blob) => {
 			if (blob) {
@@ -88,16 +141,27 @@ export async function writeSvgTextToClipboard(svgText: string): Promise<void> {
 	}
 
 	if (typeof ClipboardItem !== "undefined" && clipboard.write) {
+		const pngPromise = svgTextToPngBlob(svgText)
+		const htmlBlob = new Blob([svgTextToHtml(svgText)], { type: "text/html" })
 		try {
 			await clipboard.write([
 				new ClipboardItem({
-					"image/png": svgTextToPngBlob(svgText),
-					"text/html": new Blob([svgTextToHtml(svgText)], { type: "text/html" }),
+					"image/png": pngPromise,
+					"text/html": htmlBlob,
 				}),
 			])
 			return
 		} catch {
-			// Some browsers expose ClipboardItem but reject image writes.
+			try {
+				await clipboard.write([
+					new ClipboardItem({
+						"image/png": pngPromise,
+					}),
+				])
+				return
+			} catch (e) {
+				console.warn("Could not write image selection to system clipboard.", e)
+			}
 		}
 	}
 }
