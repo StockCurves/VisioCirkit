@@ -67,6 +67,22 @@
 	gap: 4px;
 }
 
+#shapeLibraryModal {
+	.modal-content {
+		max-height: calc(100vh - 3.5rem);
+	}
+
+	.modal-body {
+		overflow-y: auto;
+	}
+}
+
+.shape-library-modal-footer {
+	position: sticky;
+	bottom: 0;
+	z-index: 1;
+}
+
 .shape-library-option,
 .shape-library-remember {
 	display: flex;
