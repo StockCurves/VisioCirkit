@@ -148,7 +148,7 @@ describe("AddComponentOffcanvasController", () => {
 		expect(wireItemCheckbox?.checked).toBe(true)
 		expect(junctionItemCheckbox?.checked).toBe(true)
 
-		wireItemCheckbox!.checked = false
+		wireItemCheckbox!.click()
 		;(document.getElementById("shapeLibraryRememberCheckbox") as HTMLInputElement).checked = true
 		;(document.getElementById("shapeLibraryApplyButton") as HTMLButtonElement).click()
 
