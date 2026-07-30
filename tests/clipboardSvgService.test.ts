@@ -98,4 +98,48 @@ describe("clipboardSvgService", () => {
 		resolveImageBitmap({ width: 10, height: 10, close: vi.fn() })
 		await writePromise
 	})
+
+	it("falls back to image/png alone if writing multi-type items fails", async () => {
+		const clipboardItems: Array<Record<string, Blob | Promise<Blob>>> = []
+		let callCount = 0
+		const write = vi.fn().mockImplementation(() => {
+			callCount++
+			if (callCount === 1) {
+				return Promise.reject(new Error("Multi-type write rejected"))
+			}
+			return Promise.resolve(undefined)
+		})
+		class FakeClipboardItem {
+			constructor(items: Record<string, Blob | Promise<Blob>>) {
+				clipboardItems.push(items)
+			}
+		}
+
+		Object.defineProperty(navigator, "clipboard", {
+			value: { write },
+			configurable: true,
+		})
+		Object.defineProperty(globalThis, "ClipboardItem", {
+			value: FakeClipboardItem,
+			configurable: true,
+		})
+		Object.defineProperty(globalThis, "createImageBitmap", {
+			value: vi.fn().mockResolvedValue({ width: 10, height: 10, close: vi.fn() }),
+			configurable: true,
+		})
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+			fillRect: vi.fn(),
+			scale: vi.fn(),
+			drawImage: vi.fn(),
+		} as unknown as CanvasRenderingContext2D)
+		vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback, type) => {
+			callback(new Blob(["png"], { type: type ?? "image/png" }))
+		})
+
+		await writeSvgTextToClipboard('<svg viewBox="0 0 10 10"></svg>')
+
+		expect(write).toHaveBeenCalledTimes(2)
+		expect(clipboardItems[1]).toHaveProperty("image/png")
+		expect(clipboardItems[1]).not.toHaveProperty("text/html")
+	})
 })
