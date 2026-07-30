@@ -3,6 +3,15 @@
 > [!IMPORTANT]
 > This repository is a fork of the original [CircuiTi*k*Z-Designer](https://github.com/Circuit2TikZ/CircuiTikZ-Designer).
 
+## 📢 News
+
+- **Office-Compatible SVG Copy**: Easily copy selected components as Microsoft Office-compatible SVG to the clipboard, allowing you to paste vector graphics directly into Word or PowerPoint.
+- **Bitmap Image Copy**: Copy selected components directly as a bitmap (PNG) image to your clipboard.
+- **Enhanced Drawer UI & Category Chooser**: Introduced a Shape Category Chooser with previews, component-level drawer visibility, and integrated symbol groups into the "More Shapes" drawer.
+- **Unified Help & Info Modals**: Combined the Help and Info dialogs into a cleaner, single modal interface.
+
+---
+
 ## 🎨 About This Project
 
 **VisioCirkit** is a schematic editor tailored for academic research and engineering development! We aim to eliminate the pain of manually writing LaTeX/TikZ code, letting you design, customize, and export high-quality LaTeX circuit diagrams in the most intuitive way possible! 🎨
