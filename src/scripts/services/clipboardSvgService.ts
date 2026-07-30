@@ -98,6 +98,8 @@ async function svgTextToPngBlob(svgText: string): Promise<Blob> {
 	let canvas: HTMLCanvasElement
 
 	try {
+		canvas = await rasterizeSvgViaImage(svgText)
+	} catch {
 		if (typeof createImageBitmap === "function") {
 			const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" })
 			const bitmap = await createImageBitmap(svgBlob)
@@ -117,10 +119,8 @@ async function svgTextToPngBlob(svgText: string): Promise<Blob> {
 			context.drawImage(bitmap, 0, 0, width, height)
 			bitmap.close?.()
 		} else {
-			canvas = await rasterizeSvgViaImage(svgText)
+			throw new Error("Could not rasterize SVG to PNG.")
 		}
-	} catch {
-		canvas = await rasterizeSvgViaImage(svgText)
 	}
 
 	return new Promise((resolve, reject) => {
@@ -134,6 +134,21 @@ async function svgTextToPngBlob(svgText: string): Promise<Blob> {
 	})
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader()
+		reader.onloadend = () => {
+			if (typeof reader.result === "string") {
+				resolve(reader.result)
+			} else {
+				reject(new Error("Failed to convert blob to base64"))
+			}
+		}
+		reader.onerror = reject
+		reader.readAsDataURL(blob)
+	})
+}
+
 export async function writeSvgTextToClipboard(svgText: string): Promise<void> {
 	const clipboard = navigator.clipboard
 	if (!clipboard) {
@@ -142,12 +157,17 @@ export async function writeSvgTextToClipboard(svgText: string): Promise<void> {
 
 	if (typeof ClipboardItem !== "undefined" && clipboard.write) {
 		const pngPromise = svgTextToPngBlob(svgText)
-		const htmlBlob = new Blob([svgTextToHtml(svgText)], { type: "text/html" })
+		const htmlBlobPromise = (async () => {
+			const pngBlob = await pngPromise
+			const base64DataUrl = await blobToBase64(pngBlob)
+			return new Blob([`<img src="${base64DataUrl}">`], { type: "text/html" })
+		})()
+
 		try {
 			await clipboard.write([
 				new ClipboardItem({
 					"image/png": pngPromise,
-					"text/html": htmlBlob,
+					"text/html": htmlBlobPromise,
 				}),
 			])
 			return
