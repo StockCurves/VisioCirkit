@@ -7,6 +7,7 @@ import {
 	SelectionMode,
 	Undo,
 } from "../internal"
+import { createComponentsSvgText, writeSvgTextToClipboard } from "../services/clipboardSvgService"
 
 type Clipboard = {
 	components: ComponentSaveObject[]
@@ -41,6 +42,10 @@ export class CopyPaste {
 			}
 
 			MainController.instance.sendBroadcastMessage("clipboard", CopyPaste.clipboard)
+			const svgText = createComponentsSvgText(SelectionController.instance.currentlySelectedComponents)
+			writeSvgTextToClipboard(svgText).catch((error) => {
+				console.warn("Could not write SVG selection to the system clipboard.", error)
+			})
 		}
 	}
 
