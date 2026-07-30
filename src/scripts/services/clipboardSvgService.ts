@@ -88,11 +88,10 @@ export async function writeSvgTextToClipboard(svgText: string): Promise<void> {
 	}
 
 	if (typeof ClipboardItem !== "undefined" && clipboard.write) {
-		const pngBlob = await svgTextToPngBlob(svgText)
 		try {
 			await clipboard.write([
 				new ClipboardItem({
-					"image/png": pngBlob,
+					"image/png": svgTextToPngBlob(svgText),
 					"text/html": new Blob([svgTextToHtml(svgText)], { type: "text/html" }),
 				}),
 			])
