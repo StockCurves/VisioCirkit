@@ -5,8 +5,8 @@
 
 ## 📢 News
 
+- **Enhanced Clipboard Copy (PNG & OneNote Support)**: Added support for copying selected components as a PNG image to the clipboard for seamless cross-app pasting. Improved compatibility with Microsoft OneNote by embedding the rasterized PNG into `text/html`.
 - **Office-Compatible SVG Copy**: Easily copy selected components as Microsoft Office-compatible SVG to the clipboard, allowing you to paste vector graphics directly into Word or PowerPoint.
-- **Bitmap Image Copy**: Copy selected components directly as a bitmap (PNG) image to your clipboard.
 - **Enhanced Drawer UI & Category Chooser**: Introduced a Shape Category Chooser with previews, component-level drawer visibility, and integrated symbol groups into the "More Shapes" drawer.
 - **Unified Help & Info Modals**: Combined the Help and Info dialogs into a cleaner, single modal interface.
 
@@ -75,8 +75,8 @@ Use the AI Agent skill `/sch2tikz` to convert schematic to tikz code which are r
 
 #### 2. Fully Differential Two-Stage Integrator
 
-|                        Original Schematic                        |              Converted & Rendered CircuiTikZ              |
-| :--------------------------------------------------------------: | :-------------------------------------------------------: |
+|                        Original Schematic                        |                  Converted & Rendered CircuiTikZ                   |
+| :--------------------------------------------------------------: | :----------------------------------------------------------------: |
 | ![Integrator Original](./sch2tikz-out/2026-0626-2222-upload.png) | ![Integrator Rendered](./sch2tikz-out/2026-0626-2222_rendered.svg) |
 
 ---
