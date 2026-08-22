@@ -67,6 +67,11 @@ import {
 	TemplateController,
 	LiveRenderController,
 	nativeTextFontFamily,
+	WorkFileRepository,
+	CustomSymbolRepository,
+	GoogleDriveStorageAdapter,
+	CloudSyncService,
+	CloudSyncUiController,
 } from "../internal"
 
 export type CanvasSettings = {
@@ -126,6 +131,7 @@ export class MainController {
 
 	isMac = false
 	selectionController: SelectionController
+	public cloudSyncService: CloudSyncService | null = null
 
 	broadcastChannel: BroadcastChannel
 	private readonly appRuntime = getAppRuntime()
@@ -371,6 +377,18 @@ export class MainController {
 						},
 						updateTheme: () => MainController.instance.updateTheme(),
 					})
+
+					const workFileRepo = new WorkFileRepository(this.db)
+					const customSymbolRepo = new CustomSymbolRepository(this.db)
+					const cloudSyncService = new CloudSyncService(workFileRepo, customSymbolRepo)
+					MainController.instance.cloudSyncService = cloudSyncService
+					const googleClientId =
+						process.env.VITE_GOOGLE_CLIENT_ID || (window as any).VITE_GOOGLE_CLIENT_ID || ""
+					if (googleClientId) {
+						cloudSyncService.setAdapter(new GoogleDriveStorageAdapter({ clientId: googleClientId }))
+					}
+					const cloudSyncUiController = new CloudSyncUiController(cloudSyncService)
+					cloudSyncUiController.initialize()
 				},
 				updatePropertiesPanel: () => {
 					PropertyController.instance.update()

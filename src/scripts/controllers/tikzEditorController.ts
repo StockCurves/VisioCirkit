@@ -224,7 +224,12 @@ export class TikzEditorController {
 	}
 
 	public getCode(): string {
-		return getEditorText(this.editorTextArea)
+		let code = getEditorText(this.editorTextArea)
+		if (!code || code.trim() === "") {
+			this.updateEditorText(true)
+			code = getEditorText(this.editorTextArea)
+		}
+		return code
 	}
 
 	public clearHighlightsAndErrors() {
@@ -282,8 +287,8 @@ export class TikzEditorController {
 	/**
 	 * Generates TikZ code from the canvas and updates the text area.
 	 */
-	public updateEditorText() {
-		if (!this.isVisible()) return
+	public updateEditorText(force = false) {
+		if (!force && !this.isVisible()) return
 
 		let circuitElements = []
 		let requiredTikzLibraries: Set<string> = new Set<string>()
