@@ -32,6 +32,19 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 	private restoreSession(): void {
 		if (typeof window === "undefined" || !window.localStorage) return
 		try {
+			if (window.location.hash && window.location.hash.includes("access_token=")) {
+				const params = new URLSearchParams(window.location.hash.replace(/^#/, ""))
+				const token = params.get("access_token")
+				if (token) {
+					this.accessToken = token
+					if (window.history && window.history.replaceState) {
+						window.history.replaceState(null, "", window.location.pathname + window.location.search)
+					}
+					void this.fetchUserProfile().then(() => this.saveSession()).catch(() => {})
+					return
+				}
+			}
+
 			const stored = localStorage.getItem(SESSION_STORAGE_KEY)
 			if (stored) {
 				const session = JSON.parse(stored)
@@ -88,7 +101,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 			return this.currentUser
 		}
 
-		// Use MSAL.js if loaded on window, otherwise fall back to OAuth implicit popup/token flow
+		// Use MSAL.js if loaded on window, otherwise fall back to OAuth implicit popup/redirect flow
 		if (typeof window !== "undefined" && (window as any).msal) {
 			const msalConfig = {
 				auth: {
@@ -109,7 +122,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 			return this.currentUser
 		}
 
-		// Popup implicit OAuth flow for Microsoft Graph
+		// OAuth flow for Microsoft Graph (supports popup and auto-redirect fallback if popup blocked)
 		if (typeof window !== "undefined") {
 			const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
 				this.config.clientId
@@ -117,13 +130,20 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 				this.redirectUri
 			)}&scope=${encodeURIComponent(this.scope)}`
 
-			const token = await new Promise<string>((resolve, reject) => {
-				const popup = window.open(authUrl, "onedrive_login", "width=500,height=600")
-				if (!popup) {
-					reject(new Error("Failed to open login popup. Please allow popups for this site."))
-					return
-				}
+			let popup: Window | null = null
+			try {
+				popup = window.open(authUrl, "onedrive_login", "width=520,height=650")
+			} catch {
+				popup = null
+			}
 
+			if (!popup || popup.closed || typeof popup.closed === "undefined") {
+				// Popup blocked by browser! Redirect main window directly
+				window.location.href = authUrl
+				return new Promise<never>(() => {})
+			}
+
+			const token = await new Promise<string>((resolve, reject) => {
 				const timer = setInterval(() => {
 					try {
 						if (!popup || popup.closed) {
@@ -142,7 +162,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 							}
 						}
 					} catch {
-						// Ignore cross-origin errors while user navigates on login.microsoftonline.com
+						// Cross-origin navigation while user enters credentials on Microsoft page
 					}
 				}, 500)
 			})
