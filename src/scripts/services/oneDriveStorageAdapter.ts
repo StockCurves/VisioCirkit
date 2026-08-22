@@ -130,7 +130,11 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 			const msalConfig = {
 				auth: {
 					clientId: this.config.clientId,
+					authority: `https://login.microsoftonline.com/${tenant}`,
 					redirectUri: this.redirectUri,
+				},
+				cache: {
+					cacheLocation: "localStorage",
 				},
 			}
 			const msalInstance = new (window as any).msal.PublicClientApplication(msalConfig)
