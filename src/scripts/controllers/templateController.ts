@@ -156,9 +156,18 @@ export class TemplateController {
 
 	private async confirmSaveToServer() {
 		try {
-			const viewModel = await this.runtime.applicationService.saveWork(this.saveServerFilenameInput.value)
+			TikzEditorController.instance.updateEditorText(true)
+			const filenameInput = this.saveServerFilenameInput.value.trim()
+			const safeFilename = filenameInput.endsWith(".tex") ? filenameInput : `${filenameInput}.tex`
+			const codeContent = TikzEditorController.instance.getCode()
+
+			const viewModel = await this.runtime.applicationService.saveWork(filenameInput)
 			this.saveServerModal?.hide()
 			this.renderDropdown(viewModel)
+
+			if (MainController.instance.cloudSyncService?.isAuthenticated()) {
+				void MainController.instance.cloudSyncService.saveFileToCloud(safeFilename, codeContent)
+			}
 		} catch (err) {
 			console.error("Failed to save file:", err)
 		}

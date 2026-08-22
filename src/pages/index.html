@@ -45,6 +45,7 @@
 			as="fetch"
 			id="symbolDBlink"
 			crossorigin="anonymous" />
+		<script src="https://accounts.google.com/gsi/client" async defer></script>
 	</head>
 
 	<body class="d-flex flex-column w-100 h-100">
@@ -156,6 +157,26 @@
 									data-bs-placement="bottom"
 									data-bs-title="Canvas Grid Settings">
 									<span style="font-size: 1.15rem; line-height: 1;">⚙️</span>
+								</button>
+							</li>
+
+							<li class="nav-item col-12 col-md-auto d-flex align-items-center gap-1 ms-md-1" id="cloudSyncNavContainer">
+								<button
+									type="button"
+									class="btn btn-outline-success btn-sm fw-semibold d-flex align-items-center gap-1"
+									id="cloudLoginBtn">
+									<span style="font-size: 1.05rem; line-height: 1;">☁️</span>
+									<span id="cloudLoginText">Login Google</span>
+								</button>
+								<button
+									type="button"
+									class="btn btn-outline-info btn-sm fw-semibold d-flex align-items-center gap-1 d-none"
+									id="cloudSyncNowBtn"
+									data-bs-toggle="tooltip"
+									data-bs-placement="bottom"
+									data-bs-title="Sync with Google Drive">
+									<span id="cloudSyncIcon" style="font-size: 1.05rem; line-height: 1;">🔄</span>
+									<span id="cloudSyncText">Sync</span>
 								</button>
 							</li>
 
