@@ -1,3 +1,4 @@
+import { PublicClientApplication } from "@azure/msal-browser"
 import { CloudFile, CloudUser, IStorageAdapter } from "./storageAdapter"
 
 export interface OneDriveConfig {
@@ -8,6 +9,7 @@ export interface OneDriveConfig {
 }
 
 const SESSION_STORAGE_KEY = "visiocirkit_onedrive_session"
+const ONEDRIVE_FOLDER_NAME = "VisioCirkit"
 
 export class OneDriveStorageAdapter implements IStorageAdapter {
 	public readonly providerId = "one-drive"
@@ -25,7 +27,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 		private readonly config: OneDriveConfig,
 		customFetch?: typeof fetch
 	) {
-		this.scope = config.scope || "Files.ReadWrite.AppFolder User.Read"
+		this.scope = config.scope || "Files.ReadWrite User.Read"
 		this.redirectUri = config.redirectUri || (typeof window !== "undefined" ? window.location.origin + window.location.pathname : "")
 		this.tenant = config.tenant || "consumers"
 		this.fetchImpl = customFetch || ((...args) => globalThis.fetch(...args))
@@ -51,7 +53,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 			const stored = localStorage.getItem(SESSION_STORAGE_KEY)
 			if (stored) {
 				const session = JSON.parse(stored)
-				if (session.accessToken && session.currentUser && session.expiresAt > Date.now()) {
+				if (session.accessToken && session.currentUser && session.expiresAt > Date.now() && session.scope === this.scope) {
 					this.accessToken = session.accessToken
 					this.currentUser = session.currentUser
 				} else {
@@ -69,6 +71,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 			const session = {
 				accessToken: this.accessToken,
 				currentUser: this.currentUser,
+				scope: this.scope,
 				expiresAt: Date.now() + 3500 * 1000,
 			}
 			localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
@@ -125,8 +128,8 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 	}
 
 	private async performLogin(tenant: string): Promise<CloudUser> {
-		// Use MSAL.js if loaded on window, otherwise fall back to OAuth implicit popup/redirect flow
-		if (typeof window !== "undefined" && (window as any).msal) {
+		// Use MSAL.js so Microsoft can run the authorization-code + PKCE flow for browser apps.
+		if (typeof window !== "undefined") {
 			const msalConfig = {
 				auth: {
 					clientId: this.config.clientId,
@@ -137,7 +140,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 					cacheLocation: "localStorage",
 				},
 			}
-			const msalInstance = new (window as any).msal.PublicClientApplication(msalConfig)
+			const msalInstance = new PublicClientApplication(msalConfig)
 			if (msalInstance.initialize) {
 				await msalInstance.initialize()
 			}
@@ -145,66 +148,6 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 				scopes: this.scope.split(" "),
 			})
 			this.accessToken = authResult.accessToken
-			this.currentUser = await this.fetchUserProfile()
-			this.saveSession()
-			return this.currentUser
-		}
-
-		// OAuth flow for Microsoft Graph (supports popup and auto-redirect fallback if popup blocked)
-		if (typeof window !== "undefined") {
-			const authUrl = `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
-				this.config.clientId
-			)}&response_type=token&redirect_uri=${encodeURIComponent(
-				this.redirectUri
-			)}&scope=${encodeURIComponent(this.scope)}`
-
-			let popup: Window | null = null
-			try {
-				popup = window.open(authUrl, "onedrive_login", "width=520,height=650")
-			} catch {
-				popup = null
-			}
-
-			if (!popup || popup.closed || typeof popup.closed === "undefined") {
-				// Popup blocked by browser! Redirect main window directly
-				window.location.href = authUrl
-				return new Promise<never>(() => {})
-			}
-
-			const token = await new Promise<string>((resolve, reject) => {
-				const timer = setInterval(() => {
-					try {
-						if (!popup || popup.closed) {
-							clearInterval(timer)
-							reject(new Error("Login popup was closed"))
-							return
-						}
-						const hash = popup.location.hash
-						if (hash && hash.includes("error=")) {
-							const params = new URLSearchParams(hash.replace(/^#/, ""))
-							const errCode = params.get("error") || ""
-							const errDesc = params.get("error_description") || ""
-							clearInterval(timer)
-							popup.close()
-							reject(new Error(`${errCode}: ${errDesc}`))
-							return
-						}
-						if (hash && hash.includes("access_token=")) {
-							const params = new URLSearchParams(hash.replace(/^#/, ""))
-							const accessToken = params.get("access_token")
-							if (accessToken) {
-								clearInterval(timer)
-								popup.close()
-								resolve(accessToken)
-							}
-						}
-					} catch {
-						// Cross-origin navigation while user enters credentials on Microsoft page
-					}
-				}, 500)
-			})
-
-			this.accessToken = token
 			this.currentUser = await this.fetchUserProfile()
 			this.saveSession()
 			return this.currentUser
@@ -231,6 +174,37 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 		return new Error(`${fallback}: HTTP ${res.status} ${res.statusText}`)
 	}
 
+	private getFolderPath(): string {
+		return encodeURIComponent(ONEDRIVE_FOLDER_NAME)
+	}
+
+	private isGraphNotFoundError(error: Error): boolean {
+		return error.message.includes("Item not found") || error.message.includes("The resource could not be found")
+	}
+
+	private isMissingUploadFolderError(error: Error): boolean {
+		return error.message.includes("Failed to upload file") && this.isGraphNotFoundError(error)
+	}
+
+	private async createFolder(): Promise<void> {
+		const res = await this.fetchImpl("https://graph.microsoft.com/v1.0/me/drive/root/children", {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${this.accessToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				name: ONEDRIVE_FOLDER_NAME,
+				folder: {},
+				"@microsoft.graph.conflictBehavior": "replace",
+			}),
+		})
+
+		if (!res.ok) {
+			throw await this.extractError(res, "Failed to create OneDrive folder")
+		}
+	}
+
 	public async fetchUserProfile(): Promise<CloudUser> {
 		this.ensureAuthenticated()
 		const res = await this.fetchImpl("https://graph.microsoft.com/v1.0/me", {
@@ -253,13 +227,18 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 
 	public async listFiles(): Promise<CloudFile[]> {
 		this.ensureAuthenticated()
-		const url = "https://graph.microsoft.com/v1.0/me/drive/special/approot/children"
+		const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${this.getFolderPath()}:/children`
 		const res = await this.fetchImpl(url, {
 			headers: { Authorization: `Bearer ${this.accessToken}` },
 		})
 
 		if (!res.ok) {
-			throw await this.extractError(res, "Failed to list files from OneDrive AppFolder")
+			const error = await this.extractError(res, "Failed to list files from OneDrive folder")
+			if (this.isGraphNotFoundError(error)) {
+				await this.createFolder()
+				return []
+			}
+			throw error
 		}
 
 		const data = await res.json()
@@ -288,16 +267,29 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 	public async saveFile(name: string, content: string, _fileId?: string): Promise<CloudFile> {
 		this.ensureAuthenticated()
 		const encodedName = encodeURIComponent(name)
-		const url = `https://graph.microsoft.com/v1.0/me/drive/special/approot:/${encodedName}:/content`
+		const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${this.getFolderPath()}/${encodedName}:/content`
 
-		const res = await this.fetchImpl(url, {
-			method: "PUT",
-			headers: {
-				Authorization: `Bearer ${this.accessToken}`,
-				"Content-Type": "text/plain; charset=utf-8",
-			},
-			body: content,
-		})
+		const upload = () =>
+			this.fetchImpl(url, {
+				method: "PUT",
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					"Content-Type": "text/plain; charset=utf-8",
+				},
+				body: content,
+			})
+
+		let res = await upload()
+
+		if (!res.ok) {
+			const error = await this.extractError(res, `Failed to upload file ${name} to OneDrive`)
+			if (this.isMissingUploadFolderError(error)) {
+				await this.createFolder()
+				res = await upload()
+			} else {
+				throw error
+			}
+		}
 
 		if (!res.ok) {
 			throw await this.extractError(res, `Failed to upload file ${name} to OneDrive`)
