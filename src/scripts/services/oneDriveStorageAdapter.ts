@@ -104,6 +104,27 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 			return this.currentUser
 		}
 
+		try {
+			return await this.performLogin(this.tenant)
+		} catch (err: any) {
+			const errMsg = err?.message || ""
+			if (errMsg.includes("unauthorized_client") || errMsg.includes("consumers")) {
+				const fallbackTenant = this.tenant === "consumers" ? "common" : "consumers"
+				console.warn(`[OneDrive] Tenant '${this.tenant}' failed with: ${errMsg}. Retrying with '${fallbackTenant}'...`)
+				try {
+					return await this.performLogin(fallbackTenant)
+				} catch (retryErr: any) {
+					throw new Error(
+						`Azure App Registration error (unauthorized_client).\n` +
+							`Please verify in Azure Portal that "Supported account types" is set to "Accounts in any organizational directory and personal Microsoft accounts" (Multitenant + Personal) or "Personal Microsoft accounts only".`
+					)
+				}
+			}
+			throw err
+		}
+	}
+
+	private async performLogin(tenant: string): Promise<CloudUser> {
 		// Use MSAL.js if loaded on window, otherwise fall back to OAuth implicit popup/redirect flow
 		if (typeof window !== "undefined" && (window as any).msal) {
 			const msalConfig = {
@@ -127,7 +148,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 
 		// OAuth flow for Microsoft Graph (supports popup and auto-redirect fallback if popup blocked)
 		if (typeof window !== "undefined") {
-			const authUrl = `https://login.microsoftonline.com/${this.tenant}/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
+			const authUrl = `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
 				this.config.clientId
 			)}&response_type=token&redirect_uri=${encodeURIComponent(
 				this.redirectUri
@@ -155,6 +176,15 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 							return
 						}
 						const hash = popup.location.hash
+						if (hash && hash.includes("error=")) {
+							const params = new URLSearchParams(hash.replace(/^#/, ""))
+							const errCode = params.get("error") || ""
+							const errDesc = params.get("error_description") || ""
+							clearInterval(timer)
+							popup.close()
+							reject(new Error(`${errCode}: ${errDesc}`))
+							return
+						}
 						if (hash && hash.includes("access_token=")) {
 							const params = new URLSearchParams(hash.replace(/^#/, ""))
 							const accessToken = params.get("access_token")
