@@ -90,14 +90,15 @@ export class CloudSyncUiController {
 			}
 		} else if (providerId === "one-drive") {
 			const clientId = (process.env.VITE_ONEDRIVE_CLIENT_ID || (window as any).VITE_ONEDRIVE_CLIENT_ID || "").trim()
+			const tenant = (process.env.VITE_ONEDRIVE_TENANT || (window as any).VITE_ONEDRIVE_TENANT || "consumers").trim()
 			if (!clientId) {
 				const entered = prompt("Please enter your Microsoft OneDrive Client ID (Azure Application ID):")
 				if (!entered) return
 				const { OneDriveStorageAdapter } = await import("../services/oneDriveStorageAdapter")
-				this.syncService.setAdapter(new OneDriveStorageAdapter({ clientId: entered.trim() }))
+				this.syncService.setAdapter(new OneDriveStorageAdapter({ clientId: entered.trim(), tenant }))
 			} else {
 				const { OneDriveStorageAdapter } = await import("../services/oneDriveStorageAdapter")
-				this.syncService.setAdapter(new OneDriveStorageAdapter({ clientId }))
+				this.syncService.setAdapter(new OneDriveStorageAdapter({ clientId, tenant }))
 			}
 		}
 

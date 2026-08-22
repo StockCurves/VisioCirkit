@@ -4,6 +4,7 @@ export interface OneDriveConfig {
 	clientId: string
 	scope?: string
 	redirectUri?: string
+	tenant?: string // "consumers" | "common" | "organizations"
 }
 
 const SESSION_STORAGE_KEY = "visiocirkit_onedrive_session"
@@ -18,6 +19,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 
 	private readonly scope: string
 	private readonly redirectUri: string
+	private readonly tenant: string
 
 	public constructor(
 		private readonly config: OneDriveConfig,
@@ -25,6 +27,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 	) {
 		this.scope = config.scope || "Files.ReadWrite.AppFolder User.Read"
 		this.redirectUri = config.redirectUri || (typeof window !== "undefined" ? window.location.origin + window.location.pathname : "")
+		this.tenant = config.tenant || "consumers"
 		this.fetchImpl = customFetch || ((...args) => globalThis.fetch(...args))
 		this.restoreSession()
 	}
@@ -124,7 +127,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 
 		// OAuth flow for Microsoft Graph (supports popup and auto-redirect fallback if popup blocked)
 		if (typeof window !== "undefined") {
-			const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
+			const authUrl = `https://login.microsoftonline.com/${this.tenant}/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
 				this.config.clientId
 			)}&response_type=token&redirect_uri=${encodeURIComponent(
 				this.redirectUri
