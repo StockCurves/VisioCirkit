@@ -138,9 +138,13 @@ export class CloudSyncUiController {
 	public renderUser(user: CloudUser | null): void {
 		const adapter = this.syncService.getAdapter()
 
+const GOOGLE_DRIVE_SVG = `<svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.2-2.1 7.45-12.9c.8-1.4 1.2-2.95 1.2-4.5h-27.5l6.75 11.7z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h27.5c0-1.55-.4-3.1-1.2-4.5l-13.75-23.8c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8z" fill="#ffba00"/><path d="m27.5 53 13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h18.5c1.6 0 3.15-.45 4.5-1.2l-13.75-23.8z" fill="#2684fc"/></svg>`
+const ONEDRIVE_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#0078D4"/></svg>`
+
 		if (user && adapter) {
-			const icon = adapter.providerId === "google-drive" ? "🟢" : "🟦"
-			if (this.providerIcon) this.providerIcon.textContent = icon
+			if (this.providerIcon) {
+				this.providerIcon.innerHTML = adapter.providerId === "google-drive" ? GOOGLE_DRIVE_SVG : ONEDRIVE_SVG
+			}
 			if (this.loginText) this.loginText.textContent = user.name || user.email
 
 			if (this.loginBtn) {
