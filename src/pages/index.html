@@ -161,20 +161,47 @@
 							</li>
 
 							<li class="nav-item col-12 col-md-auto d-flex align-items-center gap-1 ms-md-1" id="cloudSyncNavContainer">
-								<button
-									type="button"
-									class="btn btn-outline-success btn-sm fw-semibold d-flex align-items-center gap-1"
-									id="cloudLoginBtn">
-									<span style="font-size: 1.05rem; line-height: 1;">☁️</span>
-									<span id="cloudLoginText">Login Google</span>
-								</button>
+								<div class="dropdown" id="cloudProviderDropdown">
+									<button
+										class="btn btn-outline-success btn-sm fw-semibold dropdown-toggle d-flex align-items-center gap-1"
+										type="button"
+										id="cloudLoginBtn"
+										data-bs-toggle="dropdown"
+										aria-expanded="false">
+										<span id="cloudProviderIcon" style="font-size: 1.05rem; line-height: 1;">☁️</span>
+										<span id="cloudLoginText">Cloud Storage</span>
+									</button>
+									<ul class="dropdown-menu shadow" id="cloudProviderMenu" style="z-index: 1060; background-color: var(--bg-panel); border-color: var(--border-color);">
+										<li>
+											<a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" id="selectGoogleDriveOpt">
+												<span>🟢</span>
+												<span>Google Drive</span>
+											</a>
+										</li>
+										<li>
+											<a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" id="selectOneDriveOpt">
+												<span>🟦</span>
+												<span>MS OneDrive</span>
+											</a>
+										</li>
+										<li id="cloudLogoutItem" class="d-none">
+											<hr class="dropdown-divider" style="border-color: var(--border-color);">
+										</li>
+										<li id="cloudLogoutContainer" class="d-none">
+											<a class="dropdown-item text-danger d-flex align-items-center gap-2 py-1" href="#" id="cloudLogoutBtn">
+												<span>🚪</span>
+												<span>Disconnect Cloud</span>
+											</a>
+										</li>
+									</ul>
+								</div>
 								<button
 									type="button"
 									class="btn btn-outline-info btn-sm fw-semibold d-flex align-items-center gap-1 d-none"
 									id="cloudSyncNowBtn"
 									data-bs-toggle="tooltip"
 									data-bs-placement="bottom"
-									data-bs-title="Sync with Google Drive">
+									data-bs-title="Sync with Cloud Storage">
 									<span id="cloudSyncIcon" style="font-size: 1.05rem; line-height: 1;">🔄</span>
 									<span id="cloudSyncText">Sync</span>
 								</button>
