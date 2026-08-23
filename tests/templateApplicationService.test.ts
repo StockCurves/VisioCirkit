@@ -76,7 +76,7 @@ describe("TemplateApplicationService", () => {
 	it("invalid save input is reported through the notifier", async () => {
 		const service = new TemplateApplicationService(dataSource, editor, notifier)
 
-		await service.saveWork('bad:name')
+		await service.saveWork("bad\0name")
 
 		expect(notifier.alert).toHaveBeenCalledWith("Save File", "Invalid filename characters.")
 		expect(dataSource.saveWork).not.toHaveBeenCalled()
@@ -90,5 +90,34 @@ describe("TemplateApplicationService", () => {
 
 		expect(notifier.alert).toHaveBeenCalledWith("Delete Work", "The default blank work cannot be deleted.")
 		expect(dataSource.deleteWork).not.toHaveBeenCalled()
+	})
+
+	it("builds hierarchical work tree and folder list correctly", async () => {
+		const { buildWorkTree } = await import("../src/scripts/services/templateApplicationService")
+		const works = ["blank.tex", "analog/filter.tex", "mcu/power/lizard.tex", "mcu/adc.tex"]
+		const { workTree, folders } = buildWorkTree(works)
+
+		expect(folders).toEqual(["analog", "mcu", "mcu/power"])
+		expect(workTree).toHaveLength(3) // analog, mcu, blank.tex (folders first, then files)
+		expect(workTree[0].name).toBe("analog")
+		expect(workTree[0].type).toBe("folder")
+		expect(workTree[1].name).toBe("mcu")
+		expect(workTree[1].type).toBe("folder")
+		expect(workTree[2].name).toBe("blank.tex")
+		expect(workTree[2].type).toBe("file")
+	})
+
+	it("saveWork supports saving to subfolders", async () => {
+		let worksList = ["draft.tex"]
+		dataSource.listFiles = vi.fn().mockImplementation(async () => ({ templates: ["rc-lowpass.tex"], works: worksList }))
+		dataSource.saveWork = vi.fn().mockImplementation(async (name) => { worksList.push(name) })
+
+		const service = new TemplateApplicationService(dataSource, editor, notifier)
+		await service.listEntries()
+
+		const viewModel = await service.saveWork("mcu/power/regulator")
+
+		expect(dataSource.saveWork).toHaveBeenCalledWith("mcu/power/regulator.tex", "\\draw (0,0) -- (2,0);")
+		expect(viewModel.folders).toContain("mcu/power")
 	})
 })

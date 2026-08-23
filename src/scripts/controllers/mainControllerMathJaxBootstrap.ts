@@ -8,7 +8,7 @@ export function initializeMainControllerMathJaxBootstrap(
 	dependencies: MainControllerMathJaxBootstrapDependencies = {}
 ) {
 	return new Promise<void>((resolve) => {
-		if (!("MathJax" in window)) {
+		if (!(window as any).MathJax) {
 			;(window as any).MathJax = {
 				tex: {
 					inlineMath: { "[+]": [["$", "$"]] },

@@ -3,7 +3,7 @@ import { initializeMainControllerMathJaxBootstrap } from "../src/scripts/control
 
 describe("mainControllerMathJaxBootstrap", () => {
 	it("initializes MathJax config and resolves after script load", async () => {
-		delete (window as any).MathJax
+		;(window as any).MathJax = undefined
 
 		const bootstrapPromise = initializeMainControllerMathJaxBootstrap({
 			mathJaxSrc: "https://example.com/mathjax.js",

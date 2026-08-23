@@ -204,9 +204,41 @@ export class GoogleDriveStorageAdapter implements IStorageAdapter {
 		return this.appFolderId
 	}
 
-	public async listFiles(): Promise<CloudFile[]> {
-		this.ensureAuthenticated()
-		const folderId = await this.getOrCreateAppFolder()
+	private async getOrCreateSubfolder(parentFolderId: string, folderName: string): Promise<string> {
+		const query = `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`
+		const listUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`
+		const listRes = await this.fetchImpl(listUrl, {
+			headers: { Authorization: `Bearer ${this.accessToken}` },
+		})
+		if (listRes.ok) {
+			const listData = await listRes.json()
+			if (listData.files && listData.files.length > 0) {
+				return listData.files[0].id
+			}
+		}
+
+		const createRes = await this.fetchImpl("https://www.googleapis.com/drive/v3/files", {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${this.accessToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				name: folderName,
+				parents: [parentFolderId],
+				mimeType: "application/vnd.google-apps.folder",
+			}),
+		})
+
+		if (!createRes.ok) {
+			throw await this.extractError(createRes, `Failed to create subfolder ${folderName}`)
+		}
+
+		const createData = await createRes.json()
+		return createData.id
+	}
+
+	private async listFilesInFolder(folderId: string, prefix = ""): Promise<CloudFile[]> {
 		const query = `'${folderId}' in parents and trashed=false`
 		const fields = "files(id, name, mimeType, modifiedTime)"
 		const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`
@@ -220,12 +252,30 @@ export class GoogleDriveStorageAdapter implements IStorageAdapter {
 		}
 
 		const data = await res.json()
-		return (data.files || []).map((file: any) => ({
-			id: file.id,
-			name: file.name,
-			mimeType: file.mimeType,
-			updatedAt: file.modifiedTime ? new Date(file.modifiedTime).getTime() : Date.now(),
-		}))
+		const files: CloudFile[] = []
+
+		for (const file of data.files || []) {
+			const relativeName = prefix ? `${prefix}/${file.name}` : file.name
+			if (file.mimeType === "application/vnd.google-apps.folder") {
+				const childFiles = await this.listFilesInFolder(file.id, relativeName)
+				files.push(...childFiles)
+			} else {
+				files.push({
+					id: file.id,
+					name: relativeName,
+					mimeType: file.mimeType,
+					updatedAt: file.modifiedTime ? new Date(file.modifiedTime).getTime() : Date.now(),
+				})
+			}
+		}
+
+		return files
+	}
+
+	public async listFiles(): Promise<CloudFile[]> {
+		this.ensureAuthenticated()
+		const folderId = await this.getOrCreateAppFolder()
+		return this.listFilesInFolder(folderId, "")
 	}
 
 	public async getFile(fileId: string): Promise<string> {
@@ -244,7 +294,21 @@ export class GoogleDriveStorageAdapter implements IStorageAdapter {
 
 	public async saveFile(name: string, content: string, fileId?: string): Promise<CloudFile> {
 		this.ensureAuthenticated()
-		const folderId = await this.getOrCreateAppFolder()
+		const rootFolderId = await this.getOrCreateAppFolder()
+
+		const cleanPath = name.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "")
+		const parts = cleanPath.split("/").filter(Boolean)
+		let targetFolderId = rootFolderId
+		let targetFileName = cleanPath
+
+		if (parts.length > 1) {
+			for (let i = 0; i < parts.length - 1; i++) {
+				targetFolderId = await this.getOrCreateSubfolder(targetFolderId, parts[i])
+			}
+			targetFileName = parts[parts.length - 1]
+		} else if (parts.length === 1) {
+			targetFileName = parts[0]
+		}
 
 		if (fileId) {
 			// Update content of existing file
@@ -262,10 +326,21 @@ export class GoogleDriveStorageAdapter implements IStorageAdapter {
 				throw await this.extractError(res, `Failed to update file ${fileId} in Google Drive`)
 			}
 
+			// Update metadata (rename to single filename & move into target subfolder if needed)
+			const metaUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${targetFolderId}&fields=id,name`
+			await this.fetchImpl(metaUrl, {
+				method: "PATCH",
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ name: targetFileName }),
+			}).catch(() => {})
+
 			const data = await res.json()
 			return {
 				id: data.id || fileId,
-				name,
+				name: cleanPath,
 				content,
 				mimeType: data.mimeType || "text/plain",
 				updatedAt: Date.now(),
@@ -277,8 +352,8 @@ export class GoogleDriveStorageAdapter implements IStorageAdapter {
 			const closeDelimiter = `\r\n--${boundary}--`
 
 			const metadata = {
-				name,
-				parents: [folderId],
+				name: targetFileName,
+				parents: [targetFolderId],
 				mimeType: "text/plain",
 			}
 
@@ -304,13 +379,13 @@ export class GoogleDriveStorageAdapter implements IStorageAdapter {
 			)
 
 			if (!res.ok) {
-				throw await this.extractError(res, `Failed to create file ${name} in Google Drive`)
+				throw await this.extractError(res, `Failed to create file ${cleanPath} in Google Drive`)
 			}
 
 			const data = await res.json()
 			return {
 				id: data.id,
-				name,
+				name: cleanPath,
 				content,
 				mimeType: data.mimeType || "text/plain",
 				updatedAt: Date.now(),

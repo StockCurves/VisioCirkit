@@ -7,9 +7,26 @@ export interface TemplateSessionState {
 	works: string[]
 }
 
+export interface WorkTreeFileNode {
+	type: "file"
+	name: string
+	path: string
+}
+
+export interface WorkTreeFolderNode {
+	type: "folder"
+	name: string
+	path: string
+	children: WorkTreeNode[]
+}
+
+export type WorkTreeNode = WorkTreeFileNode | WorkTreeFolderNode
+
 export interface TemplateListViewModel {
 	templates: string[]
 	works: string[]
+	workTree: WorkTreeNode[]
+	folders: string[]
 	selectedDisplayName: string
 	hasWorks: boolean
 }

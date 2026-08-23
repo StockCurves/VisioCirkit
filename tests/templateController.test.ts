@@ -80,21 +80,31 @@ describe("TemplateController", () => {
 			<button id="template-dropdown-btn"><span>initial</span></button>
 			<ul id="template-dropdown-menu"></ul>
 			<div id="saveServerModal"></div>
+			<select id="saveServerFolderSelect"></select>
+			<button id="saveServerNewFolderBtn"></button>
 			<input id="saveServerFilenameInput" />
 			<button id="saveServerConfirmButton"></button>
 			<div id="workContextMenu" style="display:none; position:absolute;"></div>
 			<button id="deleteWorkButton"></button>
+			<button id="newSubfolderButton"></button>
 		`
 
 		serviceMocks.bootstrapDefaultFile.mockResolvedValue({
 			templates: ["rc-lowpass.tex"],
 			works: ["blank.tex"],
+			workTree: [{ type: "file", name: "blank.tex", path: "blank.tex" }],
+			folders: [],
 			selectedDisplayName: "blank",
 			hasWorks: true,
 		})
 		serviceMocks.openFile.mockResolvedValue({
 			templates: ["rc-lowpass.tex"],
 			works: ["blank.tex", "draft.tex"],
+			workTree: [
+				{ type: "file", name: "blank.tex", path: "blank.tex" },
+				{ type: "file", name: "draft.tex", path: "draft.tex" },
+			],
+			folders: [],
 			selectedDisplayName: "draft",
 			hasWorks: true,
 		})
@@ -122,6 +132,8 @@ describe("TemplateController", () => {
 		serviceMocks.bootstrapDefaultFile.mockResolvedValue({
 			templates: ["rc-lowpass.tex"],
 			works: ["draft.tex"],
+			workTree: [{ type: "file", name: "draft.tex", path: "draft.tex" }],
+			folders: [],
 			selectedDisplayName: "rc-lowpass",
 			hasWorks: true,
 		})
@@ -129,7 +141,7 @@ describe("TemplateController", () => {
 		await TemplateController.instance.initialize()
 
 		const workLink = Array.from(document.querySelectorAll("#template-dropdown-menu a")).find(
-			(link) => link.textContent === "draft"
+			(link) => link.textContent?.includes("draft")
 		) as HTMLAnchorElement
 		workLink.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }))
 
@@ -140,6 +152,8 @@ describe("TemplateController", () => {
 		serviceMocks.bootstrapDefaultFile.mockResolvedValue({
 			templates: ["rc-lowpass.tex"],
 			works: ["draft.tex"],
+			workTree: [{ type: "file", name: "draft.tex", path: "draft.tex" }],
+			folders: [],
 			selectedDisplayName: "rc-lowpass",
 			hasWorks: true,
 		})
@@ -147,7 +161,7 @@ describe("TemplateController", () => {
 		await TemplateController.instance.initialize()
 
 		const workLink = Array.from(document.querySelectorAll("#template-dropdown-menu a")).find(
-			(link) => link.textContent === "draft"
+			(link) => link.textContent?.includes("draft")
 		) as HTMLAnchorElement
 		workLink.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, pageX: 50, pageY: 60 }))
 

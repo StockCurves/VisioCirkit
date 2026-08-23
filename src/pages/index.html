@@ -635,6 +635,17 @@
 					</div>
 					<div class="modal-body d-flex flex-column gap-3">
 						<div>
+							<label for="saveServerFolderSelect" class="form-label">Target Folder</label>
+							<div class="input-group mb-2">
+								<select class="form-select" id="saveServerFolderSelect">
+									<option value="">/ (Root)</option>
+								</select>
+								<button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" id="saveServerNewFolderBtn" title="New Folder">
+									<span class="material-symbols-outlined fs-6">create_new_folder</span> New Folder
+								</button>
+							</div>
+						</div>
+						<div>
 							<label for="saveServerFilenameInput" class="form-label">Filename</label>
 							<div class="input-group">
 								<input type="text" class="form-control" id="saveServerFilenameInput" placeholder="circuit" />
@@ -642,7 +653,7 @@
 							</div>
 						</div>
 						<div class="form-text">
-							The file will be saved in the server's <code>work/</code> directory and will be editable.
+							The file will be saved in your <code>work/</code> workspace directory and synced to cloud storage.
 						</div>
 					</div>
 					<div class="modal-footer">
@@ -1117,6 +1128,10 @@
 
 		<!-- Context Menu for Work items -->
 		<div id="workContextMenu" class="dropdown-menu context-menu shadow position-absolute" style="display: none; z-index: 1080;">
+			<button class="dropdown-item d-flex align-items-center gap-2" id="newSubfolderButton">
+				<span class="material-symbols-outlined fs-6">create_new_folder</span>
+				New Folder
+			</button>
 			<button class="dropdown-item text-danger d-flex align-items-center gap-2" id="deleteWorkButton">
 				<span class="material-symbols-outlined fs-6">delete</span>
 				Delete

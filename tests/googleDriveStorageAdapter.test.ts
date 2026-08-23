@@ -90,4 +90,36 @@ describe("GoogleDriveStorageAdapter", () => {
 		expect(saved.id).toBe("new-file-id")
 		expect(saved.name).toBe("new_circuit.tex")
 	})
+
+	it("creates subfolder and saves file in subfolder", async () => {
+		const mockFetch = vi.fn()
+		// 1. Root folder query returns folder-123
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ files: [{ id: "folder-123", name: "VisioCirkit" }] }),
+		})
+		// 2. Subfolder query returns empty
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ files: [] }),
+		})
+		// 3. Subfolder creation returns subfolder-456
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ id: "subfolder-456", name: "mcu" }),
+		})
+		// 4. Multipart upload returns created file
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ id: "sub-file-789", name: "circuit.tex", mimeType: "text/plain" }),
+		})
+
+		const adapter = new GoogleDriveStorageAdapter({ clientId: "test-id" }, mockFetch)
+		adapter.setAccessToken("fake-token")
+		adapter.setUser({ id: "1", name: "User", email: "user@test.com" })
+
+		const saved = await adapter.saveFile("mcu/circuit.tex", "\\begin{document}\\end{document}")
+		expect(saved.id).toBe("sub-file-789")
+		expect(saved.name).toBe("mcu/circuit.tex")
+	})
 })

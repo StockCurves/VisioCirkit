@@ -225,16 +225,14 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 		return user
 	}
 
-	public async listFiles(): Promise<CloudFile[]> {
-		this.ensureAuthenticated()
-		const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${this.getFolderPath()}:/children`
+	private async listChildrenOfFolder(url: string, prefix = ""): Promise<CloudFile[]> {
 		const res = await this.fetchImpl(url, {
 			headers: { Authorization: `Bearer ${this.accessToken}` },
 		})
 
 		if (!res.ok) {
 			const error = await this.extractError(res, "Failed to list files from OneDrive folder")
-			if (this.isGraphNotFoundError(error)) {
+			if (this.isGraphNotFoundError(error) && !prefix) {
 				await this.createFolder()
 				return []
 			}
@@ -242,12 +240,31 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 		}
 
 		const data = await res.json()
-		return (data.value || []).map((file: any) => ({
-			id: file.id,
-			name: file.name,
-			mimeType: file.file?.mimeType || "text/plain",
-			updatedAt: file.lastModifiedDateTime ? new Date(file.lastModifiedDateTime).getTime() : Date.now(),
-		}))
+		const files: CloudFile[] = []
+
+		for (const file of data.value || []) {
+			const relativeName = prefix ? `${prefix}/${file.name}` : file.name
+			if (file.folder) {
+				const subUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${file.id}/children`
+				const childFiles = await this.listChildrenOfFolder(subUrl, relativeName)
+				files.push(...childFiles)
+			} else {
+				files.push({
+					id: file.id,
+					name: relativeName,
+					mimeType: file.file?.mimeType || "text/plain",
+					updatedAt: file.lastModifiedDateTime ? new Date(file.lastModifiedDateTime).getTime() : Date.now(),
+				})
+			}
+		}
+
+		return files
+	}
+
+	public async listFiles(): Promise<CloudFile[]> {
+		this.ensureAuthenticated()
+		const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${this.getFolderPath()}:/children`
+		return this.listChildrenOfFolder(url, "")
 	}
 
 	public async getFile(fileId: string): Promise<string> {
@@ -266,8 +283,8 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 
 	public async saveFile(name: string, content: string, _fileId?: string): Promise<CloudFile> {
 		this.ensureAuthenticated()
-		const encodedName = encodeURIComponent(name)
-		const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${this.getFolderPath()}/${encodedName}:/content`
+		const encodedPath = name.split("/").map(encodeURIComponent).join("/")
+		const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${this.getFolderPath()}/${encodedPath}:/content`
 
 		const upload = () =>
 			this.fetchImpl(url, {
@@ -298,7 +315,7 @@ export class OneDriveStorageAdapter implements IStorageAdapter {
 		const data = await res.json()
 		return {
 			id: data.id,
-			name: data.name || name,
+			name: name,
 			content,
 			mimeType: data.file?.mimeType || "text/plain",
 			updatedAt: data.lastModifiedDateTime ? new Date(data.lastModifiedDateTime).getTime() : Date.now(),
